@@ -1,0 +1,441 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  background: #1f1f1f;
+  --radius: 10px;
+}
+
+html {
+  min-height: 100%;
+  background: #1f1f1f;
+  overscroll-behavior: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #1f1f1f;
+  color: #e8eaed;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  overscroll-behavior: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(122, 162, 255, 0.7);
+  outline-offset: 2px;
+}
+
+.cal-grid {
+  grid-template-rows: repeat(12, minmax(42px, 1fr));
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.calendar-board .fc {
+  --fc-page-bg-color: #131314;
+  --fc-neutral-bg-color: #131314;
+  --fc-border-color: #333537;
+  --fc-today-bg-color: transparent;
+  --fc-now-indicator-color: #ff5f57;
+  --fc-small-font-size: 11px;
+  color: #e8eaed;
+  font-size: 13px;
+  font-family: "Google Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+.gcal-board {
+  height: 100%;
+  min-height: 0;
+  background: #1f1f1f;
+  color: #e8eaed;
+}
+
+.gcal-topbar {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 10px 20px 8px 20px;
+}
+
+.gcal-title {
+  margin-left: 18px;
+  color: #e8eaed;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.gcal-actions {
+  display: flex;
+  shrink: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.gcal-today-button,
+.gcal-view-tabs,
+.gcal-create-button {
+  height: 48px;
+  border: 1px solid #747775;
+  background: transparent;
+  color: #e8eaed;
+  box-shadow: none;
+}
+
+.gcal-today-button {
+  min-width: 112px;
+  border-radius: 999px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.gcal-view-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(74px, 1fr));
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.gcal-view-tabs button {
+  padding: 0 18px;
+  color: #bdc1c6;
+  font-size: 17px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.gcal-view-tabs button + button {
+  border-left: 1px solid #747775;
+}
+
+.gcal-view-tabs .active {
+  background: #075985;
+  color: #e8f0fe;
+}
+
+.gcal-icon-button {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 999px;
+  color: #bdc1c6;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.gcal-icon-button:hover,
+.gcal-view-tabs button:hover,
+.gcal-today-button:hover {
+  background: #303134;
+  color: #fff;
+}
+
+.gcal-create-button {
+  border-radius: 999px;
+  padding: 0 22px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.gcal-avatar {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 999px;
+  color: #d2e3fc;
+}
+
+.gcal-main {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+.gcal-calendar-shell {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 44px;
+  background: #131314;
+  margin: 0 18px 18px 18px;
+  padding: 0 24px 0 0;
+}
+
+.gcal-right-rail {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  flex-direction: column;
+  padding: 30px 14px 20px;
+}
+
+.gcal-right-rail button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.gcal-right-rail button:hover {
+  background: #303134;
+}
+
+.gcal-day-head {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 0 8px;
+}
+
+.gcal-day-name {
+  color: #bdc1c6;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.gcal-day-number {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 999px;
+  color: #bdc1c6;
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.gcal-day-number-today {
+  background: #a8c7fa;
+  color: #06305f;
+}
+
+/* Subtle grid lines throughout */
+.calendar-board .fc-scrollgrid,
+.calendar-board .fc-theme-standard td,
+.calendar-board .fc-theme-standard th {
+  border-color: #333537;
+}
+
+/* Half-hour lines: dashed + even more faint */
+.calendar-board .fc-timegrid-slot-minor {
+  border-top-style: dashed !important;
+  border-top-color: transparent !important;
+}
+
+/* Column header */
+.calendar-board .fc-col-header-cell {
+  background: #131314;
+  padding: 0;
+  border-bottom: 0;
+}
+
+.calendar-board .fc-col-header-cell-cushion {
+  display: block;
+  text-decoration: none;
+  padding: 0;
+}
+
+/* Time axis labels */
+.calendar-board .fc-timegrid-axis,
+.calendar-board .fc-timegrid-slot-label {
+  color: #bdc1c6;
+  font-size: 16px;
+  font-weight: 600;
+  border-color: transparent;
+  width: 76px !important;
+  min-width: 76px !important;
+}
+
+.calendar-board .fc-timegrid-slot-label-cushion {
+  padding-right: 18px;
+  padding-top: 0;
+}
+
+.calendar-board .fc-timegrid-axis-frame {
+  align-items: start;
+  justify-content: start;
+  padding-left: 14px;
+  padding-top: 2px;
+}
+
+.calendar-board .fc-timegrid-slot {
+  height: 64px;
+}
+
+.calendar-board .fc-timegrid-divider {
+  display: none;
+}
+
+/* Events */
+.calendar-board .fc-event {
+  border-radius: 8px;
+  border: none !important;
+  cursor: pointer;
+  color: #1f1f1f !important;
+  font-size: 14px;
+  font-weight: 700;
+  transition: filter 100ms ease, box-shadow 100ms ease;
+  box-shadow: none;
+}
+
+.calendar-board .fc-event:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+}
+
+.calendar-board .fc-timegrid-event {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.calendar-board .fc-timegrid-event .fc-event-main {
+  padding: 0;
+  overflow: hidden;
+}
+
+.calendar-board .fc-daygrid-event {
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-size: 13px;
+}
+
+/* Today column highlight */
+.calendar-board .fc-day-today .fc-col-header-cell-cushion {
+  color: inherit !important;
+}
+
+.calendar-board .fc-timegrid-col.fc-day-today {
+  background: transparent;
+}
+
+/* Today date circle in month view */
+.calendar-board .fc .fc-day-today .fc-daygrid-day-number {
+  background: #4285f4;
+  border-radius: 50%;
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Remove outer border from scrollgrid */
+.calendar-board .fc-scrollgrid {
+  border-width: 0 !important;
+}
+
+.calendar-board .fc-scrollgrid-section-header th:first-child {
+  border-right-color: transparent;
+}
+
+.calendar-board .fc-scrollgrid-section-body td:first-child {
+  border-right-color: #333537;
+}
+
+.calendar-board .fc-scrollgrid-section > * {
+  border-left-width: 0;
+  border-right-width: 0;
+}
+
+/* Now indicator: thin line + circle dot */
+.calendar-board .fc-timegrid-now-indicator-line {
+  border-color: #ff5f57;
+  border-width: 2px;
+}
+
+.calendar-board .fc-timegrid-now-indicator-arrow {
+  border: none !important;
+  background: #ff5f57;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  margin-top: -8px;
+  margin-left: -9px;
+}
+
+/* All-day area */
+.calendar-board .fc-daygrid-body {
+  background: #131314;
+}
+
+/* Remove bottom border on last timegrid row */
+.calendar-board .fc-timegrid-slot:last-child {
+  border-bottom: none;
+}
+
+/* Hide axis border line on the left */
+.calendar-board .fc-timegrid-axis {
+  border-color: transparent !important;
+}
+
+.calendar-board .fc .fc-timegrid-col-frame {
+  min-height: 100%;
+}
+
+.calendar-board .fc .fc-scroller {
+  scrollbar-color: #747775 transparent;
+  scrollbar-width: thin;
+}
+
+.calendar-board .fc .fc-scroller::-webkit-scrollbar {
+  width: 14px;
+}
+
+.calendar-board .fc .fc-scroller::-webkit-scrollbar-thumb {
+  background: #747775;
+  border-radius: 999px;
+  border: 4px solid #131314;
+}
+
+@media (max-width: 1180px) {
+  .gcal-actions {
+    gap: 6px;
+  }
+
+  .gcal-title {
+    font-size: 28px;
+  }
+
+  .gcal-today-button {
+    min-width: 104px;
+    font-size: 18px;
+  }
+
+  .gcal-view-tabs,
+  .gcal-create-button {
+    display: none;
+  }
+}

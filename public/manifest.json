@@ -1,0 +1,35 @@
+{
+  "name": "Jacob OS",
+  "short_name": "Jacob OS",
+  "start_url": "/home",
+  "display": "standalone",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "orientation": "portrait",
+  "categories": ["productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Capture",
+      "short_name": "Capture",
+      "url": "/capture"
+    },
+    {
+      "name": "Calendar",
+      "short_name": "Calendar",
+      "url": "/calendar"
+    },
+    {
+      "name": "Today",
+      "short_name": "Today",
+      "url": "/home"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

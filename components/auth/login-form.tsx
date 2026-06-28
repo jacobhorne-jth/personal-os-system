@@ -1,0 +1,61 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Mail } from "lucide-react";
+import { createBrowserSupabaseClient, hasSupabaseEnv } from "@/lib/supabase/browser";
+
+export function LoginForm() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!hasSupabaseEnv()) {
+      router.push("/home");
+      return;
+    }
+
+    setLoading(true);
+    const supabase = createBrowserSupabaseClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/home`
+      }
+    });
+
+    setLoading(false);
+    setMessage(error ? error.message : "Check your email for the sign-in link.");
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <label className="block text-sm text-muted" htmlFor="email">
+        Email
+      </label>
+      <div className="flex gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-line bg-paper px-3">
+          <Mail className="size-4 text-muted" />
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="jacob@example.com"
+            className="h-11 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+          />
+        </div>
+        <button className="grid size-11 place-items-center rounded-lg bg-ink text-paper disabled:opacity-60" disabled={loading}>
+          <ArrowRight className="size-4" />
+        </button>
+      </div>
+      <p className="min-h-5 text-xs text-muted">
+        {message || (!hasSupabaseEnv() ? "Supabase env is not configured yet, so this opens the local prototype." : "Magic link sign-in.")}
+      </p>
+    </form>
+  );
+}
