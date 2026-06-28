@@ -3,10 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import { noteLabels } from "@/components/notes/notes-workspace";
 import { useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
-import { cn } from "@/lib/utils";
 
 function insertAtSelection(textarea: HTMLTextAreaElement, value: string) {
   const start = textarea.selectionStart;
@@ -32,21 +29,16 @@ export function NoteEditor({ noteId }: { noteId: string }) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const note = useAppStore((state) => state.notes.find((item) => item.id === noteId));
-  const responsibilities = useAppStore((state) => state.responsibilities);
   const updateNote = useAppStore((state) => state.updateNote);
   const markNoteOpened = useAppStore((state) => state.markNoteOpened);
   const deleteNote = useAppStore((state) => state.deleteNote);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [responsibilityId, setResponsibilityId] = useState("personal");
-  const [labels, setLabels] = useState<string[]>([]);
 
   useEffect(() => {
     if (!note) return;
     setTitle(note.title);
     setBody(note.body);
-    setResponsibilityId(note.responsibilityId);
-    setLabels(note.labels ?? []);
   }, [note]);
 
   useEffect(() => {
@@ -56,23 +48,16 @@ export function NoteEditor({ noteId }: { noteId: string }) {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (!note) return;
-      if (
-        title !== note.title ||
-        body !== note.body ||
-        responsibilityId !== note.responsibilityId ||
-        labels.join("|") !== (note.labels ?? []).join("|")
-      ) {
+      if (title !== note.title || body !== note.body) {
         updateNote(note.id, {
           title,
-          body,
-          responsibilityId,
-          labels
+          body
         });
       }
     }, 450);
 
     return () => window.clearTimeout(timer);
-  }, [body, labels, note, responsibilityId, title, updateNote]);
+  }, [body, note, title, updateNote]);
 
   if (!note) {
     return (
@@ -81,9 +66,6 @@ export function NoteEditor({ noteId }: { noteId: string }) {
       </div>
     );
   }
-
-  const responsibility = responsibilities.find((item) => item.id === responsibilityId);
-  const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
 
   function handleBodyKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     const textarea = event.currentTarget;
@@ -131,12 +113,12 @@ export function NoteEditor({ noteId }: { noteId: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <div className="min-h-[calc(100dvh-96px)] bg-[#242528] px-6 py-4 sm:px-10 lg:px-14">
+      <div className="mb-6 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => router.push("/notes")}
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-line px-3 text-sm text-muted transition hover:bg-line hover:text-ink"
+          className="inline-flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted transition hover:bg-line hover:text-ink"
         >
           <ArrowLeft className="size-4" />
           Notes
@@ -144,60 +126,28 @@ export function NoteEditor({ noteId }: { noteId: string }) {
         <button
           type="button"
           onClick={removeNote}
-          className="grid size-9 place-items-center rounded-lg border border-line text-muted transition hover:border-coral hover:text-coral"
+          className="grid size-8 place-items-center rounded-md text-muted transition hover:bg-line hover:text-coral"
           aria-label="Delete note"
         >
           <Trash2 className="size-4" />
         </button>
       </div>
 
-      <article className="overflow-hidden rounded-lg border border-line bg-[#242528]">
-        <div className={cn("h-1", tone.dot)} />
-        <div className="border-b border-line px-5 py-4">
-          <input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder="Untitled"
-            autoFocus
-            className="w-full bg-transparent text-4xl font-semibold leading-tight text-ink outline-none placeholder:text-muted"
-          />
-          <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,220px)_minmax(0,220px)]">
-            <select
-              value={responsibilityId}
-              onChange={(event) => setResponsibilityId(event.target.value)}
-              className="h-10 rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none focus:border-blue"
-            >
-              {responsibilities.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={labels[0] ?? ""}
-              onChange={(event) => setLabels(event.target.value ? [event.target.value] : [])}
-              className="h-10 rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none focus:border-blue"
-            >
-              <option value="">No label</option>
-              {noteLabels.map((label) => (
-                <option
-                  key={label}
-                  value={label}
-                >
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
+      <article className="mx-auto max-w-5xl">
+        <input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="New page"
+          autoFocus
+          className="mb-5 w-full bg-transparent text-5xl font-semibold leading-tight text-ink outline-none placeholder:text-muted/35"
+        />
         <textarea
           ref={textareaRef}
           value={body}
           onChange={(event) => setBody(event.target.value)}
           onKeyDown={handleBodyKeyDown}
           placeholder="Start writing..."
-          className="min-h-[62vh] w-full resize-none bg-transparent px-5 py-5 font-mono text-[15px] leading-7 text-ink outline-none placeholder:text-muted"
+          className="min-h-[68vh] w-full resize-none bg-transparent text-[16px] leading-7 text-ink outline-none placeholder:text-muted/55"
           spellCheck
         />
       </article>
