@@ -105,6 +105,7 @@ export type Note = {
   labels?: string[];
   createdAt: string;
   updatedAt?: string;
+  lastOpenedAt?: string;
 };
 
 export type FileAsset = {

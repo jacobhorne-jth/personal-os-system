@@ -34,6 +34,7 @@ export function NoteEditor({ noteId }: { noteId: string }) {
   const note = useAppStore((state) => state.notes.find((item) => item.id === noteId));
   const responsibilities = useAppStore((state) => state.responsibilities);
   const updateNote = useAppStore((state) => state.updateNote);
+  const markNoteOpened = useAppStore((state) => state.markNoteOpened);
   const deleteNote = useAppStore((state) => state.deleteNote);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -47,6 +48,10 @@ export function NoteEditor({ noteId }: { noteId: string }) {
     setResponsibilityId(note.responsibilityId);
     setLabels(note.labels ?? []);
   }, [note]);
+
+  useEffect(() => {
+    markNoteOpened(noteId);
+  }, [markNoteOpened, noteId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

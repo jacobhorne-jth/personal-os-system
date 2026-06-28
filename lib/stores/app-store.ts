@@ -30,6 +30,7 @@ type AppState = {
   deleteTask: (taskId: string) => void;
   addNote: (input: { title: string; body: string; responsibilityId: string; labels?: string[] }) => string;
   updateNote: (noteId: string, input: Partial<Omit<Note, "id" | "createdAt">>) => void;
+  markNoteOpened: (noteId: string) => void;
   deleteNote: (noteId: string) => void;
   addList: (input: { title: string; responsibilityId: string }) => void;
   addListItem: (input: { listId: string; title: string }) => void;
@@ -57,7 +58,8 @@ const seedNotes: Note[] = [
     responsibilityId: "digital-learning-lab",
     labels: ["research"],
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    lastOpenedAt: now
   },
   {
     id: "note-2",
@@ -66,7 +68,8 @@ const seedNotes: Note[] = [
     responsibilityId: "school",
     labels: ["class notes"],
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    lastOpenedAt: now
   },
   {
     id: "note-3",
@@ -75,7 +78,8 @@ const seedNotes: Note[] = [
     responsibilityId: "school",
     labels: ["class notes"],
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    lastOpenedAt: now
   },
   {
     id: "note-4",
@@ -84,7 +88,8 @@ const seedNotes: Note[] = [
     responsibilityId: "recruiting",
     labels: ["follow-up"],
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    lastOpenedAt: now
   }
 ];
 
@@ -272,7 +277,8 @@ export const useAppStore = create<AppState>()(
               responsibilityId: input.responsibilityId,
               labels: input.labels ?? [],
               createdAt: timestamp,
-              updatedAt: timestamp
+              updatedAt: timestamp,
+              lastOpenedAt: timestamp
             },
             ...state.notes
           ]
@@ -287,6 +293,17 @@ export const useAppStore = create<AppState>()(
                   ...note,
                   ...input,
                   updatedAt: new Date().toISOString()
+                }
+              : note
+          )
+        })),
+      markNoteOpened: (noteId) =>
+        set((state) => ({
+          notes: state.notes.map((note) =>
+            note.id === noteId
+              ? {
+                  ...note,
+                  lastOpenedAt: new Date().toISOString()
                 }
               : note
           )
@@ -411,7 +428,8 @@ export const useAppStore = create<AppState>()(
           responsibilityId: note.responsibilityId,
           labels: [],
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          lastOpenedAt: new Date().toISOString()
         }));
         const newListItems = (extraction.proposedListItems ?? []).filter((item) => shouldCommit("list", `${item.listTitle}:${item.itemTitle}`));
 
