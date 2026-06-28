@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -40,6 +41,8 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarLockedClosed, setSidebarLockedClosed] = useState(false);
   const isPublicRoute = pathname.startsWith("/login");
   const isHomeSurface = pathname.startsWith("/home");
   const isCalendarSurface = pathname.startsWith("/calendar");
@@ -50,10 +53,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh">
-      {!isCalendarSurface && <aside className="fixed left-0 top-0 hidden h-screen w-[248px] border-r border-line bg-paper lg:flex lg:flex-col lg:py-4">
-        <Link href="/home" className="mx-4 mb-5 flex h-11 items-center gap-3 rounded-lg bg-blue px-3 text-white">
+      <aside
+        onMouseEnter={() => {
+          if (!sidebarLockedClosed) setSidebarOpen(true);
+        }}
+        onMouseLeave={() => {
+          setSidebarOpen(false);
+          setSidebarLockedClosed(false);
+        }}
+        onFocus={() => setSidebarOpen(true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setSidebarOpen(false);
+        }}
+        className={cn(
+          "fixed left-0 top-0 z-40 hidden h-screen border-r border-line bg-paper transition-[width] duration-200 ease-out lg:flex lg:flex-col lg:py-4",
+          sidebarOpen ? "w-[248px]" : "w-[72px]"
+        )}
+      >
+        <Link
+          href="/home"
+          onClick={() => {
+            setSidebarOpen(false);
+            setSidebarLockedClosed(true);
+          }}
+          className="mx-3 mb-5 flex h-11 items-center gap-3 overflow-hidden rounded-lg bg-blue px-3 text-white"
+        >
           <Command className="size-5 shrink-0" />
-          <span className="text-sm font-semibold">Jacob OS</span>
+          <span className={cn("whitespace-nowrap text-sm font-semibold transition-opacity duration-150", sidebarOpen ? "opacity-100" : "opacity-0")}>Jacob OS</span>
         </Link>
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3">
           {navItems.map((item) => {
@@ -64,31 +90,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 title={item.label}
+                onClick={() => {
+                  setSidebarOpen(false);
+                  setSidebarLockedClosed(true);
+                }}
                 className={cn(
-                  "group relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm text-muted transition duration-200 hover:bg-line hover:text-ink",
+                  "relative flex h-10 items-center gap-3 overflow-hidden rounded-lg px-3 text-sm text-muted transition duration-200 hover:bg-line hover:text-ink",
                   active && "bg-line text-ink"
                 )}
               >
                 <Icon className="size-4 shrink-0" />
-                <span className="truncate">{item.label}</span>
+                <span className={cn("whitespace-nowrap transition-opacity duration-150", sidebarOpen ? "opacity-100" : "opacity-0")}>{item.label}</span>
                 {active && <span className="absolute -left-3 h-6 w-1 rounded-r-full bg-blue" />}
               </Link>
             );
           })}
         </nav>
-        <Link href="/capture" className="mx-4 mt-4 flex h-10 items-center justify-center gap-2 rounded-lg bg-blue text-sm font-medium text-white transition hover:brightness-110">
+        <Link
+          href="/capture"
+          onClick={() => {
+            setSidebarOpen(false);
+            setSidebarLockedClosed(true);
+          }}
+          className="mx-3 mt-4 flex h-10 items-center justify-center gap-2 overflow-hidden rounded-lg bg-blue text-sm font-medium text-white transition hover:brightness-110"
+        >
           <PlusCircle className="size-4" />
-          Quick add
+          <span className={cn("whitespace-nowrap transition-opacity duration-150", sidebarOpen ? "opacity-100" : "opacity-0")}>Quick add</span>
         </Link>
-      </aside>}
+      </aside>
 
       <main
         className={cn(
           isHomeSurface
-            ? "ml-0 h-screen max-w-none overflow-hidden bg-[#1f1f1f] px-4 pb-0 pt-4 sm:px-6 lg:ml-[248px] lg:pl-6 lg:pr-8"
+            ? "ml-0 h-screen max-w-none overflow-hidden bg-[#1f1f1f] px-4 pb-0 pt-4 sm:px-6 lg:ml-[72px] lg:pl-6 lg:pr-8"
             : isCalendarSurface
-              ? "mx-auto min-h-dvh w-full max-w-none p-0"
-              : "mx-auto min-h-dvh w-full max-w-[1700px] px-4 pb-24 pt-4 sm:px-6 lg:pb-4 lg:pl-[272px] lg:pr-8"
+              ? "h-screen max-w-none overflow-hidden bg-paper px-4 pb-0 pt-4 sm:px-6 lg:ml-[72px] lg:pl-6 lg:pr-8"
+              : "mx-auto min-h-dvh w-full max-w-[1700px] px-4 pb-24 pt-4 sm:px-6 lg:pb-4 lg:pl-[96px] lg:pr-8"
         )}
       >
         {!pathname.startsWith("/home") && !isCalendarSurface && !pathname.startsWith("/todos") && (
@@ -107,7 +144,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      {!isCalendarSurface && <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-18px_48px_rgba(0,0,0,0.32)] backdrop-blur-2xl lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-18px_48px_rgba(0,0,0,0.32)] backdrop-blur-2xl lg:hidden">
         <div className="grid grid-cols-5 items-end">
           {navItems.slice(0, 5).map((item) => {
             const Icon = item.icon;
@@ -134,7 +171,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </div>
-      </nav>}
+      </nav>
     </div>
   );
 }

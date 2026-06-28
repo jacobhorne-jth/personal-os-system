@@ -15,6 +15,8 @@ type TimerState = {
 type AppState = {
   responsibilities: Responsibility[];
   calendarItems: CalendarItem[];
+  hiddenCalendarEventIds: string[];
+  hiddenCalendarSeries: Record<string, { all?: boolean; followingStart?: string }>;
   tasks: Task[];
   aiReviewItems: CaptureExtraction[];
   notes: Note[];
@@ -25,6 +27,8 @@ type AppState = {
   addCalendarItem: (input: Omit<CalendarItem, "id" | "source"> & { source?: CalendarItem["source"] }) => void;
   updateCalendarItem: (itemId: string, input: Partial<Omit<CalendarItem, "id">>) => void;
   deleteCalendarItem: (itemId: string) => void;
+  hideCalendarEvent: (itemId: string) => void;
+  hideCalendarSeries: (seriesId: string, mode: "all" | "following", startsAt?: string) => void;
   addTask: (input: { title: string; responsibilityId?: string; dueAt?: string; description?: string; labels?: string[]; priority?: Task["priority"] }) => void;
   updateTask: (taskId: string, input: Partial<Omit<Task, "id" | "subtasks">>) => void;
   deleteTask: (taskId: string) => void;
@@ -190,6 +194,8 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       responsibilities,
       calendarItems,
+      hiddenCalendarEventIds: [],
+      hiddenCalendarSeries: {},
       tasks,
       aiReviewItems: aiReviewItems.map((item) => ({ ...item, status: "pending_review", decisions: {} })),
       notes: seedNotes,
@@ -233,6 +239,21 @@ export const useAppStore = create<AppState>()(
       deleteCalendarItem: (itemId) =>
         set((state) => ({
           calendarItems: state.calendarItems.filter((item) => item.id !== itemId)
+        })),
+      hideCalendarEvent: (itemId) =>
+        set((state) => ({
+          hiddenCalendarEventIds: state.hiddenCalendarEventIds.includes(itemId)
+            ? state.hiddenCalendarEventIds
+            : [...state.hiddenCalendarEventIds, itemId]
+        })),
+      hideCalendarSeries: (seriesId, mode, startsAt) =>
+        set((state) => ({
+          hiddenCalendarSeries: {
+            ...state.hiddenCalendarSeries,
+            [seriesId]: mode === "all"
+              ? { all: true }
+              : { ...state.hiddenCalendarSeries[seriesId], followingStart: startsAt }
+          }
         })),
       addTask: (input) =>
         set((state) => ({
@@ -535,6 +556,8 @@ export const useAppStore = create<AppState>()(
       name: "jacob-os-local-state-v6",
       partialize: (state) => ({
         calendarItems: state.calendarItems,
+        hiddenCalendarEventIds: state.hiddenCalendarEventIds,
+        hiddenCalendarSeries: state.hiddenCalendarSeries,
         responsibilities: state.responsibilities,
         tasks: state.tasks,
         aiReviewItems: state.aiReviewItems,

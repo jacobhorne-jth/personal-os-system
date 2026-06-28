@@ -3,22 +3,21 @@
 import { useState } from "react";
 import { CheckCircle2, Plus, Search } from "lucide-react";
 import { FullCalendarBoard } from "@/components/calendar/full-calendar-board";
+import { localDateKey, formatDateHeading } from "@/lib/dates";
 import { useAppStore } from "@/lib/stores/app-store";
 import { responsibilityTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-const TODAY = "2026-06-27";
 const dateFilters = ["Today", "All"] as const;
 
 function taskDate(taskDate?: string) {
   return taskDate?.slice(0, 10);
 }
 
-function matchesDate(filter: (typeof dateFilters)[number], dueAt?: string) {
+function matchesDate(filter: (typeof dateFilters)[number], today: string, dueAt?: string) {
   const due = taskDate(dueAt);
   if (filter === "All") return true;
-  if (filter === "Today") return due === TODAY;
-  return true;
+  return due === today;
 }
 
 export function HomeWorkspaceV2() {
@@ -31,11 +30,13 @@ export function HomeWorkspaceV2() {
   const [responsibilityFilter, setResponsibilityFilter] = useState("all");
   const [title, setTitle] = useState("");
   const [quickResponsibility, setQuickResponsibility] = useState(responsibilities[0]?.id ?? "");
+  const today = localDateKey();
+  const todayHeading = formatDateHeading();
 
   const filteredTasks = tasks.filter((task) => {
     const statusMatch = task.status !== "done";
     const responsibilityMatch = responsibilityFilter === "all" ? true : responsibilityFilter === "inbox" ? !task.responsibilityId : task.responsibilityId === responsibilityFilter;
-    return statusMatch && responsibilityMatch && matchesDate(dateFilter, task.dueAt);
+    return statusMatch && responsibilityMatch && matchesDate(dateFilter, today, task.dueAt);
   });
 
   function handleAdd(event: React.FormEvent<HTMLFormElement>) {
@@ -44,7 +45,7 @@ export function HomeWorkspaceV2() {
     addTask({
       title: title.trim(),
       responsibilityId: quickResponsibility || undefined,
-      dueAt: `${TODAY}T17:00:00-04:00`,
+      dueAt: `${today}T17:00:00`,
       labels: []
     });
     setTitle("");
@@ -56,10 +57,10 @@ export function HomeWorkspaceV2() {
         <FullCalendarBoard />
       </main>
 
-      <aside className="min-h-0 border-l border-[#303134] bg-[#1f1f1f] xl:flex xl:flex-col">
+      <aside className="hidden min-h-0 border-l border-[#303134] bg-[#1f1f1f] xl:flex xl:flex-col">
         <div className="shrink-0 border-b border-[#303134] px-4 py-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-[#e8eaed]">Saturday, June 27</p>
+            <p className="text-sm font-medium text-[#e8eaed]">{todayHeading}</p>
             <span className="text-xs text-[#9aa0a6]">{filteredTasks.length} visible</span>
           </div>
         </div>
@@ -67,23 +68,30 @@ export function HomeWorkspaceV2() {
         <div className="shrink-0 space-y-3 border-b border-[#303134] p-4">
           <div className="grid grid-cols-2 gap-2">
             {dateFilters.map((filter) => (
-              <button key={filter} onClick={() => setDateFilter(filter)} className={cn("h-9 rounded-md border px-3 text-sm font-medium transition", dateFilter === filter ? "border-blue bg-blue/15 text-blue" : "border-[#3c4043] text-[#bdc1c6] hover:text-[#e8eaed]")}>
+              <button
+                key={filter}
+                onClick={() => setDateFilter(filter)}
+                className={cn(
+                  "h-9 rounded-md border px-3 text-sm font-medium transition",
+                  dateFilter === filter
+                    ? "border-blue bg-blue/15 text-blue"
+                    : "border-[#3c4043] text-[#bdc1c6] hover:text-[#e8eaed]"
+                )}
+              >
                 {filter}
               </button>
             ))}
           </div>
-          <div>
-            <label className="flex items-center gap-2 rounded-md border border-[#3c4043] bg-[#282a2d] px-2">
-              <Search className="size-3.5 text-[#bdc1c6]" />
-              <select value={responsibilityFilter} onChange={(event) => setResponsibilityFilter(event.target.value)} className="h-10 min-w-0 flex-1 bg-transparent text-sm text-[#bdc1c6] outline-none">
-                <option value="all">All responsibilities</option>
-                <option value="inbox">Inbox only</option>
-                {responsibilities.map((responsibility) => (
-                  <option key={responsibility.id} value={responsibility.id}>{responsibility.name}</option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <label className="flex items-center gap-2 rounded-md border border-[#3c4043] bg-[#282a2d] px-2">
+            <Search className="size-3.5 text-[#bdc1c6]" />
+            <select value={responsibilityFilter} onChange={(event) => setResponsibilityFilter(event.target.value)} className="h-10 min-w-0 flex-1 bg-transparent text-sm text-[#bdc1c6] outline-none">
+              <option value="all">All responsibilities</option>
+              <option value="inbox">Inbox only</option>
+              {responsibilities.map((responsibility) => (
+                <option key={responsibility.id} value={responsibility.id}>{responsibility.name}</option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto pb-3">

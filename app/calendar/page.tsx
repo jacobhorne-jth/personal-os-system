@@ -3,13 +3,13 @@ import { CalendarSidebar } from "@/components/layout/calendar-sidebar";
 
 export default function CalendarPage() {
   return (
-    <div className="min-h-dvh bg-paper lg:flex">
-      <CalendarSidebar />
-      <main className="min-w-0 flex-1">
-        <div className="h-dvh">
+    <div className="grid h-full min-h-0 bg-paper xl:grid-cols-[minmax(0,1fr)_360px]">
+      <main className="min-w-0">
+        <div className="h-dvh lg:h-screen">
           <FullCalendarBoard fullChrome />
         </div>
       </main>
+      <CalendarSidebar />
     </div>
   );
 }

@@ -1,39 +1,97 @@
 "use client";
 
-import Link from "next/link";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { calendarOverlays } from "@/lib/queries/calendar";
+import { useMemo } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { capitalOneWorkBlocks, filterGeneratedCalendarItems, startOfWeek } from "@/lib/calendar-generated";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { responsibilityTone } from "@/lib/theme";
+import type { CalendarItem } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
-const DATES = [
-  31,  1,  2,  3,  4,  5,  6,
-   7,  8,  9, 10, 11, 12, 13,
-  14, 15, 16, 17, 18, 19, 20,
-  21, 22, 23, 24, 25, 26, 27,
-  28, 29, 30,  1,  2,  3,  4,
-   5,  6,  7,  8,  9, 10, 11
-];
+
+function miniMonthDays(today = new Date()) {
+  const first = new Date(today.getFullYear(), today.getMonth(), 1);
+  const start = new Date(first);
+  start.setDate(first.getDate() - first.getDay());
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return {
+      key: date.toISOString(),
+      day: date.getDate(),
+      inMonth: date.getMonth() === today.getMonth(),
+      isToday: date.toDateString() === today.toDateString()
+    };
+  });
+}
+
+function weekRangeLabel(today: Date) {
+  const start = startOfWeek(today);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const startMonth = start.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+  const endMonth = end.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+  return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}, ${end.getFullYear()}`;
+}
+
+function overlapMinutes(item: CalendarItem, start: Date, end: Date) {
+  const itemStart = new Date(item.startsAt).getTime();
+  const itemEnd = new Date(item.endsAt).getTime();
+  const overlapStart = Math.max(itemStart, start.getTime());
+  const overlapEnd = Math.min(itemEnd, end.getTime());
+  return Math.max(0, Math.round((overlapEnd - overlapStart) / 60000));
+}
+
+function formatHours(minutes: number) {
+  const hours = minutes / 60;
+  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
+}
 
 export function CalendarSidebar() {
   const responsibilities = useAppStore((state) => state.responsibilities);
-  const { hiddenResponsibilities, toggleResponsibility, visibleOverlays, toggleOverlay } = useUiStore();
+  const calendarItems = useAppStore((state) => state.calendarItems);
+  const hiddenCalendarEventIds = useAppStore((state) => state.hiddenCalendarEventIds);
+  const hiddenCalendarSeries = useAppStore((state) => state.hiddenCalendarSeries);
+  const { hiddenResponsibilities, toggleResponsibility } = useUiStore();
+  const today = useMemo(() => new Date(), []);
+  const monthDays = useMemo(() => miniMonthDays(today), [today]);
+  const weekStart = useMemo(() => startOfWeek(today), [today]);
+  const weekEnd = useMemo(() => {
+    const end = new Date(weekStart);
+    end.setDate(weekStart.getDate() + 7);
+    return end;
+  }, [weekStart]);
+  const weeklyInsights = useMemo(() => {
+    const visibleGeneratedItems = filterGeneratedCalendarItems(capitalOneWorkBlocks(today), hiddenCalendarEventIds, hiddenCalendarSeries);
+    const allItems = [...visibleGeneratedItems, ...calendarItems].filter((item) => !hiddenResponsibilities.includes(item.responsibilityId));
+    const minutesByResponsibility = allItems.reduce<Record<string, number>>((current, item) => {
+      const minutes = overlapMinutes(item, weekStart, weekEnd);
+      if (minutes <= 0) return current;
+      return {
+        ...current,
+        [item.responsibilityId]: (current[item.responsibilityId] ?? 0) + minutes
+      };
+    }, {});
+    const segments = responsibilities
+      .map((responsibility) => ({
+        id: responsibility.id,
+        name: responsibility.name,
+        minutes: minutesByResponsibility[responsibility.id] ?? 0,
+        color: responsibilityTone[responsibility.color].hex
+      }))
+      .filter((item) => item.minutes > 0)
+      .sort((a, b) => b.minutes - a.minutes);
+    const totalMinutes = segments.reduce((sum, item) => sum + item.minutes, 0);
+    return { segments, totalMinutes };
+  }, [calendarItems, hiddenCalendarEventIds, hiddenCalendarSeries, hiddenResponsibilities, responsibilities, today, weekEnd, weekStart]);
 
   return (
-    <aside className="hidden w-[292px] shrink-0 flex-col border-r border-[#303134] bg-[#1f1f1f] py-4 lg:flex">
-      <div className="mb-5 px-5">
-        <button className="flex h-14 items-center gap-3 rounded-2xl bg-[#c2e7ff] px-5 text-sm font-semibold text-[#001d35] shadow-lift transition hover:brightness-105">
-          <Plus className="size-5" />
-          Create
-        </button>
-      </div>
-      {/* Mini calendar */}
+    <aside className="hidden min-h-0 w-[360px] shrink-0 flex-col border-l border-[#303134] bg-[#1f1f1f] py-4 xl:flex">
       <div className="mb-5 px-4">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-medium text-[#e8eaed]">June 2026</span>
+          <span className="text-sm font-medium text-[#e8eaed]">{today.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
           <div className="flex gap-0">
             <button
               className="grid size-8 place-items-center rounded-full text-[#9aa0a6] transition hover:bg-[#3c4043]"
@@ -56,33 +114,28 @@ export function CalendarSidebar() {
               {d}
             </div>
           ))}
-          {DATES.map((date, i) => {
-            const inMonth = i > 0 && i < 31;
-            const isToday = date === 27 && i === 27;
+          {monthDays.map((date) => {
             return (
-              <Link
-                key={i}
-                href="/calendar"
+              <button
+                key={date.key}
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full text-xs transition mx-auto",
-                  isToday ? "bg-[#4285f4] font-medium text-white" : "",
-                  !isToday && inMonth ? "text-[#e8eaed] hover:bg-[#3c4043]" : "",
-                  !isToday && !inMonth ? "text-[#5f6368] hover:bg-[#3c4043]" : ""
+                  date.isToday ? "bg-[#4285f4] font-medium text-white" : "",
+                  !date.isToday && date.inMonth ? "text-[#e8eaed] hover:bg-[#3c4043]" : "",
+                  !date.isToday && !date.inMonth ? "text-[#5f6368] hover:bg-[#3c4043]" : ""
                 )}
               >
-                {date}
-              </Link>
+                {date.day}
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* Divider */}
       <div className="mx-3 mb-4 h-px bg-[#3c4043]" />
 
-      {/* My calendars */}
       <div className="flex-1 overflow-y-auto px-2">
-        <p className="mb-1 px-2 text-xs font-medium text-[#9aa0a6]">My calendars</p>
+        <p className="mb-2 px-2 text-xs font-medium text-[#9aa0a6]">Responsibilities</p>
         {responsibilities.map((item) => {
           const tone = responsibilityTone[item.color];
           const hidden = hiddenResponsibilities.includes(item.id);
@@ -109,33 +162,42 @@ export function CalendarSidebar() {
           );
         })}
 
-        {/* Other calendars = event type filters */}
-        <div className="mx-2 mb-2 mt-4 h-px bg-[#3c4043]" />
-        <p className="mb-1 px-2 text-xs font-medium text-[#9aa0a6]">Show on calendar</p>
-        {calendarOverlays.map((overlay) => {
-          const active = visibleOverlays.includes(overlay.type);
-          return (
-            <button
-              key={overlay.type}
-              onClick={() => toggleOverlay(overlay.type)}
-              className="flex w-full items-center gap-3 rounded-full px-3 py-1.5 text-left text-sm transition hover:bg-[#3c4043]"
-            >
-              <span
-                className="grid size-4 shrink-0 place-items-center rounded-sm transition"
-                style={{ backgroundColor: active ? "#9aa0a6" : "transparent", border: active ? "none" : "1.5px solid #5f6368" }}
-              >
-                {active && (
-                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                    <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </span>
-              <span className={cn("flex-1 truncate text-sm", active ? "text-[#e8eaed]" : "text-[#5f6368]")}>
-                {overlay.label}
-              </span>
-            </button>
-          );
-        })}
+        <div className="mx-2 my-5 h-px bg-[#3c4043]" />
+
+        <section className="px-2">
+          <div className="mb-3 flex h-11 items-center justify-between rounded-full bg-[#282a2d] px-4">
+            <h2 className="text-base font-semibold text-[#e8eaed]">Time Insights</h2>
+            <ChevronDown className="size-5 rotate-180 text-[#e8eaed]" />
+          </div>
+          <p className="px-4 text-sm font-semibold tracking-[0.12em] text-[#e8eaed]">{weekRangeLabel(today)}</p>
+          <div className="mx-4 mt-4 flex h-4 overflow-hidden rounded-full bg-[#3c4043]">
+            {weeklyInsights.totalMinutes > 0 ? (
+              weeklyInsights.segments.map((segment) => (
+                <div
+                  key={segment.id}
+                  title={`${segment.name}: ${formatHours(segment.minutes)}`}
+                  style={{
+                    width: `${(segment.minutes / weeklyInsights.totalMinutes) * 100}%`,
+                    backgroundColor: segment.color
+                  }}
+                />
+              ))
+            ) : (
+              <div className="h-full w-full bg-[#5f6368]" />
+            )}
+          </div>
+          <div className="mt-4 space-y-2 px-4">
+            {weeklyInsights.segments.slice(0, 6).map((segment) => (
+              <div key={segment.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2 text-[#e8eaed]">
+                  <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: segment.color }} />
+                  <span className="truncate">{segment.name}</span>
+                </span>
+                <span className="shrink-0 text-[#9aa0a6]">{formatHours(segment.minutes)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </aside>
   );

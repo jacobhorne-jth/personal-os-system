@@ -76,20 +76,31 @@ select:focus-visible {
 }
 
 .gcal-topbar {
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   min-height: 72px;
   align-items: center;
-  justify-content: space-between;
   gap: 24px;
   padding: 10px 20px 8px 20px;
 }
 
+.gcal-nav-controls {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  justify-self: start;
+}
+
 .gcal-title {
-  margin-left: 18px;
   color: #e8eaed;
   font-size: 34px;
   font-weight: 400;
-  line-height: 1;
+  line-height: 1.1;
+  justify-self: center;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .gcal-actions {
@@ -97,6 +108,7 @@ select:focus-visible {
   shrink: 0;
   align-items: center;
   gap: 10px;
+  justify-self: end;
 }
 
 .gcal-today-button,
@@ -110,10 +122,13 @@ select:focus-visible {
 }
 
 .gcal-today-button {
+  display: grid;
+  place-items: center;
   min-width: 112px;
   border-radius: 999px;
   font-size: 22px;
   font-weight: 600;
+  line-height: 1;
 }
 
 .gcal-view-tabs {
@@ -124,10 +139,13 @@ select:focus-visible {
 }
 
 .gcal-view-tabs button {
+  display: grid;
+  place-items: center;
   padding: 0 18px;
   color: #bdc1c6;
   font-size: 17px;
   font-weight: 600;
+  line-height: 1;
   text-transform: capitalize;
 }
 
@@ -158,10 +176,13 @@ select:focus-visible {
 }
 
 .gcal-create-button {
+  display: grid;
+  place-items: center;
   border-radius: 999px;
   padding: 0 22px;
   font-size: 17px;
   font-weight: 600;
+  line-height: 1;
 }
 
 .gcal-avatar {
@@ -180,14 +201,15 @@ select:focus-visible {
 }
 
 .gcal-calendar-shell {
+  position: relative;
   min-width: 0;
   min-height: 0;
   flex: 1;
   overflow: hidden;
   border-radius: 44px;
   background: #131314;
-  margin: 0 18px 18px 18px;
-  padding: 0 24px 0 0;
+  margin: 0 18px 18px;
+  padding: 0 100px 0 18px;
 }
 
 .gcal-right-rail {
@@ -268,26 +290,35 @@ select:focus-visible {
 }
 
 /* Time axis labels */
+.calendar-board .fc-col-header colgroup col:first-child,
+.calendar-board .fc-timegrid-slots colgroup col:first-child,
+.calendar-board .fc-timegrid-cols colgroup col:first-child {
+  width: 82px !important;
+}
+
 .calendar-board .fc-timegrid-axis,
 .calendar-board .fc-timegrid-slot-label {
   color: #bdc1c6;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   border-color: transparent;
-  width: 76px !important;
-  min-width: 76px !important;
+  width: 82px !important;
+  min-width: 82px !important;
 }
 
 .calendar-board .fc-timegrid-slot-label-cushion {
+  display: block;
   padding-right: 18px;
   padding-top: 0;
+  transform: translateY(-50%);
+  white-space: nowrap;
 }
 
 .calendar-board .fc-timegrid-axis-frame {
   align-items: start;
-  justify-content: start;
-  padding-left: 14px;
-  padding-top: 2px;
+  justify-content: end;
+  padding-left: 0;
+  padding-top: 0;
 }
 
 .calendar-board .fc-timegrid-slot {
@@ -313,6 +344,10 @@ select:focus-visible {
 .calendar-board .fc-event:hover {
   filter: brightness(1.08);
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+}
+
+.calendar-board .fc-highlight {
+  background: rgba(66, 133, 244, 0.22);
 }
 
 .calendar-board .fc-timegrid-event {
@@ -418,6 +453,87 @@ select:focus-visible {
   background: #747775;
   border-radius: 999px;
   border: 4px solid #131314;
+}
+
+.gcal-board-compact .gcal-topbar {
+  min-height: 58px;
+  gap: 14px;
+  padding: 8px 16px 6px;
+}
+
+.gcal-board-compact .gcal-title {
+  font-size: 30px;
+}
+
+.gcal-board-compact .gcal-today-button,
+.gcal-board-compact .gcal-view-tabs {
+  height: 42px;
+}
+
+.gcal-board-compact .gcal-today-button {
+  min-width: 94px;
+  font-size: 18px;
+}
+
+.gcal-board-compact .gcal-icon-button {
+  width: 38px;
+  height: 38px;
+}
+
+.gcal-board-compact .gcal-view-tabs button {
+  padding: 0 16px;
+  font-size: 16px;
+}
+
+.gcal-board-compact .gcal-calendar-shell {
+  border-radius: 34px;
+  margin: 0 16px 14px;
+  padding: 0 90px 0 18px;
+}
+
+.gcal-board-compact .gcal-day-head {
+  gap: 2px;
+  padding: 6px 0;
+}
+
+.gcal-board-compact .gcal-day-name {
+  font-size: 12px;
+}
+
+.gcal-board-compact .gcal-day-number {
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+}
+
+.gcal-board-compact .fc-timegrid-axis,
+.gcal-board-compact .fc-timegrid-slot-label {
+  width: 72px !important;
+  min-width: 72px !important;
+  font-size: 14px;
+}
+
+.gcal-board-compact .fc-col-header colgroup col:first-child,
+.gcal-board-compact .fc-timegrid-slots colgroup col:first-child,
+.gcal-board-compact .fc-timegrid-cols colgroup col:first-child {
+  width: 72px !important;
+}
+
+.gcal-board-compact .fc-timegrid-slot-label-cushion {
+  padding-right: 14px;
+}
+
+.gcal-board-compact .fc-timegrid-axis-frame {
+  padding-left: 0;
+}
+
+.gcal-board-compact .fc-timegrid-slot {
+  height: 44px;
+}
+
+.gcal-board-compact .fc-event {
+  border-radius: 7px;
+  font-size: 12px;
 }
 
 @media (max-width: 1180px) {
