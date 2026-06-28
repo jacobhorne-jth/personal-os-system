@@ -15,14 +15,30 @@ function insertAtSelection(textarea: HTMLTextAreaElement, value: string) {
 }
 
 function nextBulletPrefix(line: string) {
-  const bulletMatch = line.match(/^(\s*)([-*])\s+/);
+  const bulletMatch = line.match(/^(\s*)([-*•])\s+/);
   const orderedMatch = line.match(/^(\s*)(\d+)\.\s+/);
   const checkboxMatch = line.match(/^(\s*)-\s\[[ x]\]\s+/i);
 
   if (checkboxMatch) return `${checkboxMatch[1]}- [ ] `;
   if (orderedMatch) return `${orderedMatch[1]}${Number(orderedMatch[2]) + 1}. `;
-  if (bulletMatch) return `${bulletMatch[1]}${bulletMatch[2]} `;
+  if (bulletMatch) return `${bulletMatch[1]}• `;
   return "";
+}
+
+function convertMarkdownShortcut(textarea: HTMLTextAreaElement) {
+  const lineStart = textarea.value.lastIndexOf("\n", textarea.selectionStart - 1) + 1;
+  const currentLine = textarea.value.slice(lineStart, textarea.selectionStart);
+  const unorderedMatch = currentLine.match(/^(\s*)[-*]$/);
+
+  if (!unorderedMatch) {
+    return null;
+  }
+
+  const replacement = `${unorderedMatch[1]}• `;
+  return {
+    nextValue: `${textarea.value.slice(0, lineStart)}${replacement}${textarea.value.slice(textarea.selectionStart)}`,
+    nextPosition: lineStart + replacement.length
+  };
 }
 
 export function NoteEditor({ noteId }: { noteId: string }) {
@@ -80,6 +96,18 @@ export function NoteEditor({ noteId }: { noteId: string }) {
       });
     }
 
+    if (event.key === " ") {
+      const shortcut = convertMarkdownShortcut(textarea);
+      if (shortcut) {
+        event.preventDefault();
+        setBody(shortcut.nextValue);
+        window.requestAnimationFrame(() => {
+          textarea.selectionStart = shortcut.nextPosition;
+          textarea.selectionEnd = shortcut.nextPosition;
+        });
+      }
+    }
+
     if (event.key === "Enter") {
       const lineStart = textarea.value.lastIndexOf("\n", textarea.selectionStart - 1) + 1;
       const currentLine = textarea.value.slice(lineStart, textarea.selectionStart);
@@ -88,7 +116,7 @@ export function NoteEditor({ noteId }: { noteId: string }) {
       if (!prefix) return;
 
       event.preventDefault();
-      if (currentLine.trim().match(/^([-*]|\d+\.|- \[[ x]\])$/i)) {
+      if (currentLine.trim().match(/^([-*•]|\d+\.|- \[[ x]\])$/i)) {
         const nextValue = `${textarea.value.slice(0, lineStart)}${textarea.value.slice(textarea.selectionStart)}`;
         setBody(nextValue);
         window.requestAnimationFrame(() => {
@@ -139,7 +167,7 @@ export function NoteEditor({ noteId }: { noteId: string }) {
           onChange={(event) => setTitle(event.target.value)}
           placeholder="New page"
           autoFocus
-          className="mb-5 w-full bg-transparent text-5xl font-semibold leading-tight text-ink outline-none placeholder:text-muted/35"
+          className="mb-5 w-full bg-transparent font-sans text-5xl font-semibold leading-tight text-ink outline-none placeholder:text-muted/35"
         />
         <textarea
           ref={textareaRef}
@@ -147,7 +175,7 @@ export function NoteEditor({ noteId }: { noteId: string }) {
           onChange={(event) => setBody(event.target.value)}
           onKeyDown={handleBodyKeyDown}
           placeholder="Start writing..."
-          className="min-h-[68vh] w-full resize-none bg-transparent text-[16px] leading-7 text-ink outline-none placeholder:text-muted/55"
+          className="min-h-[68vh] w-full resize-none bg-transparent font-sans text-[16px] leading-7 text-ink outline-none placeholder:text-muted/55"
           spellCheck
         />
       </article>
