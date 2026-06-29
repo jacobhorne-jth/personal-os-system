@@ -61,7 +61,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           setSidebarOpen(false);
           setSidebarLockedClosed(false);
         }}
-        onFocus={() => setSidebarOpen(true)}
+        onFocus={() => {
+          if (!sidebarLockedClosed) setSidebarOpen(true);
+        }}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setSidebarOpen(false);
         }}
