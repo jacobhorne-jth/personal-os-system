@@ -320,11 +320,24 @@ select:focus-visible {
 }
 
 .calendar-board .fc-timegrid-slot-label-cushion {
-  display: block;
-  padding-right: 14px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding-right: 16px;
   padding-top: 0;
   transform: translateY(-50%);
   white-space: nowrap;
+}
+
+.calendar-board .fc-timegrid-slot-label-cushion::after {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 2px);
+  width: 14px;
+  height: 1px;
+  background: #333537;
+  content: "";
+  transform: translateY(-50%);
 }
 
 .calendar-board .fc-timegrid-axis-frame {
@@ -536,7 +549,11 @@ select:focus-visible {
 }
 
 .gcal-board-compact .fc-timegrid-slot-label-cushion {
-  padding-right: 10px;
+  padding-right: 12px;
+}
+
+.gcal-board-compact .fc-timegrid-slot-label-cushion::after {
+  width: 10px;
 }
 
 .gcal-board-compact .fc-timegrid-axis-frame {
