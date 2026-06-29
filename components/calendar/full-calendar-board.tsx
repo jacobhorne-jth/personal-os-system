@@ -66,10 +66,12 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
     return filterGeneratedCalendarItems(capitalOneWorkBlocks(), hiddenCalendarEventIds, hiddenCalendarSeries);
   }, [hiddenCalendarEventIds, hiddenCalendarSeries]);
 
-  const visibleItems = [
-    ...generatedItems,
-    ...calendarItems.filter((item) => !demoCalendarIdPattern.test(item.id))
-  ];
+  const visibleItems = useMemo(() => {
+    return [
+      ...generatedItems,
+      ...calendarItems.filter((item) => !demoCalendarIdPattern.test(item.id))
+    ];
+  }, [calendarItems, generatedItems]);
 
   const events = visibleItems
     .filter((item) =>
@@ -92,12 +94,28 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
       };
     });
 
+  const initialDate = searchParams.get("start") ?? searchParams.get("date") ?? undefined;
+
   useEffect(() => {
     if (!fullChrome || handledQueryDraft.current) return;
+    const eventId = searchParams.get("event");
     const start = searchParams.get("start");
     const end = searchParams.get("end");
+    if (eventId) {
+      const item = visibleItems.find((calendarItem) => calendarItem.id === eventId);
+      if (!item) return;
+      handledQueryDraft.current = true;
+      calendarRef.current?.getApi().gotoDate(item.startsAt);
+      setDraftEvent(null);
+      setCreateMode(false);
+      setSelectedItem(item);
+      setEventPanelMode("preview");
+      setDeleteMenuOpen(false);
+      return;
+    }
     if (!start || !end) return;
     handledQueryDraft.current = true;
+    calendarRef.current?.getApi().gotoDate(start);
     setDraftEvent({
       startsAt: start,
       endsAt: end,
@@ -107,11 +125,11 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
       responsibilityId: responsibilities[0]?.id ?? "school",
       type: "app_event"
     });
-  }, [fullChrome, responsibilities, searchParams]);
+  }, [fullChrome, responsibilities, searchParams, visibleItems]);
 
   function handleSelect(selection: DateSelectArg) {
     if (!fullChrome) {
-      router.push(`/calendar?start=${encodeURIComponent(selection.startStr)}&end=${encodeURIComponent(selection.endStr)}`);
+      router.push(`/calendar?start=${encodeURIComponent(selection.startStr)}&end=${encodeURIComponent(selection.endStr)}&date=${encodeURIComponent(selection.startStr)}`);
       return;
     }
     setCreateMode(false);
@@ -132,7 +150,7 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
     const item = visibleItems.find((calendarItem) => calendarItem.id === event.event.id);
     if (!item) return;
     if (!fullChrome) {
-      router.push(`/calendar?event=${encodeURIComponent(item.id)}`);
+      router.push(`/calendar?event=${encodeURIComponent(item.id)}&date=${encodeURIComponent(item.startsAt)}`);
       return;
     }
     setDraftEvent(null);
@@ -257,14 +275,13 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
     const fmt = (d: Date) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     const timeRange = event.start && event.end ? `${fmt(event.start)} – ${fmt(event.end)}` : event.start ? fmt(event.start) : "";
 
-    const compact = !fullChrome;
     const durationMinutes = event.start && event.end ? Math.max(0, (event.end.getTime() - event.start.getTime()) / 60000) : 0;
     const shortEvent = durationMinutes > 0 && durationMinutes <= 30;
 
     if (shortEvent) {
       return (
         <div style={{ height: "100%", minHeight: 0, display: "flex", alignItems: "center", overflow: "hidden", padding: "0 8px" }}>
-          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#1f1f1f", fontWeight: 700, fontSize: compact ? 12 : 13, lineHeight: 1 }}>
+          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#1f1f1f", fontWeight: 700, fontSize: 12, lineHeight: 1 }}>
             {title}
           </span>
         </div>
@@ -272,11 +289,11 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
     }
 
     return (
-      <div style={{ padding: compact ? "6px 8px" : "8px 10px", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", gap: compact ? 1 : 2 }}>
-        <span style={{ color: "#1f1f1f", fontWeight: 700, fontSize: compact ? 12 : 14, lineHeight: 1.14, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: compact ? 2 : 2, WebkitBoxOrient: "vertical" }}>
+      <div style={{ padding: "6px 8px", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={{ color: "#1f1f1f", fontWeight: 700, fontSize: 12, lineHeight: 1.12, whiteSpace: "normal", overflowWrap: "anywhere" }}>
           {title}
         </span>
-        <span style={{ color: "#1f1f1f", fontSize: compact ? 11 : 13, opacity: 0.92, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <span style={{ color: "#1f1f1f", fontSize: 11, fontWeight: 700, opacity: 0.92, lineHeight: 1.18, whiteSpace: "normal", overflowWrap: "anywhere" }}>
           {timeRange}{location ? `, ${location}` : ""}
         </span>
         {location && (
@@ -456,6 +473,7 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
             slotMaxTime="24:00:00"
             scrollTime="07:00:00"
             scrollTimeReset={false}
+            initialDate={initialDate}
             slotDuration="01:00:00"
             snapDuration="00:15:00"
             slotLabelInterval="01:00"
