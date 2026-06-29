@@ -332,8 +332,8 @@ select:focus-visible {
 .calendar-board .fc-timegrid-slot-label-cushion::after {
   position: absolute;
   top: 50%;
-  left: calc(100% + 2px);
-  width: 14px;
+  left: calc(100% + 1px);
+  width: 10px;
   height: 1px;
   background: #333537;
   content: "";
@@ -424,7 +424,7 @@ select:focus-visible {
 }
 
 .calendar-board .fc-scrollgrid-section-body td:first-child {
-  border-right-color: #333537;
+  border-right-color: transparent;
 }
 
 .calendar-board .fc-scrollgrid-section > * {
@@ -553,7 +553,7 @@ select:focus-visible {
 }
 
 .gcal-board-compact .fc-timegrid-slot-label-cushion::after {
-  width: 10px;
+  width: 8px;
 }
 
 .gcal-board-compact .fc-timegrid-axis-frame {
