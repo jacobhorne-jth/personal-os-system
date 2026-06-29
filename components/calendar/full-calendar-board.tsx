@@ -6,7 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type EventResizeDoneArg } from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { DatesSetArg, DateSelectArg, EventClickArg, EventDropArg, EventContentArg } from "@fullcalendar/core";
-import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, MapPin, Pencil, Tags, Trash2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { capitalOneSeriesId, capitalOneWorkBlocks, filterGeneratedCalendarItems } from "@/lib/calendar-generated";
 import { toFullCalendarEvent } from "@/lib/queries/calendar";
@@ -44,6 +44,8 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
   const [calendarTitle, setCalendarTitle] = useState(() => new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }));
   const [draftEvent, setDraftEvent] = useState<DraftEvent | null>(null);
   const [selectedItem, setSelectedItem] = useState<CalendarItem | null>(null);
+  const [eventPanelMode, setEventPanelMode] = useState<"preview" | "edit">("preview");
+  const [deleteMenuOpen, setDeleteMenuOpen] = useState(false);
   const [createMode, setCreateMode] = useState(false);
   const { calendarView, setCalendarView, visibleOverlays, hiddenResponsibilities } = useUiStore();
   const calendarItems = useAppStore((state) => state.calendarItems);
@@ -51,6 +53,7 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
   const hiddenCalendarSeries = useAppStore((state) => state.hiddenCalendarSeries);
   const responsibilities = useAppStore((state) => state.responsibilities);
   const addCalendarItem = useAppStore((state) => state.addCalendarItem);
+  const updateCalendarItem = useAppStore((state) => state.updateCalendarItem);
   const deleteCalendarItem = useAppStore((state) => state.deleteCalendarItem);
   const hideCalendarEvent = useAppStore((state) => state.hideCalendarEvent);
   const hideCalendarSeries = useAppStore((state) => state.hideCalendarSeries);
@@ -78,7 +81,7 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
       const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
       return {
         ...toFullCalendarEvent(item),
-        editable: !item.id.startsWith(`${capitalOneSeriesId}-`),
+        editable: true,
         backgroundColor: tone.hex,
         borderColor: tone.hex,
         textColor: tone.eventText,
@@ -113,6 +116,7 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
     }
     setCreateMode(false);
     setSelectedItem(null);
+    setEventPanelMode("preview");
     setDraftEvent({
       startsAt: selection.startStr,
       endsAt: selection.endStr,
@@ -134,11 +138,28 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
     setDraftEvent(null);
     setCreateMode(false);
     setSelectedItem(item);
+    setEventPanelMode("preview");
+    setDeleteMenuOpen(false);
   }
 
   function handleEventDrop(event: EventDropArg) {
     if (event.event.id.startsWith(`${capitalOneSeriesId}-`)) {
-      event.revert();
+      const item = visibleItems.find((calendarItem) => calendarItem.id === event.event.id);
+      if (item && event.event.start) {
+        addCalendarItem({
+          title: item.title,
+          type: item.type,
+          responsibilityId: item.responsibilityId,
+          startsAt: event.event.start.toISOString(),
+          endsAt: event.event.end?.toISOString() ?? item.endsAt,
+          location: item.location,
+          notes: item.notes,
+          source: "app"
+        });
+        hideCalendarEvent(item.id);
+      } else {
+        event.revert();
+      }
       return;
     }
     if (event.event.start) {
@@ -148,7 +169,22 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
 
   function handleEventResize(event: EventResizeDoneArg) {
     if (event.event.id.startsWith(`${capitalOneSeriesId}-`)) {
-      event.revert();
+      const item = visibleItems.find((calendarItem) => calendarItem.id === event.event.id);
+      if (item && event.event.start) {
+        addCalendarItem({
+          title: item.title,
+          type: item.type,
+          responsibilityId: item.responsibilityId,
+          startsAt: event.event.start.toISOString(),
+          endsAt: event.event.end?.toISOString() ?? item.endsAt,
+          location: item.location,
+          notes: item.notes,
+          source: "app"
+        });
+        hideCalendarEvent(item.id);
+      } else {
+        event.revert();
+      }
       return;
     }
     if (event.event.start) {
@@ -176,6 +212,8 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
       deleteCalendarItem(selectedItem.id);
     }
     setSelectedItem(null);
+    setDeleteMenuOpen(false);
+    setEventPanelMode("preview");
   }
 
   function goToday() {
@@ -206,11 +244,12 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
   function renderEventContent(arg: EventContentArg) {
     const { event, view } = arg;
     const location = event.extendedProps.location as string | undefined;
+    const title = event.title || "Untitled";
 
     if (event.allDay || view.type === "dayGridMonth") {
       return (
         <div style={{ padding: "1px 5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500, fontSize: 11 }}>
-          {event.title}
+          {title}
         </div>
       );
     }
@@ -219,11 +258,23 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
     const timeRange = event.start && event.end ? `${fmt(event.start)} – ${fmt(event.end)}` : event.start ? fmt(event.start) : "";
 
     const compact = !fullChrome;
+    const durationMinutes = event.start && event.end ? Math.max(0, (event.end.getTime() - event.start.getTime()) / 60000) : 0;
+    const shortEvent = durationMinutes > 0 && durationMinutes <= 30;
+
+    if (shortEvent) {
+      return (
+        <div style={{ height: "100%", minHeight: 0, display: "flex", alignItems: "center", overflow: "hidden", padding: "0 8px" }}>
+          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#1f1f1f", fontWeight: 700, fontSize: compact ? 12 : 13, lineHeight: 1 }}>
+            {title}
+          </span>
+        </div>
+      );
+    }
 
     return (
       <div style={{ padding: compact ? "6px 8px" : "8px 10px", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", gap: compact ? 1 : 2 }}>
         <span style={{ color: "#1f1f1f", fontWeight: 700, fontSize: compact ? 12 : 14, lineHeight: 1.14, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: compact ? 2 : 2, WebkitBoxOrient: "vertical" }}>
-          {event.title}
+          {title}
         </span>
         <span style={{ color: "#1f1f1f", fontSize: compact ? 11 : 13, opacity: 0.92, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {timeRange}{location ? `, ${location}` : ""}
@@ -256,10 +307,59 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
     }).replace(" ", " ");
   }
 
-  function formatDraftTime(draft: DraftEvent) {
+  function formatDraftTime(draft: Pick<DraftEvent, "startsAt" | "endsAt">) {
     const start = new Date(draft.startsAt);
     const end = new Date(draft.endsAt);
     return `${start.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}, ${start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} – ${end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  }
+
+  function toInputDateTime(value: string) {
+    return value.slice(0, 16);
+  }
+
+  function fromInputDateTime(value: string) {
+    return value ? new Date(value).toISOString() : "";
+  }
+
+  function selectedTone(item: CalendarItem) {
+    const responsibility = responsibilities.find((entry) => entry.id === item.responsibilityId);
+    return responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
+  }
+
+  function saveSelectedEvent(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedItem) return;
+    if (!selectedItem.title.trim() || !selectedItem.startsAt || !selectedItem.endsAt) return;
+
+    if (selectedItem.id.startsWith(`${capitalOneSeriesId}-`)) {
+      addCalendarItem({
+        title: selectedItem.title.trim(),
+        type: selectedItem.type,
+        startsAt: selectedItem.startsAt,
+        endsAt: selectedItem.endsAt,
+        responsibilityId: selectedItem.responsibilityId,
+        location: selectedItem.location?.trim() || undefined,
+        notes: selectedItem.notes?.trim() || undefined,
+        source: "app"
+      });
+      hideCalendarEvent(selectedItem.id);
+      setSelectedItem(null);
+      setDeleteMenuOpen(false);
+      setEventPanelMode("preview");
+      return;
+    }
+
+    updateCalendarItem(selectedItem.id, {
+      title: selectedItem.title.trim(),
+      startsAt: selectedItem.startsAt,
+      endsAt: selectedItem.endsAt,
+      responsibilityId: selectedItem.responsibilityId,
+      location: selectedItem.location?.trim() || undefined,
+      notes: selectedItem.notes?.trim() || undefined
+    });
+    setSelectedItem(null);
+    setDeleteMenuOpen(false);
+    setEventPanelMode("preview");
   }
 
   function saveDraftEvent(event: React.FormEvent<HTMLFormElement>) {
@@ -319,6 +419,8 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
             <button
               onClick={() => {
                 setSelectedItem(null);
+                setEventPanelMode("preview");
+                setDeleteMenuOpen(false);
                 setDraftEvent(null);
                 setCreateMode(true);
               }}
@@ -437,37 +539,146 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
       )}
 
       {selectedItem && (
-        <div className="absolute right-4 top-16 z-30 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#3c4043] bg-[#282a2d] shadow-lift">
-          <div className="px-5 py-4">
-            <p className="text-base font-semibold text-[#e8eaed]">{selectedItem.title}</p>
-            <p className="mt-1 text-sm text-[#9aa0a6]">{formatDraftTime({ ...selectedItem, title: selectedItem.title, location: selectedItem.location ?? "", notes: selectedItem.notes ?? "" })}</p>
-          </div>
-          <div className="border-t border-[#3c4043] p-2">
-            {selectedItem.id.startsWith(`${capitalOneSeriesId}-`) ? (
-              <>
-                <button onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-[#e8eaed] transition hover:bg-[#3c4043]">
-                  <Trash2 className="size-4 text-[#9aa0a6]" />
-                  Delete this event
-                </button>
-                <button onClick={() => deleteSelectedEvent("following")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-[#e8eaed] transition hover:bg-[#3c4043]">
-                  <Trash2 className="size-4 text-[#9aa0a6]" />
-                  Delete this and following events
-                </button>
-                <button onClick={() => deleteSelectedEvent("all")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-[#e8eaed] transition hover:bg-[#3c4043]">
-                  <Trash2 className="size-4 text-[#9aa0a6]" />
-                  Delete all events
-                </button>
-              </>
-            ) : (
-              <button onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-[#e8eaed] transition hover:bg-[#3c4043]">
-                <Trash2 className="size-4 text-[#9aa0a6]" />
-                Delete event
+        <div className="absolute left-6 top-16 z-30 w-[min(560px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[#3c4043] bg-[#202124] shadow-[0_24px_72px_rgba(0,0,0,0.55)]">
+          <div className="flex h-12 items-center justify-end gap-1 px-4 text-[#bdc1c6]">
+            {eventPanelMode === "preview" && (
+              <button type="button" onClick={() => { setEventPanelMode("edit"); setDeleteMenuOpen(false); }} className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]" title="Edit">
+                <Pencil className="size-4" />
               </button>
             )}
-            <button onClick={() => setSelectedItem(null)} className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm text-[#9aa0a6] transition hover:bg-[#3c4043] hover:text-[#e8eaed]">
-              Close
+            <button type="button" onClick={() => setDeleteMenuOpen((value) => !value)} className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]" title="Delete">
+              <Trash2 className="size-4" />
+            </button>
+            <button type="button" onClick={() => { setSelectedItem(null); setDeleteMenuOpen(false); }} className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]" title="Close">
+              <X className="size-5" />
             </button>
           </div>
+
+          {deleteMenuOpen && (
+            <div className="mx-4 mb-3 rounded-2xl border border-[#3c4043] bg-[#282a2d] p-2">
+              {selectedItem.id.startsWith(`${capitalOneSeriesId}-`) ? (
+                <>
+                  <button type="button" onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                    <Trash2 className="size-5 text-[#9aa0a6]" />
+                    Delete this event
+                  </button>
+                  <button type="button" onClick={() => deleteSelectedEvent("following")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                    <Trash2 className="size-5 text-[#9aa0a6]" />
+                    Delete this and following events
+                  </button>
+                  <button type="button" onClick={() => deleteSelectedEvent("all")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                    <Trash2 className="size-5 text-[#9aa0a6]" />
+                    Delete all events
+                  </button>
+                </>
+              ) : (
+                <button type="button" onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                  <Trash2 className="size-5 text-[#9aa0a6]" />
+                  Delete event
+                </button>
+              )}
+            </div>
+          )}
+
+          {eventPanelMode === "preview" ? (
+            <div className="px-6 pb-6">
+              <div className="grid grid-cols-[40px_1fr] gap-4">
+                <span className="mt-2 size-4 rounded" style={{ backgroundColor: selectedTone(selectedItem).hex }} />
+                <div>
+                  <h3 className="text-2xl font-semibold leading-tight text-[#e8eaed]">{selectedItem.title || "Untitled"}</h3>
+                  <p className="mt-2 text-base text-[#bdc1c6]">{formatDraftTime(selectedItem)}</p>
+                </div>
+
+                {selectedItem.location && (
+                  <>
+                    <MapPin className="mt-0.5 size-5 text-[#bdc1c6]" />
+                    <p className="text-sm leading-6 text-[#e8eaed]">{selectedItem.location}</p>
+                  </>
+                )}
+
+                <Tags className="mt-0.5 size-5 text-[#bdc1c6]" />
+                <p className="text-sm leading-6 text-[#e8eaed]">
+                  {responsibilities.find((item) => item.id === selectedItem.responsibilityId)?.name ?? "No label"}
+                </p>
+
+                {selectedItem.notes && (
+                  <>
+                    <FileText className="mt-0.5 size-5 text-[#bdc1c6]" />
+                    <p className="whitespace-pre-wrap text-sm leading-6 text-[#e8eaed]">{selectedItem.notes}</p>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={saveSelectedEvent} className="px-6 pb-6">
+              <div className="grid grid-cols-[40px_1fr] gap-4">
+                <span className="mt-8 size-4 rounded" style={{ backgroundColor: selectedTone(selectedItem).hex }} />
+                <div>
+                  <input
+                    value={selectedItem.title}
+                    onChange={(event) => setSelectedItem({ ...selectedItem, title: event.target.value })}
+                    className="h-14 w-full border-b border-[#5f6368] bg-transparent text-2xl text-[#e8eaed] outline-none placeholder:text-[#5f6368] focus:border-[#a8c7fa]"
+                    placeholder="Add title"
+                  />
+                  <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr]">
+                    <label className="grid gap-1">
+                      <span className="text-xs text-[#9aa0a6]">Start</span>
+                      <input
+                        type="datetime-local"
+                        value={toInputDateTime(selectedItem.startsAt)}
+                        onChange={(event) => setSelectedItem({ ...selectedItem, startsAt: fromInputDateTime(event.target.value) })}
+                        className="h-10 rounded-lg border border-[#3c4043] bg-[#282a2d] px-3 text-sm text-[#e8eaed] outline-none focus:border-[#a8c7fa]"
+                      />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs text-[#9aa0a6]">End</span>
+                      <input
+                        type="datetime-local"
+                        value={toInputDateTime(selectedItem.endsAt)}
+                        onChange={(event) => setSelectedItem({ ...selectedItem, endsAt: fromInputDateTime(event.target.value) })}
+                        className="h-10 rounded-lg border border-[#3c4043] bg-[#282a2d] px-3 text-sm text-[#e8eaed] outline-none focus:border-[#a8c7fa]"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <MapPin className="mt-3 size-5 text-[#bdc1c6]" />
+                <input
+                  value={selectedItem.location ?? ""}
+                  onChange={(event) => setSelectedItem({ ...selectedItem, location: event.target.value })}
+                  placeholder="Add location"
+                  className="h-11 rounded-lg border border-[#3c4043] bg-[#282a2d] px-3 text-sm text-[#e8eaed] outline-none placeholder:text-[#9aa0a6] focus:border-[#a8c7fa]"
+                />
+
+                <Tags className="mt-3 size-5 text-[#bdc1c6]" />
+                <select
+                  value={selectedItem.responsibilityId}
+                  onChange={(event) => setSelectedItem({ ...selectedItem, responsibilityId: event.target.value })}
+                  className="h-11 rounded-lg border border-[#3c4043] bg-[#282a2d] px-3 text-sm text-[#e8eaed] outline-none focus:border-[#a8c7fa]"
+                >
+                  {responsibilities.map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+                </select>
+
+                <FileText className="mt-3 size-5 text-[#bdc1c6]" />
+                <textarea
+                  value={selectedItem.notes ?? ""}
+                  onChange={(event) => setSelectedItem({ ...selectedItem, notes: event.target.value })}
+                  placeholder="Add description"
+                  className="min-h-28 resize-none rounded-lg border border-[#3c4043] bg-[#282a2d] p-3 text-sm leading-6 text-[#e8eaed] outline-none placeholder:text-[#9aa0a6] focus:border-[#a8c7fa]"
+                />
+              </div>
+              <div className="mt-5 flex justify-end gap-2">
+                <button type="button" onClick={() => { setEventPanelMode("preview"); setDeleteMenuOpen(false); }} className="rounded-full px-4 py-2 text-sm text-[#bdc1c6] transition hover:bg-[#303134] hover:text-[#e8eaed]">
+                  Cancel
+                </button>
+                <button disabled={!selectedItem.title.trim()} className="rounded-full bg-[#a8c7fa] px-5 py-2 text-sm font-medium text-[#062e6f] transition hover:bg-[#b7d0fb] disabled:opacity-40">
+                  Save
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       )}
     </div>

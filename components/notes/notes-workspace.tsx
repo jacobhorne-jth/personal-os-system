@@ -61,8 +61,7 @@ export function NotesWorkspace() {
       <div className="border-b border-line px-4 py-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <p className="text-base font-medium text-ink">All documents</p>
-            <p className="mt-0.5 text-xs text-muted">Most recently opened</p>
+            <h1 className="text-base font-medium text-ink">Notes</h1>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <label className="flex h-10 min-w-0 items-center gap-2 rounded-lg border border-line bg-paper px-3 text-sm text-muted sm:w-[320px]">
@@ -70,7 +69,7 @@ export function NotesWorkspace() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search documents"
+                placeholder="Search notes"
                 className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-muted"
               />
             </label>
@@ -124,7 +123,7 @@ export function NotesWorkspace() {
           })}
           {!filteredNotes.length && (
             <div className="px-4 py-10 text-center text-sm text-muted">
-              No documents match this view.
+              No notes match this view.
             </div>
           )}
         </div>

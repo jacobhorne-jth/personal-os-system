@@ -88,8 +88,8 @@ export function CalendarSidebar() {
   }, [calendarItems, hiddenCalendarEventIds, hiddenCalendarSeries, hiddenResponsibilities, responsibilities, today, weekEnd, weekStart]);
 
   return (
-    <aside className="hidden min-h-0 w-[360px] shrink-0 flex-col border-l border-[#303134] bg-[#1f1f1f] py-4 xl:flex">
-      <div className="mb-5 px-4">
+    <aside className="hidden min-h-0 w-[360px] shrink-0 flex-col border-l border-[#303134] bg-[#1f1f1f] [--panel-inset:18px] py-4 xl:flex">
+      <div className="mb-5 px-[var(--panel-inset)]">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-sm font-medium text-[#e8eaed]">{today.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
           <div className="flex gap-0">
@@ -132,10 +132,10 @@ export function CalendarSidebar() {
         </div>
       </div>
 
-      <div className="mx-3 mb-4 h-px bg-[#3c4043]" />
+      <div className="mx-[var(--panel-inset)] mb-4 h-px bg-[#3c4043]" />
 
-      <div className="flex-1 overflow-y-auto px-2">
-        <p className="mb-2 px-2 text-xs font-medium text-[#9aa0a6]">Responsibilities</p>
+      <div className="flex-1 overflow-y-auto px-[var(--panel-inset)]">
+        <p className="mb-2 text-xs font-medium text-[#9aa0a6]">Responsibilities</p>
         {responsibilities.map((item) => {
           const tone = responsibilityTone[item.color];
           const hidden = hiddenResponsibilities.includes(item.id);
@@ -143,7 +143,7 @@ export function CalendarSidebar() {
             <button
               key={item.id}
               onClick={() => toggleResponsibility(item.id)}
-              className="flex w-full items-center gap-3 rounded-full px-3 py-1.5 text-left text-sm transition hover:bg-[#3c4043]"
+              className="-mx-3 flex w-[calc(100%+24px)] items-center gap-3 rounded-full px-3 py-1.5 text-left text-sm transition hover:bg-[#3c4043]"
             >
               <span
                 className="grid size-4 shrink-0 place-items-center rounded-sm transition"
@@ -162,9 +162,9 @@ export function CalendarSidebar() {
           );
         })}
 
-        <div className="mx-2 my-5 h-px bg-[#3c4043]" />
+        <div className="my-5 h-px bg-[#3c4043]" />
 
-        <section className="px-2">
+        <section>
           <div className="mb-3 flex h-11 items-center justify-between rounded-full bg-[#282a2d] px-4">
             <h2 className="text-base font-semibold text-[#e8eaed]">Time Insights</h2>
             <ChevronDown className="size-5 rotate-180 text-[#e8eaed]" />

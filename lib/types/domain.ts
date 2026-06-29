@@ -86,7 +86,7 @@ export type Task = {
 
 export type CaptureExtraction = {
   id: string;
-  source: "typed" | "voice" | "upload" | "paste";
+  source: "typed" | "voice" | "upload" | "paste" | "time_log";
   summary: string;
   confidence: number;
   status?: "pending_review" | "approved" | "rejected" | "partially_approved";

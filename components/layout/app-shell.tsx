@@ -67,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }}
         className={cn(
           "fixed left-0 top-0 z-40 hidden h-screen border-r border-line bg-paper transition-[width] duration-200 ease-out lg:flex lg:flex-col lg:py-4",
-          sidebarOpen ? "w-[248px]" : "w-[72px]"
+          sidebarOpen ? "w-[248px]" : "w-[56px]"
         )}
       >
         <Link
@@ -76,12 +76,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             setSidebarOpen(false);
             setSidebarLockedClosed(true);
           }}
-          className="mx-3 mb-5 flex h-11 items-center gap-3 overflow-hidden rounded-lg bg-blue px-3 text-white"
+          className={cn(
+            "mx-2 mb-5 flex h-11 items-center overflow-hidden rounded-lg bg-blue text-white",
+            sidebarOpen ? "gap-3 px-3" : "justify-center px-0"
+          )}
         >
           <Command className="size-5 shrink-0" />
-          <span className={cn("whitespace-nowrap text-sm font-semibold transition-opacity duration-150", sidebarOpen ? "opacity-100" : "opacity-0")}>Jacob OS</span>
+          <span className={cn("overflow-hidden whitespace-nowrap text-sm font-semibold transition-[opacity,width] duration-150", sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0")}>Jacob OS</span>
         </Link>
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3">
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = item.href === "/home" ? pathname === "/home" : pathname.startsWith(item.href);
@@ -95,13 +98,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   setSidebarLockedClosed(true);
                 }}
                 className={cn(
-                  "relative flex h-10 items-center gap-3 overflow-hidden rounded-lg px-3 text-sm text-muted transition duration-200 hover:bg-line hover:text-ink",
+                  "relative flex h-10 items-center overflow-hidden rounded-lg text-sm text-muted transition duration-200 hover:bg-line hover:text-ink",
+                  sidebarOpen ? "gap-3 px-3" : "justify-center px-0",
                   active && "bg-line text-ink"
                 )}
               >
                 <Icon className="size-4 shrink-0" />
-                <span className={cn("whitespace-nowrap transition-opacity duration-150", sidebarOpen ? "opacity-100" : "opacity-0")}>{item.label}</span>
-                {active && <span className="absolute -left-3 h-6 w-1 rounded-r-full bg-blue" />}
+                <span className={cn("overflow-hidden whitespace-nowrap transition-[opacity,width] duration-150", sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0")}>{item.label}</span>
+                {active && sidebarOpen && <span className="absolute left-0 h-6 w-1 rounded-r-full bg-blue" />}
               </Link>
             );
           })}
@@ -112,19 +116,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             setSidebarOpen(false);
             setSidebarLockedClosed(true);
           }}
-          className="mx-3 mt-4 flex h-10 items-center justify-center gap-2 overflow-hidden rounded-lg bg-blue text-sm font-medium text-white transition hover:brightness-110"
+          className={cn(
+            "mx-2 mt-4 flex h-10 items-center overflow-hidden rounded-lg bg-blue text-sm font-medium text-white transition hover:brightness-110",
+            sidebarOpen ? "justify-center gap-2 px-3" : "justify-center px-0"
+          )}
         >
           <PlusCircle className="size-4" />
-          <span className={cn("whitespace-nowrap transition-opacity duration-150", sidebarOpen ? "opacity-100" : "opacity-0")}>Quick add</span>
+          <span className={cn("overflow-hidden whitespace-nowrap transition-[opacity,width] duration-150", sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0")}>Capture</span>
         </Link>
       </aside>
 
       <main
         className={cn(
           isHomeSurface
-            ? "ml-0 h-screen max-w-none overflow-hidden bg-[#1f1f1f] px-4 pb-0 pt-4 sm:px-6 lg:ml-[72px] lg:pl-6 lg:pr-8"
+            ? "ml-0 h-screen max-w-none overflow-hidden bg-[#1f1f1f] lg:ml-[56px]"
             : isCalendarSurface
-              ? "h-screen max-w-none overflow-hidden bg-paper px-4 pb-0 pt-4 sm:px-6 lg:ml-[72px] lg:pl-6 lg:pr-8"
+              ? "h-screen max-w-none overflow-hidden bg-paper lg:ml-[56px]"
               : "mx-auto min-h-dvh w-full max-w-[1700px] px-4 pb-24 pt-4 sm:px-6 lg:pb-4 lg:pl-[96px] lg:pr-8"
         )}
       >
@@ -132,11 +139,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="sticky top-0 z-20 mb-4 hidden items-center justify-between gap-3 border-b border-line bg-paper/95 py-3 backdrop-blur lg:flex">
             <GlobalSearch />
             <div className="flex items-center gap-2">
-              <Link href="/capture" className="rounded-full px-3 py-2 text-sm text-muted transition hover:bg-line hover:text-ink">
-                Capture
-              </Link>
               <Link href="/capture" className="rounded-full bg-blue px-4 py-2 text-sm font-medium text-white transition hover:brightness-110">
-                Quick add
+                Capture
               </Link>
             </div>
           </div>

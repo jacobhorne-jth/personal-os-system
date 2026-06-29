@@ -266,7 +266,7 @@ export const useAppStore = create<AppState>()(
               dueAt: input.dueAt,
               priority: input.priority ?? "medium",
               status: "todo",
-              labels: input.labels ?? [],
+              labels: input.labels?.length ? input.labels.slice(0, 1) : ["Life"],
               estimateMinutes: 30,
               subtasks: []
             },

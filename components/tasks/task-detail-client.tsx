@@ -4,30 +4,27 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
-import { ColorBadge } from "@/components/ui/badge";
 import { Panel } from "@/components/ui/panel";
-import { responsibilityTone } from "@/lib/theme";
-import { cn } from "@/lib/utils";
+import { taskLabel, taskLabelColor, taskLabels } from "@/lib/task-labels";
 
-function toDateTimeLocal(value?: string) {
-  return value?.slice(0, 16) ?? "";
+function toDateInput(value?: string) {
+  return value?.slice(0, 10) ?? "";
 }
 
-function fromDateTimeLocal(value: string) {
-  return value ? `${value}:00-07:00` : undefined;
+function fromDateInput(value: string) {
+  return value ? `${value}T17:00:00` : undefined;
 }
 
 export function TaskDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const task = useAppStore((state) => state.tasks.find((item) => item.id === id));
-  const responsibilities = useAppStore((state) => state.responsibilities);
   const toggleTask = useAppStore((state) => state.toggleTask);
   const updateTask = useAppStore((state) => state.updateTask);
   const deleteTask = useAppStore((state) => state.deleteTask);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueAt, setDueAt] = useState("");
-  const [responsibilityId, setResponsibilityId] = useState("");
+  const [label, setLabel] = useState(taskLabels[0]);
 
   useEffect(() => {
     if (!task) {
@@ -35,8 +32,8 @@ export function TaskDetailClient({ id }: { id: string }) {
     }
     setTitle(task.title);
     setDescription(task.description ?? "");
-    setDueAt(toDateTimeLocal(task.dueAt));
-    setResponsibilityId(task.responsibilityId ?? "");
+    setDueAt(toDateInput(task.dueAt));
+    setLabel(taskLabel(task.labels, task.responsibilityId));
   }, [task]);
 
   if (!task) {
@@ -47,8 +44,7 @@ export function TaskDetailClient({ id }: { id: string }) {
     );
   }
 
-  const responsibility = responsibilities.find((item) => item.id === task.responsibilityId);
-  const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
+  const labelColor = taskLabelColor(label);
 
   function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -58,46 +54,47 @@ export function TaskDetailClient({ id }: { id: string }) {
     updateTask(id, {
       title: title.trim(),
       description: description.trim() || undefined,
-      dueAt: fromDateTimeLocal(dueAt),
-      responsibilityId: responsibilityId || undefined
+      dueAt: fromDateInput(dueAt),
+      labels: [label]
     });
   }
 
   function remove() {
     deleteTask(id);
-    router.push("/todos");
+    router.push("/tasks");
   }
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <header className="relative overflow-hidden rounded-lg border border-line bg-panel p-5">
-        <span className={cn("absolute inset-x-0 top-0 h-1", tone.dot)} />
-        {responsibility && <ColorBadge color={responsibility.color}>{responsibility.name}</ColorBadge>}
+        <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: labelColor }} />
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-line bg-line px-2 py-1 text-xs text-muted">
+          <span className="size-1.5 rounded-full" style={{ backgroundColor: labelColor }} />
+          {label}
+        </span>
         <h1 className="mt-3 text-3xl font-normal text-ink">{task.title}</h1>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
-          <span className="rounded-md border border-line bg-line px-2 py-1">{task.status}</span>
           {task.dueAt && <span className="rounded-md border border-line bg-line px-2 py-1">due {new Date(task.dueAt).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}</span>}
         </div>
       </header>
 
-      <Panel title="Edit Task" eyebrow="working item">
+      <Panel title="Edit Task">
         <form onSubmit={save} className="grid gap-3 p-4 text-sm md:grid-cols-2">
-          <label className="md:col-span-2">
-            <span className="mb-1 block text-xs text-muted">Task name</span>
-            <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-ink outline-none focus:border-blue" />
+          <label>
+            <span className="mb-1 block text-xs text-muted">Date</span>
+            <input type="date" value={dueAt} onChange={(event) => setDueAt(event.target.value)} className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-ink outline-none focus:border-blue" />
           </label>
           <label>
-            <span className="mb-1 block text-xs text-muted">Responsibility</span>
-            <select value={responsibilityId} onChange={(event) => setResponsibilityId(event.target.value)} className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-ink outline-none focus:border-blue">
-              <option value="">Inbox</option>
-              {responsibilities.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
+            <span className="mb-1 block text-xs text-muted">Label</span>
+            <select value={label} onChange={(event) => setLabel(event.target.value)} className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-ink outline-none focus:border-blue">
+              {taskLabels.map((item) => (
+                <option key={item} value={item}>{item}</option>
               ))}
             </select>
           </label>
-          <label>
-            <span className="mb-1 block text-xs text-muted">Due</span>
-            <input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-ink outline-none focus:border-blue" />
+          <label className="md:col-span-2">
+            <span className="mb-1 block text-xs text-muted">Title</span>
+            <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-ink outline-none focus:border-blue" />
           </label>
           <label className="md:col-span-2">
             <span className="mb-1 block text-xs text-muted">Description</span>
