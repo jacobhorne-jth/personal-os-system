@@ -281,7 +281,7 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
     if (shortEvent) {
       return (
         <div style={{ height: "100%", minHeight: 0, display: "flex", alignItems: "center", overflow: "hidden", padding: "0 8px" }}>
-          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#1f1f1f", fontWeight: 700, fontSize: 12, lineHeight: 1 }}>
+          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#111827", fontWeight: 800, fontSize: 12, lineHeight: 1 }}>
             {title}
           </span>
         </div>
@@ -289,15 +289,15 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
     }
 
     return (
-      <div style={{ padding: "6px 8px", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", gap: 2 }}>
-        <span style={{ color: "#1f1f1f", fontWeight: 700, fontSize: 12, lineHeight: 1.12, whiteSpace: "normal", overflowWrap: "anywhere" }}>
+      <div style={{ padding: "7px 8px", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={{ color: "#111827", fontWeight: 800, fontSize: 13, lineHeight: 1.12, whiteSpace: "normal", overflowWrap: "anywhere" }}>
           {title}
         </span>
-        <span style={{ color: "#1f1f1f", fontSize: 11, fontWeight: 700, opacity: 0.92, lineHeight: 1.18, whiteSpace: "normal", overflowWrap: "anywhere" }}>
-          {timeRange}{location ? `, ${location}` : ""}
+        <span style={{ color: "#1f1f1f", fontSize: 11, fontWeight: 600, opacity: 0.82, lineHeight: 1.2, whiteSpace: "normal", overflowWrap: "anywhere" }}>
+          {timeRange}
         </span>
         {location && (
-          <span className="sr-only" style={{ fontSize: 10, opacity: 0.75, lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <span style={{ color: "#1f1f1f", fontSize: 10, fontWeight: 600, opacity: 0.72, lineHeight: 1.18, whiteSpace: "normal", overflowWrap: "anywhere" }}>
             {location}
           </span>
         )}
