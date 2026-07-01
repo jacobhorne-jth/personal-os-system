@@ -103,10 +103,19 @@ export type Note = {
   title: string;
   body: string;
   responsibilityId: string;
+  folderId?: string;
   labels?: string[];
   createdAt: string;
   updatedAt?: string;
   lastOpenedAt?: string;
+};
+
+export type NoteFolder = {
+  id: string;
+  name: string;
+  color: ResponsibilityColor;
+  createdAt: string;
+  updatedAt?: string;
 };
 
 export type FileAsset = {

@@ -114,6 +114,7 @@ export type Database = {
           id: string;
           user_id: string;
           responsibility_id: string | null;
+          folder_id: string | null;
           title: string;
           body: string;
           labels: string[];
@@ -125,12 +126,33 @@ export type Database = {
           id?: string;
           user_id: string;
           responsibility_id?: string | null;
+          folder_id?: string | null;
           title: string;
           body?: string;
           labels?: string[];
           last_opened_at?: string | null;
         };
         Update: Partial<Omit<Database["public"]["Tables"]["notes"]["Insert"], "user_id">>;
+        Relationships: [];
+      };
+      note_folders: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          color: string;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          color?: string;
+          sort_order?: number;
+        };
+        Update: Partial<Omit<Database["public"]["Tables"]["note_folders"]["Insert"], "user_id">>;
         Relationships: [];
       };
       lists: {

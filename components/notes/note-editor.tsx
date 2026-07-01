@@ -46,18 +46,21 @@ export function NoteEditor({ noteId }: { noteId: string }) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const note = useAppStore((state) => state.notes.find((item) => item.id === noteId));
+  const noteFolders = useAppStore((state) => state.noteFolders);
   const updateNote = useAppStore((state) => state.updateNote);
   const markNoteOpened = useAppStore((state) => state.markNoteOpened);
   const deleteNote = useAppStore((state) => state.deleteNote);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [label, setLabel] = useState("none");
+  const [folderId, setFolderId] = useState("none");
 
   useEffect(() => {
     if (!note) return;
     setTitle(note.title);
     setBody(note.body);
     setLabel(note.labels?.[0] ?? "none");
+    setFolderId(note.folderId ?? "none");
   }, [note]);
 
   useEffect(() => {
@@ -69,17 +72,19 @@ export function NoteEditor({ noteId }: { noteId: string }) {
       if (!note) return;
       const nextLabels = label === "none" ? [] : [label];
       const currentLabel = note.labels?.[0] ?? "none";
-      if (title !== note.title || body !== note.body || label !== currentLabel) {
+      const currentFolderId = note.folderId ?? "none";
+      if (title !== note.title || body !== note.body || label !== currentLabel || folderId !== currentFolderId) {
         updateNote(note.id, {
           title,
           body,
+          folderId: folderId === "none" ? "" : folderId,
           labels: nextLabels
         });
       }
     }, 450);
 
     return () => window.clearTimeout(timer);
-  }, [body, label, note, title, updateNote]);
+  }, [body, folderId, label, note, title, updateNote]);
 
   if (!note) {
     return (
@@ -175,8 +180,22 @@ export function NoteEditor({ noteId }: { noteId: string }) {
           autoFocus
           className="mb-5 w-full bg-transparent font-sans text-5xl font-semibold leading-tight text-ink outline-none placeholder:text-muted/35"
         />
-        <div className="mb-7 flex items-center gap-3">
-          <span className="text-sm text-muted">Label</span>
+        <div className="mb-7 flex flex-wrap items-center gap-3">
+          <span className="text-sm text-muted">Folder</span>
+          <select
+            value={folderId}
+            onChange={(event) => setFolderId(event.target.value)}
+            className="h-9 rounded-md border border-line bg-paper px-3 text-sm text-ink outline-none transition focus:border-blue"
+            aria-label="Note folder"
+          >
+            <option value="none">Unfiled</option>
+            {noteFolders.map((folder) => (
+              <option key={folder.id} value={folder.id}>
+                {folder.name}
+              </option>
+            ))}
+          </select>
+          <span className="ml-0 text-sm text-muted sm:ml-3">Label</span>
           <select
             value={label}
             onChange={(event) => setLabel(event.target.value)}

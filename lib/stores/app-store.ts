@@ -5,7 +5,7 @@ import { persist } from "zustand/middleware";
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { aiReviewItems, calendarItems, lists, responsibilities, tasks } from "@/lib/data/mock";
-import type { ActiveGymSession, CalendarItem, CaptureExtraction, FileAsset, FoodEntry, FoodMeal, Goal, GymDay, GymExercise, GymSession, GymSessionExercise, GymSet, Habit, HabitLog, HabitType, Idea, IdeaStatus, Note, Responsibility, ResponsibilityColor, SavedList, Task } from "@/lib/types/domain";
+import type { ActiveGymSession, CalendarItem, CaptureExtraction, FileAsset, FoodEntry, FoodMeal, Goal, GymDay, GymExercise, GymSession, GymSessionExercise, GymSet, Habit, HabitLog, HabitType, Idea, IdeaStatus, Note, NoteFolder, Responsibility, ResponsibilityColor, SavedList, Task } from "@/lib/types/domain";
 import type { Database } from "@/lib/types/database";
 
 // ─── Supabase client singleton ────────────────────────────────────────────────
@@ -26,6 +26,7 @@ function getDb(): SupabaseClient<Database> | null {
 type DbTask = Database["public"]["Tables"]["tasks"]["Row"];
 type DbCalendarItem = Database["public"]["Tables"]["calendar_items"]["Row"];
 type DbNote = Database["public"]["Tables"]["notes"]["Row"];
+type DbNoteFolder = Database["public"]["Tables"]["note_folders"]["Row"];
 type DbList = Database["public"]["Tables"]["lists"]["Row"];
 type DbResponsibility = Database["public"]["Tables"]["responsibilities"]["Row"];
 
@@ -65,10 +66,21 @@ function dbNoteToDomain(row: DbNote): Note {
     title: row.title,
     body: row.body,
     responsibilityId: row.responsibility_id ?? "",
+    folderId: row.folder_id ?? undefined,
     labels: row.labels ?? [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     lastOpenedAt: row.last_opened_at ?? undefined,
+  };
+}
+
+function dbNoteFolderToDomain(row: DbNoteFolder): NoteFolder {
+  return {
+    id: row.id,
+    name: row.name,
+    color: row.color as ResponsibilityColor,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -198,12 +210,33 @@ function parseCapture(input: { text: string; source: CaptureExtraction["source"]
 // ─── Seed data for initial state ──────────────────────────────────────────────
 
 const now = "2026-05-07T10:00:00-07:00";
+const defaultNoteFolderIds = {
+  research: "10000000-0000-4000-8000-000000000001",
+  work: "10000000-0000-4000-8000-000000000002",
+  leetcode: "10000000-0000-4000-8000-000000000003",
+  systemDesign: "10000000-0000-4000-8000-000000000004",
+  frontend: "10000000-0000-4000-8000-000000000005",
+  backend: "10000000-0000-4000-8000-000000000006",
+  databases: "10000000-0000-4000-8000-000000000007",
+  aiMl: "10000000-0000-4000-8000-000000000008",
+};
 
 const seedNotes: Note[] = [
-  { id: "note-1", title: "Runtime comparison idea", body: "Compare latest runtime curves against FEA baseline before poster submission.", responsibilityId: "digital-learning-lab", labels: ["research"], createdAt: now, updatedAt: now, lastOpenedAt: now },
-  { id: "note-2", title: "Algorithms exam review", body: "Prioritize dynamic programming, graph traversal, and proof templates.", responsibilityId: "school", labels: ["class notes"], createdAt: now, updatedAt: now, lastOpenedAt: now },
+  { id: "note-1", title: "Runtime comparison idea", body: "Compare latest runtime curves against FEA baseline before poster submission.", responsibilityId: "digital-learning-lab", folderId: defaultNoteFolderIds.research, labels: ["research"], createdAt: now, updatedAt: now, lastOpenedAt: now },
+  { id: "note-2", title: "Algorithms exam review", body: "Prioritize dynamic programming, graph traversal, and proof templates.", responsibilityId: "school", folderId: defaultNoteFolderIds.research, labels: ["class notes"], createdAt: now, updatedAt: now, lastOpenedAt: now },
   { id: "note-3", title: "Quarter structure", body: "Keep School as the operating area; track classes as notes and lists because they change every quarter.", responsibilityId: "school", labels: ["class notes"], createdAt: now, updatedAt: now, lastOpenedAt: now },
-  { id: "note-4", title: "Recruiting buckets", body: "Apps, events, Leetcode, interviews, and resume tweaks should stay visible as recurring lists.", responsibilityId: "recruiting", labels: ["follow-up"], createdAt: now, updatedAt: now, lastOpenedAt: now }
+  { id: "note-4", title: "Recruiting buckets", body: "Apps, events, Leetcode, interviews, and resume tweaks should stay visible as recurring lists.", responsibilityId: "recruiting", folderId: defaultNoteFolderIds.work, labels: ["follow-up"], createdAt: now, updatedAt: now, lastOpenedAt: now }
+];
+
+const seedNoteFolders: NoteFolder[] = [
+  { id: defaultNoteFolderIds.research, name: "Research", color: "basil", createdAt: now, updatedAt: now },
+  { id: defaultNoteFolderIds.work, name: "Work", color: "tomato", createdAt: now, updatedAt: now },
+  { id: defaultNoteFolderIds.leetcode, name: "LeetCode", color: "amber", createdAt: now, updatedAt: now },
+  { id: defaultNoteFolderIds.systemDesign, name: "System Design", color: "peacock", createdAt: now, updatedAt: now },
+  { id: defaultNoteFolderIds.frontend, name: "Frontend", color: "sky", createdAt: now, updatedAt: now },
+  { id: defaultNoteFolderIds.backend, name: "Backend", color: "indigo", createdAt: now, updatedAt: now },
+  { id: defaultNoteFolderIds.databases, name: "Databases", color: "grape", createdAt: now, updatedAt: now },
+  { id: defaultNoteFolderIds.aiMl, name: "AI / ML", color: "lavender", createdAt: now, updatedAt: now },
 ];
 
 const seedFiles: FileAsset[] = [
@@ -270,6 +303,7 @@ type AppState = {
   tasks: Task[];
   aiReviewItems: CaptureExtraction[];
   notes: Note[];
+  noteFolders: NoteFolder[];
   files: FileAsset[];
   lists: SavedList[];
   timer: TimerState;
@@ -297,10 +331,15 @@ type AppState = {
   toggleTask: (taskId: string) => void;
 
   // Notes
-  addNote: (input: { title: string; body: string; responsibilityId: string; labels?: string[] }) => string;
+  addNote: (input: { title: string; body: string; responsibilityId: string; folderId?: string; labels?: string[] }) => string;
   updateNote: (noteId: string, input: Partial<Omit<Note, "id" | "createdAt">>) => void;
   markNoteOpened: (noteId: string) => void;
   deleteNote: (noteId: string) => void;
+
+  // Note folders
+  addNoteFolder: (input: { name: string; color?: ResponsibilityColor }) => string;
+  updateNoteFolder: (folderId: string, input: { name?: string; color?: ResponsibilityColor }) => void;
+  deleteNoteFolder: (folderId: string) => void;
 
   // Lists
   addList: (input: { title: string; responsibilityId: string }) => void;
@@ -388,6 +427,7 @@ export const useAppStore = create<AppState>()(
       tasks: [],
       aiReviewItems: [],
       notes: [],
+      noteFolders: [],
       files: [],
       lists: [],
       habits: [],
@@ -416,6 +456,7 @@ export const useAppStore = create<AppState>()(
             tasks,
             calendarItems,
             notes: seedNotes,
+            noteFolders: seedNoteFolders,
             lists,
             responsibilities,
             files: seedFiles,
@@ -437,12 +478,14 @@ export const useAppStore = create<AppState>()(
           { data: dbTasks },
           { data: dbCalendarItems },
           { data: dbNotes },
+          { data: dbNoteFolders },
           { data: dbLists },
           { data: dbResp },
         ] = await Promise.all([
           db.from("tasks").select("*").eq("user_id", userId).neq("status", "archived"),
           db.from("calendar_items").select("*").eq("user_id", userId).order("starts_at"),
           db.from("notes").select("*").eq("user_id", userId).order("updated_at", { ascending: false }),
+          db.from("note_folders").select("*").eq("user_id", userId).order("sort_order"),
           db.from("lists").select("*").eq("user_id", userId),
           db.from("responsibilities").select("*").eq("user_id", userId).order("sort_order"),
         ]);
@@ -450,7 +493,21 @@ export const useAppStore = create<AppState>()(
         const loadedTasks = (dbTasks ?? []).map(dbTaskToDomain);
         const loadedItems = (dbCalendarItems ?? []).map(dbCalendarItemToDomain);
         const loadedNotes = (dbNotes ?? []).map(dbNoteToDomain);
+        let loadedNoteFolders = (dbNoteFolders ?? []).map(dbNoteFolderToDomain);
         const loadedLists = (dbLists ?? []).map(dbListToDomain);
+
+        if (!dbNoteFolders || dbNoteFolders.length === 0) {
+          await db.from("note_folders").insert(
+            seedNoteFolders.map((folder, i) => ({
+              id: folder.id,
+              user_id: userId,
+              name: folder.name,
+              color: folder.color,
+              sort_order: i,
+            }))
+          );
+          loadedNoteFolders = seedNoteFolders;
+        }
 
         let loadedResp: Responsibility[];
         if (!dbResp || dbResp.length === 0) {
@@ -479,6 +536,7 @@ export const useAppStore = create<AppState>()(
           tasks: loadedTasks,
           calendarItems: loadedItems,
           notes: loadedNotes,
+          noteFolders: loadedNoteFolders,
           lists: loadedLists,
           responsibilities: loadedResp,
           files: [],
@@ -681,6 +739,7 @@ export const useAppStore = create<AppState>()(
           title: input.title,
           body: input.body,
           responsibilityId: input.responsibilityId,
+          folderId: input.folderId,
           labels: input.labels ?? [],
           createdAt: timestamp,
           updatedAt: timestamp,
@@ -689,7 +748,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({ notes: [newNote, ...state.notes] }));
         const { userId } = get();
         if (userId) {
-          getDb()?.from("notes").insert({ id: noteId, user_id: userId, responsibility_id: input.responsibilityId || null, title: input.title, body: input.body, labels: input.labels ?? [], last_opened_at: timestamp })
+          getDb()?.from("notes").insert({ id: noteId, user_id: userId, responsibility_id: input.responsibilityId || null, folder_id: input.folderId ?? null, title: input.title, body: input.body, labels: input.labels ?? [], last_opened_at: timestamp })
             .then(({ error }) => { if (error) console.error("addNote:", error); });
         }
         return noteId;
@@ -710,6 +769,7 @@ export const useAppStore = create<AppState>()(
               ...(input.body !== undefined && { body: input.body }),
               ...(input.labels !== undefined && { labels: input.labels }),
               ...(input.responsibilityId !== undefined && { responsibility_id: input.responsibilityId }),
+              ...(input.folderId !== undefined && { folder_id: input.folderId || null }),
             }).eq("id", noteId).eq("user_id", userId)
               .then(({ error }) => { if (error) console.error("updateNote:", error); });
           }
@@ -736,6 +796,63 @@ export const useAppStore = create<AppState>()(
         if (userId) {
           getDb()?.from("notes").delete().eq("id", noteId).eq("user_id", userId)
             .then(({ error }) => { if (error) console.error("deleteNote:", error); });
+        }
+      },
+
+      // ── Note folders ─────────────────────────────────────────────────────
+
+      addNoteFolder: (input) => {
+        const folderId = id("folder");
+        const timestamp = new Date().toISOString();
+        const newFolder: NoteFolder = {
+          id: folderId,
+          name: input.name,
+          color: input.color ?? "blue",
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+        const sortOrder = get().noteFolders.length;
+        set((state) => ({ noteFolders: [...state.noteFolders, newFolder] }));
+        const { userId } = get();
+        if (userId) {
+          getDb()?.from("note_folders").insert({ id: folderId, user_id: userId, name: input.name, color: input.color ?? "blue", sort_order: sortOrder })
+            .then(({ error }) => { if (error) console.error("addNoteFolder:", error); });
+        }
+        return folderId;
+      },
+
+      updateNoteFolder: (folderId, input) => {
+        set((state) => ({
+          noteFolders: state.noteFolders.map((folder) =>
+            folder.id === folderId ? { ...folder, ...input, updatedAt: new Date().toISOString() } : folder
+          )
+        }));
+        const { userId } = get();
+        if (userId) {
+          getDb()?.from("note_folders").update({
+            ...(input.name !== undefined && { name: input.name }),
+            ...(input.color !== undefined && { color: input.color }),
+          }).eq("id", folderId).eq("user_id", userId)
+            .then(({ error }) => { if (error) console.error("updateNoteFolder:", error); });
+        }
+      },
+
+      deleteNoteFolder: (folderId) => {
+        set((state) => ({
+          noteFolders: state.noteFolders.filter((folder) => folder.id !== folderId),
+          notes: state.notes.map((note) =>
+            note.folderId === folderId ? { ...note, folderId: undefined, updatedAt: new Date().toISOString() } : note
+          ),
+        }));
+        const { userId } = get();
+        if (userId) {
+          const db = getDb();
+          if (db) {
+            db.from("notes").update({ folder_id: null }).eq("folder_id", folderId).eq("user_id", userId)
+              .then(({ error }) => { if (error) console.error("deleteNoteFolder notes:", error); });
+            db.from("note_folders").delete().eq("id", folderId).eq("user_id", userId)
+              .then(({ error }) => { if (error) console.error("deleteNoteFolder:", error); });
+          }
         }
       },
 
