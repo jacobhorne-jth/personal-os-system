@@ -1,4 +1,4 @@
-import { GoalsWorkspace } from "@/components/dashboard/system-pages";
+import { GoalsWorkspace } from "@/components/goals/goals-workspace";
 
 export default function GoalsPage() {
   return <GoalsWorkspace />;

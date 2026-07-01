@@ -37,7 +37,7 @@ function PopoverPicker({
   const selectedTone = responsibilityTone[value];
 
   return (
-    <div className="relative inline-block">
+    <div className="relative z-50 inline-block">
       <button
         type="button"
         onClick={(event) => {
@@ -60,7 +60,7 @@ function PopoverPicker({
 
       {open && (
         <div
-          className="absolute left-0 top-11 z-50 w-[280px] rounded-xl border border-line bg-[#242528] p-3 shadow-lift"
+          className="absolute right-0 top-11 z-[100] w-[280px] rounded-xl border border-line bg-[#242528] p-3 shadow-lift"
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();

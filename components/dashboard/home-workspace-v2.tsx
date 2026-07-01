@@ -6,7 +6,7 @@ import { FullCalendarBoard } from "@/components/calendar/full-calendar-board";
 import { QuickCaptureForm } from "@/components/capture/quick-capture-form";
 import { localDateKey, formatDateHeading } from "@/lib/dates";
 import { useAppStore } from "@/lib/stores/app-store";
-import { taskLabel, taskLabelColor, taskLabels } from "@/lib/task-labels";
+import { taskLabel, taskLabelColor } from "@/lib/task-labels";
 import { cn } from "@/lib/utils";
 
 const dateFilters = ["Today", "All"] as const;
@@ -23,6 +23,7 @@ function matchesDate(filter: (typeof dateFilters)[number], today: string, dueAt?
 
 export function HomeWorkspaceV2() {
   const tasks = useAppStore((state) => state.tasks);
+  const responsibilities = useAppStore((s) => s.responsibilities);
   const toggleTask = useAppStore((state) => state.toggleTask);
 
   const [dateFilter, setDateFilter] = useState<(typeof dateFilters)[number]>("Today");
@@ -30,11 +31,18 @@ export function HomeWorkspaceV2() {
   const today = localDateKey();
   const todayHeading = formatDateHeading();
 
-  const filteredTasks = tasks.filter((task) => {
-    const statusMatch = task.status !== "done";
-    const labelMatch = labelFilter === "all" || taskLabel(task.labels, task.responsibilityId) === labelFilter;
-    return statusMatch && labelMatch && matchesDate(dateFilter, today, task.dueAt);
-  });
+  const filteredTasks = tasks
+    .filter((task) => {
+      const statusMatch = task.status !== "done";
+      const labelMatch = labelFilter === "all" || taskLabel(task.labels, task.responsibilityId, responsibilities) === labelFilter;
+      return statusMatch && labelMatch && matchesDate(dateFilter, today, task.dueAt);
+    })
+    .sort((a, b) => {
+      if (!a.dueAt && !b.dueAt) return 0;
+      if (!a.dueAt) return 1;
+      if (!b.dueAt) return -1;
+      return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+    });
 
   return (
     <div className="grid h-full min-h-0 grid-cols-1 bg-[#1f1f1f] xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -71,8 +79,8 @@ export function HomeWorkspaceV2() {
             <Search className="size-3.5 text-[#bdc1c6]" />
             <select value={labelFilter} onChange={(event) => setLabelFilter(event.target.value)} className="h-10 min-w-0 flex-1 bg-transparent text-sm text-[#bdc1c6] outline-none">
               <option value="all">All labels</option>
-              {taskLabels.map((label) => (
-                <option key={label} value={label}>{label}</option>
+              {responsibilities.map((r) => (
+                <option key={r.id} value={r.name}>{r.name}</option>
               ))}
             </select>
           </label>
@@ -84,8 +92,8 @@ export function HomeWorkspaceV2() {
           ) : (
             <div className="divide-y divide-[#303134]">
               {filteredTasks.map((task) => {
-                const label = taskLabel(task.labels, task.responsibilityId);
-                const labelColor = taskLabelColor(label);
+                const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
+                const labelColor = taskLabelColor(label, responsibilities);
                 return (
                   <div key={task.id} className="flex items-start gap-3 px-[var(--panel-inset)] py-3 transition hover:bg-[#282a2d]">
                     <button

@@ -19,22 +19,30 @@ export function TaskList({
   upcomingOnly?: boolean;
 }) {
   const tasks = useAppStore((state) => state.tasks);
+  const responsibilities = useAppStore((s) => s.responsibilities);
   const toggleTask = useAppStore((state) => state.toggleTask);
   const today = localDateKey();
-  const visibleTasks = tasks.filter((task) => {
-    const matchesResponsibility = !responsibilityId || task.responsibilityId === responsibilityId;
-    const matchesDate = !todayOnly || task.dueAt?.startsWith(today);
-    const matchesUpcoming = !upcomingOnly || Boolean(task.dueAt && task.dueAt.slice(0, 10) > today);
-    return task.status !== "done" && matchesResponsibility && matchesDate && matchesUpcoming;
-  });
+  const visibleTasks = tasks
+    .filter((task) => {
+      const matchesResponsibility = !responsibilityId || task.responsibilityId === responsibilityId;
+      const matchesDate = !todayOnly || task.dueAt?.startsWith(today);
+      const matchesUpcoming = !upcomingOnly || Boolean(task.dueAt && task.dueAt.slice(0, 10) > today);
+      return task.status !== "done" && matchesResponsibility && matchesDate && matchesUpcoming;
+    })
+    .sort((a, b) => {
+      if (!a.dueAt && !b.dueAt) return 0;
+      if (!a.dueAt) return 1;
+      if (!b.dueAt) return -1;
+      return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+    });
 
   return (
     <div>
       {quickAdd && <QuickTaskForm responsibilityId={responsibilityId} compact={Boolean(responsibilityId)} />}
       <div className="divide-y divide-line">
         {visibleTasks.map((task) => {
-          const label = taskLabel(task.labels, task.responsibilityId);
-          const color = taskLabelColor(label);
+          const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
+          const color = taskLabelColor(label, responsibilities);
           return (
             <Link
               key={task.id}

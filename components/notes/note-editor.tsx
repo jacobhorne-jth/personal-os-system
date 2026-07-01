@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Trash2 } from "lucide-react";
+import { noteLabels } from "@/lib/note-labels";
 import { useAppStore } from "@/lib/stores/app-store";
 
 function insertAtSelection(textarea: HTMLTextAreaElement, value: string) {
@@ -50,11 +51,13 @@ export function NoteEditor({ noteId }: { noteId: string }) {
   const deleteNote = useAppStore((state) => state.deleteNote);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [label, setLabel] = useState("none");
 
   useEffect(() => {
     if (!note) return;
     setTitle(note.title);
     setBody(note.body);
+    setLabel(note.labels?.[0] ?? "none");
   }, [note]);
 
   useEffect(() => {
@@ -64,16 +67,19 @@ export function NoteEditor({ noteId }: { noteId: string }) {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (!note) return;
-      if (title !== note.title || body !== note.body) {
+      const nextLabels = label === "none" ? [] : [label];
+      const currentLabel = note.labels?.[0] ?? "none";
+      if (title !== note.title || body !== note.body || label !== currentLabel) {
         updateNote(note.id, {
           title,
-          body
+          body,
+          labels: nextLabels
         });
       }
     }, 450);
 
     return () => window.clearTimeout(timer);
-  }, [body, note, title, updateNote]);
+  }, [body, label, note, title, updateNote]);
 
   if (!note) {
     return (
@@ -169,6 +175,22 @@ export function NoteEditor({ noteId }: { noteId: string }) {
           autoFocus
           className="mb-5 w-full bg-transparent font-sans text-5xl font-semibold leading-tight text-ink outline-none placeholder:text-muted/35"
         />
+        <div className="mb-7 flex items-center gap-3">
+          <span className="text-sm text-muted">Label</span>
+          <select
+            value={label}
+            onChange={(event) => setLabel(event.target.value)}
+            className="h-9 rounded-md border border-line bg-paper px-3 text-sm text-ink outline-none transition focus:border-blue"
+            aria-label="Note label"
+          >
+            <option value="none">No label</option>
+            {noteLabels.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
         <textarea
           ref={textareaRef}
           value={body}

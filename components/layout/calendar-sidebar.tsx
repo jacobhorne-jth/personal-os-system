@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { capitalOneWorkBlocks, filterGeneratedCalendarItems, startOfWeek } from "@/lib/calendar-generated";
 import { useAppStore } from "@/lib/stores/app-store";
@@ -11,17 +11,18 @@ import { cn } from "@/lib/utils";
 
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
-function miniMonthDays(today = new Date()) {
-  const first = new Date(today.getFullYear(), today.getMonth(), 1);
+function miniMonthDays(displayMonth: Date, today: Date) {
+  const first = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
   const start = new Date(first);
   start.setDate(first.getDate() - first.getDay());
   return Array.from({ length: 42 }, (_, index) => {
     const date = new Date(start);
     date.setDate(start.getDate() + index);
     return {
-      key: date.toISOString(),
+      key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+      date: new Date(date),
       day: date.getDate(),
-      inMonth: date.getMonth() === today.getMonth(),
+      inMonth: date.getMonth() === displayMonth.getMonth(),
       isToday: date.toDateString() === today.toDateString()
     };
   });
@@ -54,9 +55,11 @@ export function CalendarSidebar() {
   const calendarItems = useAppStore((state) => state.calendarItems);
   const hiddenCalendarEventIds = useAppStore((state) => state.hiddenCalendarEventIds);
   const hiddenCalendarSeries = useAppStore((state) => state.hiddenCalendarSeries);
-  const { hiddenResponsibilities, toggleResponsibility } = useUiStore();
+  const { hiddenResponsibilities, toggleResponsibility, setCalendarGotoDate } = useUiStore();
+  const [monthOffset, setMonthOffset] = useState(0);
   const today = useMemo(() => new Date(), []);
-  const monthDays = useMemo(() => miniMonthDays(today), [today]);
+  const displayMonth = useMemo(() => new Date(today.getFullYear(), today.getMonth() + monthOffset, 1), [today, monthOffset]);
+  const monthDays = useMemo(() => miniMonthDays(displayMonth, today), [displayMonth, today]);
   const weekStart = useMemo(() => startOfWeek(today), [today]);
   const weekEnd = useMemo(() => {
     const end = new Date(weekStart);
@@ -91,15 +94,17 @@ export function CalendarSidebar() {
     <aside className="hidden min-h-0 w-[360px] shrink-0 flex-col border-l border-[#303134] bg-[#1f1f1f] [--panel-inset:18px] py-4 xl:flex">
       <div className="mb-5 px-[var(--panel-inset)]">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-medium text-[#e8eaed]">{today.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
+          <span className="text-sm font-medium text-[#e8eaed]">{displayMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
           <div className="flex gap-0">
             <button
+              onClick={() => setMonthOffset((o) => o - 1)}
               className="grid size-8 place-items-center rounded-full text-[#9aa0a6] transition hover:bg-[#3c4043]"
               aria-label="Previous month"
             >
               <ChevronLeft className="size-4" />
             </button>
             <button
+              onClick={() => setMonthOffset((o) => o + 1)}
               className="grid size-8 place-items-center rounded-full text-[#9aa0a6] transition hover:bg-[#3c4043]"
               aria-label="Next month"
             >
@@ -114,18 +119,19 @@ export function CalendarSidebar() {
               {d}
             </div>
           ))}
-          {monthDays.map((date) => {
+          {monthDays.map((d) => {
             return (
               <button
-                key={date.key}
+                key={d.key}
+                onClick={() => setCalendarGotoDate(d.date.toISOString())}
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full text-xs transition mx-auto",
-                  date.isToday ? "bg-[#4285f4] font-medium text-white" : "",
-                  !date.isToday && date.inMonth ? "text-[#e8eaed] hover:bg-[#3c4043]" : "",
-                  !date.isToday && !date.inMonth ? "text-[#5f6368] hover:bg-[#3c4043]" : ""
+                  d.isToday ? "bg-[#4285f4] font-medium text-white" : "",
+                  !d.isToday && d.inMonth ? "text-[#e8eaed] hover:bg-[#3c4043]" : "",
+                  !d.isToday && !d.inMonth ? "text-[#5f6368] hover:bg-[#3c4043]" : ""
                 )}
               >
-                {date.day}
+                {d.day}
               </button>
             );
           })}

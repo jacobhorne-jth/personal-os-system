@@ -4,21 +4,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FileText, Plus, Search } from "lucide-react";
+import { noteLabels } from "@/lib/note-labels";
 import { useAppStore } from "@/lib/stores/app-store";
 import { cn } from "@/lib/utils";
-
-export const noteLabels = [
-  "class notes",
-  "research",
-  "shopping list",
-  "random learning",
-  "meeting notes",
-  "project docs",
-  "ideas",
-  "writing",
-  "deep work",
-  "quick"
-];
 
 export function NotesWorkspace() {
   const router = useRouter();

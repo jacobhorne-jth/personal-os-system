@@ -314,17 +314,21 @@ select:focus-visible {
   color: #bdc1c6;
   font-size: 15px;
   font-weight: 500;
-  border-color: transparent;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+  border-left-color: transparent !important;
   width: var(--gcal-axis-width) !important;
   min-width: var(--gcal-axis-width) !important;
+  vertical-align: top;
 }
 
 .calendar-board .fc-timegrid-slot-label-cushion {
   position: relative;
-  display: inline-flex;
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
   align-items: center;
-  padding-right: 16px;
-  padding-top: 0;
+  padding-right: 14px;
   transform: translateY(-50%);
   white-space: nowrap;
 }
@@ -332,8 +336,8 @@ select:focus-visible {
 .calendar-board .fc-timegrid-slot-label-cushion::after {
   position: absolute;
   top: 50%;
-  left: calc(100% + 1px);
-  width: 10px;
+  right: 0;
+  width: 8px;
   height: 1px;
   background: #333537;
   content: "";
@@ -420,11 +424,11 @@ select:focus-visible {
 }
 
 .calendar-board .fc-scrollgrid-section-header th:first-child {
-  border-right-color: transparent;
+  border-right-color: #333537;
 }
 
 .calendar-board .fc-scrollgrid-section-body td:first-child {
-  border-right-color: transparent;
+  border-right-color: #333537;
 }
 
 .calendar-board .fc-scrollgrid-section > * {
@@ -432,20 +436,26 @@ select:focus-visible {
   border-right-width: 0;
 }
 
-/* Now indicator: thin line + circle dot */
+/* Now indicator: thin line + circle dot attached to line's left edge */
 .calendar-board .fc-timegrid-now-indicator-line {
   border-color: #ff5f57;
   border-width: 2px;
 }
 
-.calendar-board .fc-timegrid-now-indicator-arrow {
-  border: none !important;
-  background: #ff5f57;
-  width: 18px;
-  height: 18px;
+.calendar-board .fc-timegrid-now-indicator-line::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  margin-top: -8px;
-  margin-left: -9px;
+  background: #ff5f57;
+}
+
+/* Hide the default arrow which lives in the time axis column (misaligned) */
+.calendar-board .fc-timegrid-now-indicator-arrow {
+  display: none;
 }
 
 /* All-day area */
@@ -470,6 +480,11 @@ select:focus-visible {
 .calendar-board .fc .fc-scroller {
   scrollbar-color: #747775 transparent;
   scrollbar-width: thin;
+}
+
+.calendar-board .fc-scroller-liquid-absolute {
+  padding-top: 24px;
+  padding-bottom: 24px;
 }
 
 .calendar-board .fc .fc-scroller::-webkit-scrollbar {

@@ -1,5 +1,5 @@
-import { HabitsWorkspace } from "@/components/dashboard/system-pages";
+import { HabitsBoard } from "@/components/habits/habits-board";
 
 export default function HabitsPage() {
-  return <HabitsWorkspace />;
+  return <HabitsBoard />;
 }

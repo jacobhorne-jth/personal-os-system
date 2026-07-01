@@ -1,18 +1,20 @@
-import { responsibilities } from "@/lib/data/mock";
+import type { Responsibility } from "@/lib/types/domain";
+import { responsibilities as mockResponsibilities } from "@/lib/data/mock";
 import { responsibilityTone } from "@/lib/theme";
 
-export const taskLabels = responsibilities.map((responsibility) => responsibility.name);
+export const taskLabels = mockResponsibilities.map((r) => r.name);
 
-export function taskLabel(taskLabelsValue?: string[], responsibilityId?: string) {
-  const responsibility = responsibilities.find((item) => item.id === responsibilityId);
-  if (responsibility) return responsibility.name;
-
+export function taskLabel(taskLabelsValue?: string[], responsibilityId?: string, resps?: Responsibility[]) {
+  const list = resps ?? mockResponsibilities;
+  const resp = list.find((r) => r.id === responsibilityId);
+  if (resp) return resp.name;
   const savedLabel = taskLabelsValue?.[0];
-  const matchingLabel = taskLabels.find((label) => label.toLowerCase() === savedLabel?.toLowerCase());
-  return matchingLabel ?? "Life";
+  const match = list.find((r) => r.name.toLowerCase() === savedLabel?.toLowerCase());
+  return match?.name ?? (list[0]?.name ?? "Life");
 }
 
-export function taskLabelColor(label: string) {
-  const responsibility = responsibilities.find((item) => item.name === label);
-  return responsibility ? responsibilityTone[responsibility.color].hex : responsibilityTone.sage.hex;
+export function taskLabelColor(label: string, resps?: Responsibility[]) {
+  const list = resps ?? mockResponsibilities;
+  const resp = list.find((r) => r.name === label);
+  return resp ? responsibilityTone[resp.color].hex : responsibilityTone.sage.hex;
 }

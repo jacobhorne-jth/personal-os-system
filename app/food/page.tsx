@@ -1,4 +1,4 @@
-import { FoodWorkspace } from "@/components/dashboard/system-pages";
+import { FoodWorkspace } from "@/components/food/food-workspace";
 
 export default function FoodPage() {
   return <FoodWorkspace />;

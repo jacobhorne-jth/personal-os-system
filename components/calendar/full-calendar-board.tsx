@@ -47,7 +47,7 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
   const [eventPanelMode, setEventPanelMode] = useState<"preview" | "edit">("preview");
   const [deleteMenuOpen, setDeleteMenuOpen] = useState(false);
   const [createMode, setCreateMode] = useState(false);
-  const { calendarView, setCalendarView, visibleOverlays, hiddenResponsibilities } = useUiStore();
+  const { calendarView, setCalendarView, visibleOverlays, hiddenResponsibilities, calendarGotoDate, setCalendarGotoDate } = useUiStore();
   const calendarItems = useAppStore((state) => state.calendarItems);
   const hiddenCalendarEventIds = useAppStore((state) => state.hiddenCalendarEventIds);
   const hiddenCalendarSeries = useAppStore((state) => state.hiddenCalendarSeries);
@@ -126,6 +126,16 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
       type: "app_event"
     });
   }, [fullChrome, responsibilities, searchParams, visibleItems]);
+
+  useEffect(() => {
+    if (!calendarGotoDate) return;
+    const api = calendarRef.current?.getApi();
+    if (!api) return;
+    api.changeView("timeGridWeek");
+    api.gotoDate(calendarGotoDate);
+    setCalendarView("week");
+    setCalendarGotoDate(null);
+  }, [calendarGotoDate, setCalendarGotoDate, setCalendarView]);
 
   function handleSelect(selection: DateSelectArg) {
     if (!fullChrome) {
@@ -318,6 +328,7 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
   }
 
   function renderSlotLabel(arg: { date: Date }) {
+    if (arg.date.getHours() === 0) return "";
     return arg.date.toLocaleTimeString("en-US", {
       hour: "numeric",
       hour12: true
@@ -469,8 +480,8 @@ export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean
             editable
             eventResizableFromStart
             allDaySlot={false}
-            slotMinTime="07:00:00"
-            slotMaxTime="24:00:00"
+            slotMinTime="00:00:00"
+            slotMaxTime="25:00:00"
             scrollTime="07:00:00"
             scrollTimeReset={false}
             initialDate={initialDate}

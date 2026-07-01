@@ -6,7 +6,7 @@ import { CalendarDays, CalendarRange, Plus } from "lucide-react";
 import { QuickCaptureForm } from "@/components/capture/quick-capture-form";
 import { localDateKey } from "@/lib/dates";
 import { useAppStore } from "@/lib/stores/app-store";
-import { taskLabel, taskLabelColor, taskLabels } from "@/lib/task-labels";
+import { taskLabel, taskLabelColor } from "@/lib/task-labels";
 import { cn } from "@/lib/utils";
 
 function formatDue(dueAt: string, today: string) {
@@ -16,8 +16,18 @@ function formatDue(dueAt: string, today: string) {
   return new Date(y, m - 1, d).toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+function sortByDue(arr: ReturnType<typeof useAppStore.getState>["tasks"]) {
+  return [...arr].sort((a, b) => {
+    if (!a.dueAt && !b.dueAt) return 0;
+    if (!a.dueAt) return 1;
+    if (!b.dueAt) return -1;
+    return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+  });
+}
+
 export default function TodosPage() {
   const tasks = useAppStore((s) => s.tasks);
+  const responsibilities = useAppStore((s) => s.responsibilities);
   const toggleTask = useAppStore((s) => s.toggleTask);
 
   const today = localDateKey();
@@ -25,15 +35,15 @@ export default function TodosPage() {
   const [addingTask, setAddingTask] = useState(false);
 
   const open = tasks.filter((t) => t.status !== "done");
-  const todayTasks = open.filter((t) => t.dueAt?.startsWith(today));
-  const upcomingTasks = open.filter((t) => t.dueAt && t.dueAt.slice(0, 10) > today);
+  const todayTasks = sortByDue(open.filter((t) => t.dueAt?.startsWith(today)));
+  const upcomingTasks = sortByDue(open.filter((t) => t.dueAt && t.dueAt.slice(0, 10) > today));
   const selectedLabel = view.startsWith("label:") ? view.replace("label:", "") : "";
 
   const viewTasks =
     view === "today" ? todayTasks :
     view === "upcoming" ? upcomingTasks :
-    view === "all" ? open :
-    open.filter((t) => taskLabel(t.labels, t.responsibilityId) === selectedLabel);
+    view === "all" ? sortByDue(open) :
+    sortByDue(open.filter((t) => taskLabel(t.labels, t.responsibilityId, responsibilities) === selectedLabel));
 
   const viewLabel =
     view === "today" ? "Today" :
@@ -95,12 +105,13 @@ export default function TodosPage() {
 
         <p className="mb-1 px-5 text-[11px] font-semibold uppercase tracking-widest text-[#444]">Labels</p>
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-2">
-          {taskLabels.map((label) => {
-            const color = taskLabelColor(label);
-            const count = open.filter((t) => taskLabel(t.labels, t.responsibilityId) === label).length;
+          {responsibilities.map((r) => {
+            const label = r.name;
+            const color = taskLabelColor(label, responsibilities);
+            const count = open.filter((t) => taskLabel(t.labels, t.responsibilityId, responsibilities) === label).length;
             return (
               <button
-                key={label}
+                key={r.id}
                 onClick={() => setView(`label:${label}`)}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition",
@@ -121,7 +132,7 @@ export default function TodosPage() {
         <div className="mx-auto w-full max-w-2xl px-6 py-7">
           <div className="mb-6 flex items-center gap-3">
             {selectedLabel && (
-              <span className="size-3 rounded-full" style={{ backgroundColor: taskLabelColor(selectedLabel) }} />
+              <span className="size-3 rounded-full" style={{ backgroundColor: taskLabelColor(selectedLabel, responsibilities) }} />
             )}
             <h1 className="text-xl font-semibold text-white">{viewLabel}</h1>
             <span className="text-sm text-[#555]">{viewTasks.length}</span>
@@ -175,8 +186,8 @@ export default function TodosPage() {
           ) : (
             <div>
               {viewTasks.map((task) => {
-                const label = taskLabel(task.labels, task.responsibilityId);
-                const color = taskLabelColor(label);
+                const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
+                const color = taskLabelColor(label, responsibilities);
                 const isToday = task.dueAt?.startsWith(today);
                 const isOverdue = task.dueAt && task.dueAt.slice(0, 10) < today;
 

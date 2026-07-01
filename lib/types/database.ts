@@ -9,60 +9,55 @@ export type Database = {
           display_name: string;
           timezone: string;
           created_at: string;
-          updated_at: string;
         };
         Insert: {
           id: string;
-          display_name: string;
+          display_name?: string;
           timezone?: string;
-          created_at?: string;
-          updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
       };
       responsibilities: {
         Row: {
           id: string;
           user_id: string;
           name: string;
-          slug: string;
-          description: string | null;
-          color: Database["public"]["Enums"]["responsibility_color"];
+          description: string;
+          color: string;
           icon: string;
-          weekly_goal_minutes: number;
+          weekly_goal_hours: number;
           sort_order: number;
-          archived_at: string | null;
           created_at: string;
-          updated_at: string;
         };
         Insert: {
-          id?: string;
+          id: string;
           user_id: string;
           name: string;
-          slug: string;
-          description?: string | null;
-          color?: Database["public"]["Enums"]["responsibility_color"];
+          description?: string;
+          color?: string;
           icon?: string;
-          weekly_goal_minutes?: number;
+          weekly_goal_hours?: number;
           sort_order?: number;
-          archived_at?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["responsibilities"]["Insert"]>;
+        Update: Partial<Omit<Database["public"]["Tables"]["responsibilities"]["Insert"], "id" | "user_id">>;
+        Relationships: [];
       };
       tasks: {
         Row: {
           id: string;
           user_id: string;
           responsibility_id: string | null;
-          parent_task_id: string | null;
           title: string;
-          notes: string | null;
-          status: Database["public"]["Enums"]["task_status"];
-          priority: Database["public"]["Enums"]["task_priority"];
+          description: string | null;
+          status: string;
+          priority: string;
           due_at: string | null;
-          recurrence_rule: string | null;
+          labels: string[];
+          subtasks: Json;
           estimate_minutes: number | null;
           completed_at: string | null;
+          recurrence: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -70,37 +65,32 @@ export type Database = {
           id?: string;
           user_id: string;
           responsibility_id?: string | null;
-          parent_task_id?: string | null;
           title: string;
-          notes?: string | null;
-          status?: Database["public"]["Enums"]["task_status"];
-          priority?: Database["public"]["Enums"]["task_priority"];
+          description?: string | null;
+          status?: string;
+          priority?: string;
           due_at?: string | null;
-          recurrence_rule?: string | null;
+          labels?: string[];
+          subtasks?: Json;
           estimate_minutes?: number | null;
           completed_at?: string | null;
+          recurrence?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["tasks"]["Insert"]>;
+        Update: Partial<Omit<Database["public"]["Tables"]["tasks"]["Insert"], "user_id">>;
+        Relationships: [];
       };
       calendar_items: {
         Row: {
           id: string;
           user_id: string;
           responsibility_id: string | null;
-          task_id: string | null;
-          type: Database["public"]["Enums"]["calendar_item_type"];
+          type: string;
           title: string;
-          description: string | null;
           starts_at: string;
           ends_at: string;
-          all_day: boolean;
-          recurrence_rule: string | null;
           source: string;
-          external_provider: string | null;
-          external_id: string | null;
-          external_url: string | null;
           location: string | null;
-          metadata: Json;
+          notes: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -108,38 +98,64 @@ export type Database = {
           id?: string;
           user_id: string;
           responsibility_id?: string | null;
-          task_id?: string | null;
-          type: Database["public"]["Enums"]["calendar_item_type"];
+          type: string;
           title: string;
-          description?: string | null;
           starts_at: string;
           ends_at: string;
-          all_day?: boolean;
-          recurrence_rule?: string | null;
           source?: string;
-          external_provider?: string | null;
-          external_id?: string | null;
-          external_url?: string | null;
           location?: string | null;
-          metadata?: Json;
+          notes?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["calendar_items"]["Insert"]>;
+        Update: Partial<Omit<Database["public"]["Tables"]["calendar_items"]["Insert"], "user_id">>;
+        Relationships: [];
+      };
+      notes: {
+        Row: {
+          id: string;
+          user_id: string;
+          responsibility_id: string | null;
+          title: string;
+          body: string;
+          labels: string[];
+          last_opened_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          responsibility_id?: string | null;
+          title: string;
+          body?: string;
+          labels?: string[];
+          last_opened_at?: string | null;
+        };
+        Update: Partial<Omit<Database["public"]["Tables"]["notes"]["Insert"], "user_id">>;
+        Relationships: [];
+      };
+      lists: {
+        Row: {
+          id: string;
+          user_id: string;
+          responsibility_id: string | null;
+          title: string;
+          items: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          responsibility_id?: string | null;
+          title: string;
+          items?: Json;
+        };
+        Update: Partial<Omit<Database["public"]["Tables"]["lists"]["Insert"], "user_id">>;
+        Relationships: [];
       };
     };
-    Enums: {
-      responsibility_color: "blue" | "mint" | "coral" | "amber" | "violet";
-      task_status: "todo" | "doing" | "done" | "archived";
-      task_priority: "low" | "medium" | "high" | "urgent";
-      calendar_item_type:
-        | "external_event"
-        | "app_event"
-        | "task_due"
-        | "deadline"
-        | "time_block"
-        | "time_log"
-        | "reminder";
-      capture_source: "typed" | "voice" | "upload" | "paste" | "quick_task" | "time_log";
-      ai_extraction_status: "pending_review" | "approved" | "rejected" | "partially_approved";
-    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
   };
 };
