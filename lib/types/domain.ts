@@ -64,7 +64,8 @@ export type CalendarItem = {
   responsibilityId: string;
   startsAt: string;
   endsAt: string;
-  source?: "app" | "ai_review";
+  source?: "app" | "ai_review" | "google";
+  externalId?: string;
   location?: string;
   notes?: string;
 };

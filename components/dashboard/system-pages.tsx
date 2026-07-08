@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, Dumbbell, Flame, Settings, Tags } from "lucide-react";
+import { BarChart3, Calendar, Dumbbell, Flame, RefreshCw, Settings, Tags } from "lucide-react";
+import { useState } from "react";
 import { useAppStore } from "@/lib/stores/app-store";
 import { responsibilityTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -335,6 +336,22 @@ export function SettingsWorkspace() {
   const foodTargets = useAppStore((s) => s.foodTargets);
   const setFoodTargets = useAppStore((s) => s.setFoodTargets);
   const responsibilities = useAppStore((s) => s.responsibilities);
+  const lastGoogleSync = useAppStore((s) => s.lastGoogleSync);
+  const syncGoogleCalendar = useAppStore((s) => s.syncGoogleCalendar);
+
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ synced: number; errors: string[] } | null>(null);
+
+  async function handleGoogleSync() {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const result = await syncGoogleCalendar();
+      setSyncResult(result);
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -435,6 +452,44 @@ export function SettingsWorkspace() {
             <Tags className="size-4" />
             Manage responsibilities
           </Link>
+        </div>
+      </div>
+
+      {/* Google Calendar */}
+      <div className="rounded-xl border border-line bg-panel overflow-hidden">
+        <div className="border-b border-line bg-line/40 px-5 py-3 flex items-center gap-2">
+          <Calendar className="size-4 text-muted" />
+          <p className="text-sm font-medium text-ink">Google Calendar</p>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          <p className="text-xs text-muted">
+            Pulls events from your personal and school Google accounts into the calendar (read-only, last 30 days + next 90).
+            Requires <span className="font-mono text-ink">GOOGLE_REFRESH_TOKEN_PERSONAL</span> and/or{" "}
+            <span className="font-mono text-ink">GOOGLE_REFRESH_TOKEN_SCHOOL</span> in{" "}
+            <span className="font-mono text-ink">.env.local</span>.
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleGoogleSync}
+              disabled={syncing}
+              className="flex items-center gap-2 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:bg-line disabled:opacity-50"
+            >
+              <RefreshCw className={cn("size-4", syncing && "animate-spin")} />
+              {syncing ? "Syncing…" : "Sync now"}
+            </button>
+            {lastGoogleSync && (
+              <span className="text-xs text-muted">
+                Last synced {new Date(lastGoogleSync).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
+          {syncResult && (
+            <div className={cn("rounded-lg border px-3 py-2 text-xs", syncResult.errors.length > 0 ? "border-amber-500/30 bg-amber-500/10 text-amber-400" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400")}>
+              {syncResult.errors.length === 0
+                ? `✓ Synced ${syncResult.synced} events`
+                : `Synced ${syncResult.synced} events · ${syncResult.errors.length} error(s): ${syncResult.errors[0]}`}
+            </div>
+          )}
         </div>
       </div>
 

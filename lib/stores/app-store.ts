@@ -55,6 +55,7 @@ function dbCalendarItemToDomain(row: DbCalendarItem): CalendarItem {
     startsAt: row.starts_at,
     endsAt: row.ends_at,
     source: (row.source as CalendarItem["source"]) ?? "app",
+    externalId: row.external_id ?? undefined,
     location: row.location ?? undefined,
     notes: row.notes ?? undefined,
   };
@@ -312,6 +313,10 @@ type AppState = {
   setUserId: (id: string | null) => void;
   loadFromSupabase: (userId: string) => Promise<void>;
 
+  // Google Calendar sync
+  lastGoogleSync: string | null;
+  syncGoogleCalendar: () => Promise<{ synced: number; errors: string[] }>;
+
   // Captures
   addCaptureExtraction: (input: { text: string; source: CaptureExtraction["source"]; responsibilityId: string }) => void;
   addParsedExtraction: (extraction: Omit<CaptureExtraction, "id">) => void;
@@ -441,6 +446,7 @@ export const useAppStore = create<AppState>()(
       gymSessions: [],
       activeGymSession: null,
       gymWeightUnit: "lbs",
+      lastGoogleSync: null,
       timer: {
         running: false,
         responsibilityId: "",
@@ -1138,6 +1144,20 @@ export const useAppStore = create<AppState>()(
       cancelGymSession: () => set({ activeGymSession: null }),
 
       setGymWeightUnit: (unit) => set({ gymWeightUnit: unit }),
+
+      // ── Google Calendar sync ───────────────────────────────────────────────
+
+      syncGoogleCalendar: async () => {
+        const res = await fetch("/api/google/sync", { method: "POST" });
+        const data = await res.json() as { synced: number; errors: string[] };
+        if (res.ok && data.synced >= 0) {
+          set({ lastGoogleSync: new Date().toISOString() });
+          // Reload calendar items from Supabase so newly synced events appear
+          const userId = get().userId;
+          if (userId) await get().loadFromSupabase(userId);
+        }
+        return data;
+      },
 
       initGymIfEmpty: () => {
         if (get().gymDays.length === 0) {

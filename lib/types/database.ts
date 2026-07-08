@@ -91,6 +91,7 @@ export type Database = {
           source: string;
           location: string | null;
           notes: string | null;
+          external_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -105,6 +106,7 @@ export type Database = {
           source?: string;
           location?: string | null;
           notes?: string | null;
+          external_id?: string | null;
         };
         Update: Partial<Omit<Database["public"]["Tables"]["calendar_items"]["Insert"], "user_id">>;
         Relationships: [];
