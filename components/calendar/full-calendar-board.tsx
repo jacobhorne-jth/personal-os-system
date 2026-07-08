@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type EventResizeDoneArg } from "@fullcalendar/interaction";
@@ -37,6 +37,14 @@ const creatableTypes: Array<{ type: CalendarItemType; label: string }> = [
 const demoCalendarIdPattern = /^(evt-(capital-one|gym|leetcode)-|evt-(?:[1-9]|1[0-2])$)/;
 
 export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean }) {
+  return (
+    <Suspense fallback={<div className="h-full w-full bg-paper" />}>
+      <FullCalendarBoardInner fullChrome={fullChrome} />
+    </Suspense>
+  );
+}
+
+function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const calendarRef = useRef<FullCalendar | null>(null);
