@@ -1369,6 +1369,7 @@ export const useAppStore = create<AppState>()(
       // Only persist UI state — data comes from Supabase on auth
       partialize: (state) => ({
         timer: state.timer,
+        lastGoogleSync: state.lastGoogleSync,
         habits: state.habits,
         habitLogs: state.habitLogs,
         gymExercises: state.gymExercises,
