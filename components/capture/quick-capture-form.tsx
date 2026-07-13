@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AtSign, CalendarDays, Plus, RefreshCw, Send, X, Clock } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
+import { nextOccurrence } from "@/lib/recurrence";
 import { parseInput, buildDueAt } from "@/lib/task-parser";
 import type { CaptureExtraction } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
@@ -176,7 +177,7 @@ export function QuickCaptureForm({
       const title = parsed?.chips.length ? (parsed.cleanTitle || trimmed) : trimmed;
       const dueAtValue = parsed?.dueDate
         ? buildDueAt(parsed.dueDate, parsed.dueTime)
-        : (dueAt ?? undefined);
+        : (dueAt ?? (parsed?.recurrence ? nextOccurrence(parsed.recurrence) : undefined));
 
       addTask({
         title,

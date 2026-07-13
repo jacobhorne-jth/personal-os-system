@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarDays, CalendarRange, Plus } from "lucide-react";
+import { CalendarDays, CalendarRange, Plus, RefreshCw } from "lucide-react";
 import { QuickCaptureForm } from "@/components/capture/quick-capture-form";
 import { localDateKey } from "@/lib/dates";
 import { useAppStore } from "@/lib/stores/app-store";
@@ -211,6 +211,12 @@ export default function TodosPage() {
                           )}>
                             <CalendarDays className="size-3" />
                             {formatDue(task.dueAt, today)}
+                          </span>
+                        )}
+                        {task.recurrence && (
+                          <span className="flex items-center gap-1 text-xs text-[#666]">
+                            <RefreshCw className="size-3" />
+                            {task.recurrence}
                           </span>
                         )}
                         <span className="flex items-center gap-1 text-xs text-[#666]">

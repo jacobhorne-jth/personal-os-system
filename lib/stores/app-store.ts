@@ -5,6 +5,7 @@ import { persist } from "zustand/middleware";
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { aiReviewItems, calendarItems, lists, responsibilities, tasks } from "@/lib/data/mock";
+import { nextOccurrence } from "@/lib/recurrence";
 import type { ActiveGymSession, CalendarItem, CaptureExtraction, FileAsset, FoodEntry, FoodMeal, Goal, GymDay, GymExercise, GymSession, GymSessionExercise, GymSet, Habit, HabitLog, HabitType, Idea, IdeaStatus, Note, NoteFolder, Responsibility, ResponsibilityColor, SavedList, Task } from "@/lib/types/domain";
 import type { Database } from "@/lib/types/database";
 
@@ -671,6 +672,7 @@ export const useAppStore = create<AppState>()(
               ...(input.status === "done" && { completed_at: new Date().toISOString() }),
               ...(input.priority !== undefined && { priority: input.priority }),
               ...(input.dueAt !== undefined && { due_at: input.dueAt }),
+              ...("recurrence" in input && { recurrence: input.recurrence ?? null }),
               ...(input.labels !== undefined && { labels: input.labels }),
               ...(input.estimateMinutes !== undefined && { estimate_minutes: input.estimateMinutes }),
               ...(input.responsibilityId !== undefined && { responsibility_id: input.responsibilityId }),
@@ -691,13 +693,29 @@ export const useAppStore = create<AppState>()(
       },
 
       toggleTask: (taskId) => {
-        let newStatus: Task["status"] = "todo";
-        set((state) => {
-          const task = state.tasks.find((t) => t.id === taskId);
-          newStatus = task?.status === "done" ? "todo" : "done";
-          return { tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)) };
-        });
+        const task = get().tasks.find((t) => t.id === taskId);
+        if (!task) return;
         const { userId } = get();
+
+        // Completing a recurring task reschedules it instead of finishing it
+        if (task.status !== "done" && task.recurrence) {
+          const nextDue = nextOccurrence(task.recurrence, task.dueAt);
+          if (nextDue) {
+            set((state) => ({
+              tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, status: "todo", dueAt: nextDue } : t))
+            }));
+            if (userId) {
+              getDb()?.from("tasks").update({ status: "todo", due_at: nextDue }).eq("id", taskId).eq("user_id", userId)
+                .then(({ error }) => { if (error) console.error("toggleTask:", error); });
+            }
+            return;
+          }
+        }
+
+        const newStatus: Task["status"] = task.status === "done" ? "todo" : "done";
+        set((state) => ({
+          tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+        }));
         if (userId) {
           getDb()?.from("tasks").update({ status: newStatus }).eq("id", taskId).eq("user_id", userId)
             .then(({ error }) => { if (error) console.error("toggleTask:", error); });

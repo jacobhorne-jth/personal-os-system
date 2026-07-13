@@ -37,6 +37,7 @@ export function TaskDetailClient({ id }: { id: string }) {
   const [description, setDescription] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
+  const [recurrence, setRecurrence] = useState("");
   const [responsibilityId, setResponsibilityId] = useState("");
   const [subtasks, setSubtasks] = useState<{ id: string; title: string; done: boolean }[]>([]);
   const [newSubtask, setNewSubtask] = useState("");
@@ -48,6 +49,7 @@ export function TaskDetailClient({ id }: { id: string }) {
     setDescription(task.description ?? "");
     setDueAt(toDateInput(task.dueAt));
     setPriority(task.priority ?? "medium");
+    setRecurrence(task.recurrence ?? "");
     setResponsibilityId(task.responsibilityId ?? "");
     setSubtasks(task.subtasks ?? []);
   }, [task]);
@@ -71,6 +73,7 @@ export function TaskDetailClient({ id }: { id: string }) {
       description: description.trim() || undefined,
       dueAt: fromDateInput(dueAt),
       priority,
+      recurrence: recurrence || undefined,
       responsibilityId: responsibilityId || undefined,
       labels: resp ? [resp.name] : undefined,
     });
@@ -111,6 +114,9 @@ export function TaskDetailClient({ id }: { id: string }) {
               due {new Date(task.dueAt).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
             </span>
           )}
+          {task.recurrence && (
+            <span className="rounded-md border border-line bg-line px-2 py-1">{task.recurrence}</span>
+          )}
           <span className="rounded-md border border-line bg-line px-2 py-1 capitalize">{task.priority}</span>
           <span className={cn(
             "rounded-md border px-2 py-1 capitalize",
@@ -144,7 +150,29 @@ export function TaskDetailClient({ id }: { id: string }) {
               ))}
             </select>
           </label>
-          <label className="md:col-span-2">
+          <label>
+            <span className="mb-1 block text-xs text-muted">Repeats</span>
+            <select
+              value={recurrence}
+              onChange={(e) => setRecurrence(e.target.value)}
+              className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-ink outline-none focus:border-blue"
+            >
+              <option value="">Never</option>
+              <option value="every day">Every day</option>
+              <option value="every week">Every week</option>
+              <option value="every other week">Every other week</option>
+              <option value="every month">Every month</option>
+              <option value="every year">Every year</option>
+              <option value="every monday">Every Monday</option>
+              <option value="every tuesday">Every Tuesday</option>
+              <option value="every wednesday">Every Wednesday</option>
+              <option value="every thursday">Every Thursday</option>
+              <option value="every friday">Every Friday</option>
+              <option value="every saturday">Every Saturday</option>
+              <option value="every sunday">Every Sunday</option>
+            </select>
+          </label>
+          <label>
             <span className="mb-1 block text-xs text-muted">Responsibility</span>
             <select
               value={responsibilityId}
