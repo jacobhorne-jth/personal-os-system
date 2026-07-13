@@ -33,8 +33,6 @@ const creatableTypes: Array<{ type: CalendarItemType; label: string }> = [
   { type: "time_log", label: "Time log" }
 ];
 
-const demoCalendarIdPattern = /^(evt-(capital-one|gym|leetcode)-|evt-(?:[1-9]|1[0-2])$)/;
-
 export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean }) {
   return (
     <Suspense fallback={<div className="h-full w-full bg-paper" />}>
@@ -65,9 +63,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const initialView = effectiveView === "month" ? "dayGridMonth" : effectiveView === "week" ? "timeGridWeek" : "timeGridDay";
   const availableViews = fullChrome ? (["day", "week", "month"] as const) : (["day", "week"] as const);
 
-  const visibleItems = useMemo(() => {
-    return calendarItems.filter((item) => !demoCalendarIdPattern.test(item.id));
-  }, [calendarItems]);
+  const visibleItems = calendarItems;
 
   const events = visibleItems
     .filter((item) =>

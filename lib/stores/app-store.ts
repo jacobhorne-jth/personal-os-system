@@ -222,12 +222,7 @@ const defaultNoteFolderIds = {
   aiMl: "10000000-0000-4000-8000-000000000008",
 };
 
-const seedNotes: Note[] = [
-  { id: "note-1", title: "Runtime comparison idea", body: "Compare latest runtime curves against FEA baseline before poster submission.", responsibilityId: "digital-learning-lab", folderId: defaultNoteFolderIds.research, labels: ["research"], createdAt: now, updatedAt: now, lastOpenedAt: now },
-  { id: "note-2", title: "Algorithms exam review", body: "Prioritize dynamic programming, graph traversal, and proof templates.", responsibilityId: "school", folderId: defaultNoteFolderIds.research, labels: ["class notes"], createdAt: now, updatedAt: now, lastOpenedAt: now },
-  { id: "note-3", title: "Quarter structure", body: "Keep School as the operating area; track classes as notes and lists because they change every quarter.", responsibilityId: "school", labels: ["class notes"], createdAt: now, updatedAt: now, lastOpenedAt: now },
-  { id: "note-4", title: "Recruiting buckets", body: "Apps, events, Leetcode, interviews, and resume tweaks should stay visible as recurring lists.", responsibilityId: "recruiting", folderId: defaultNoteFolderIds.work, labels: ["follow-up"], createdAt: now, updatedAt: now, lastOpenedAt: now }
-];
+const seedNotes: Note[] = [];
 
 const seedNoteFolders: NoteFolder[] = [
   { id: defaultNoteFolderIds.research, name: "Research", color: "basil", createdAt: now, updatedAt: now },
@@ -240,10 +235,7 @@ const seedNoteFolders: NoteFolder[] = [
   { id: defaultNoteFolderIds.aiMl, name: "AI / ML", color: "lavender", createdAt: now, updatedAt: now },
 ];
 
-const seedFiles: FileAsset[] = [
-  { id: "file-1", filename: "research-poster-draft.pdf", mimeType: "application/pdf", sizeLabel: "2.4 MB", responsibilityId: "digital-learning-lab", createdAt: now },
-  { id: "file-2", filename: "syllabus-algorithms.pdf", mimeType: "application/pdf", sizeLabel: "720 KB", responsibilityId: "school", createdAt: now }
-];
+const seedFiles: FileAsset[] = [];
 
 // ─── Gym seed data ───────────────────────────────────────────────────────────
 
@@ -299,8 +291,6 @@ type AppState = {
   userId: string | null;
   responsibilities: Responsibility[];
   calendarItems: CalendarItem[];
-  hiddenCalendarEventIds: string[];
-  hiddenCalendarSeries: Record<string, { all?: boolean; followingStart?: string }>;
   tasks: Task[];
   aiReviewItems: CaptureExtraction[];
   notes: Note[];
@@ -325,8 +315,6 @@ type AppState = {
   addCalendarItem: (input: Omit<CalendarItem, "id" | "source"> & { source?: CalendarItem["source"] }) => void;
   updateCalendarItem: (itemId: string, input: Partial<Omit<CalendarItem, "id">>) => void;
   deleteCalendarItem: (itemId: string) => void;
-  hideCalendarEvent: (itemId: string) => void;
-  hideCalendarSeries: (seriesId: string, mode: "all" | "following", startsAt?: string) => void;
   moveCalendarItem: (itemId: string, startsAt: string, endsAt?: string) => void;
 
   // Tasks
@@ -427,8 +415,6 @@ export const useAppStore = create<AppState>()(
       userId: null,
       responsibilities: [],
       calendarItems: [],
-      hiddenCalendarEventIds: [],
-      hiddenCalendarSeries: {},
       tasks: [],
       aiReviewItems: [],
       notes: [],
@@ -618,23 +604,6 @@ export const useAppStore = create<AppState>()(
             .then(({ error }) => { if (error) console.error("deleteCalendarItem:", error); });
         }
       },
-
-      hideCalendarEvent: (itemId) =>
-        set((state) => ({
-          hiddenCalendarEventIds: state.hiddenCalendarEventIds.includes(itemId)
-            ? state.hiddenCalendarEventIds
-            : [...state.hiddenCalendarEventIds, itemId]
-        })),
-
-      hideCalendarSeries: (seriesId, mode, startsAt) =>
-        set((state) => ({
-          hiddenCalendarSeries: {
-            ...state.hiddenCalendarSeries,
-            [seriesId]: mode === "all"
-              ? { all: true }
-              : { ...state.hiddenCalendarSeries[seriesId], followingStart: startsAt }
-          }
-        })),
 
       moveCalendarItem: (itemId, startsAt, endsAt) => {
         set((state) => ({
@@ -1381,8 +1350,6 @@ export const useAppStore = create<AppState>()(
       name: "jacob-os-ui-v1",
       // Only persist UI state — data comes from Supabase on auth
       partialize: (state) => ({
-        hiddenCalendarEventIds: state.hiddenCalendarEventIds,
-        hiddenCalendarSeries: state.hiddenCalendarSeries,
         timer: state.timer,
         habits: state.habits,
         habitLogs: state.habitLogs,
