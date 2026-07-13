@@ -23,7 +23,7 @@ export default function AnalyticsPage() {
         <p className="text-sm text-muted">Analytics</p>
         <h1 className="mt-1 text-3xl font-semibold text-ink">Planned vs actual</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-          Local mock analytics across responsibilities, tasks, planned blocks, and logged time.
+          Planned vs actual across responsibilities, tasks, planned blocks, and logged time this week.
         </p>
       </header>
 
@@ -86,7 +86,7 @@ export default function AnalyticsPage() {
         </div>
         <div className="space-y-4">
           <TimerControl />
-          <Panel title="This week" eyebrow="mock summary">
+          <Panel title="This week" eyebrow="weekly summary">
             <div className="grid grid-cols-2 gap-3 p-4">
               <div className="rounded-lg border border-line bg-line p-3">
                 <p className="text-2xl font-semibold text-ink">{totalActual}h</p>

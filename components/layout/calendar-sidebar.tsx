@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { capitalOneWorkBlocks, filterGeneratedCalendarItems, startOfWeek } from "@/lib/calendar-generated";
+import { startOfWeek } from "@/lib/calendar-generated";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { responsibilityTone } from "@/lib/theme";
@@ -53,8 +53,6 @@ function formatHours(minutes: number) {
 export function CalendarSidebar() {
   const responsibilities = useAppStore((state) => state.responsibilities);
   const calendarItems = useAppStore((state) => state.calendarItems);
-  const hiddenCalendarEventIds = useAppStore((state) => state.hiddenCalendarEventIds);
-  const hiddenCalendarSeries = useAppStore((state) => state.hiddenCalendarSeries);
   const { hiddenResponsibilities, toggleResponsibility, setCalendarGotoDate } = useUiStore();
   const [monthOffset, setMonthOffset] = useState(0);
   const today = useMemo(() => new Date(), []);
@@ -67,8 +65,7 @@ export function CalendarSidebar() {
     return end;
   }, [weekStart]);
   const weeklyInsights = useMemo(() => {
-    const visibleGeneratedItems = filterGeneratedCalendarItems(capitalOneWorkBlocks(today), hiddenCalendarEventIds, hiddenCalendarSeries);
-    const allItems = [...visibleGeneratedItems, ...calendarItems].filter((item) => !hiddenResponsibilities.includes(item.responsibilityId));
+    const allItems = calendarItems.filter((item) => !hiddenResponsibilities.includes(item.responsibilityId));
     const minutesByResponsibility = allItems.reduce<Record<string, number>>((current, item) => {
       const minutes = overlapMinutes(item, weekStart, weekEnd);
       if (minutes <= 0) return current;
@@ -88,7 +85,7 @@ export function CalendarSidebar() {
       .sort((a, b) => b.minutes - a.minutes);
     const totalMinutes = segments.reduce((sum, item) => sum + item.minutes, 0);
     return { segments, totalMinutes };
-  }, [calendarItems, hiddenCalendarEventIds, hiddenCalendarSeries, hiddenResponsibilities, responsibilities, today, weekEnd, weekStart]);
+  }, [calendarItems, hiddenResponsibilities, responsibilities, today, weekEnd, weekStart]);
 
   return (
     <aside className="hidden min-h-0 w-[360px] shrink-0 flex-col border-l border-[#303134] bg-[#1f1f1f] [--panel-inset:18px] py-4 xl:flex">

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AtSign, CalendarDays, Plus, RefreshCw, Send, X, Clock } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
-import { taskLabels } from "@/lib/task-labels";
 import { parseInput, buildDueAt } from "@/lib/task-parser";
 import type { CaptureExtraction } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
@@ -70,12 +69,19 @@ export function QuickCaptureForm({
   const addCaptureExtraction = useAppStore((state) => state.addCaptureExtraction);
   const [internalText, setInternalText] = useState("");
   const [description, setDescription] = useState("");
-  const [label, setLabel] = useState(defaultLabel ?? taskLabels[0]);
+  const [label, setLabel] = useState(defaultLabel ?? "");
   const [responsibilityId, setResponsibilityId] = useState(defaultResponsibilityId ?? responsibilities[0]?.id ?? "");
 
   const text = value ?? internalText;
 
   const labelNames = useMemo(() => responsibilities.map((r) => r.name), [responsibilities]);
+
+  // Default the label to the first responsibility once they load
+  useEffect(() => {
+    if (!label && labelNames.length > 0) {
+      setLabel(defaultLabel ?? labelNames[0]);
+    }
+  }, [label, labelNames, defaultLabel]);
 
   // Only run parser for task intent
   const parsed = useMemo(
@@ -306,7 +312,7 @@ export function QuickCaptureForm({
                 selectClassName
               )}
             >
-              {taskLabels.map((item) => (
+              {labelNames.map((item) => (
                 <option key={item} value={item}>{item}</option>
               ))}
             </select>

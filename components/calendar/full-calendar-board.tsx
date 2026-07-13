@@ -8,7 +8,6 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import type { DatesSetArg, DateSelectArg, EventClickArg, EventDropArg, EventContentArg } from "@fullcalendar/core";
 import { ChevronLeft, ChevronRight, FileText, MapPin, Pencil, Tags, Trash2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { capitalOneSeriesId, capitalOneWorkBlocks, filterGeneratedCalendarItems } from "@/lib/calendar-generated";
 import { toFullCalendarEvent } from "@/lib/queries/calendar";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
@@ -57,29 +56,18 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const [createMode, setCreateMode] = useState(false);
   const { calendarView, setCalendarView, visibleOverlays, hiddenResponsibilities, calendarGotoDate, setCalendarGotoDate } = useUiStore();
   const calendarItems = useAppStore((state) => state.calendarItems);
-  const hiddenCalendarEventIds = useAppStore((state) => state.hiddenCalendarEventIds);
-  const hiddenCalendarSeries = useAppStore((state) => state.hiddenCalendarSeries);
   const responsibilities = useAppStore((state) => state.responsibilities);
   const addCalendarItem = useAppStore((state) => state.addCalendarItem);
   const updateCalendarItem = useAppStore((state) => state.updateCalendarItem);
   const deleteCalendarItem = useAppStore((state) => state.deleteCalendarItem);
-  const hideCalendarEvent = useAppStore((state) => state.hideCalendarEvent);
-  const hideCalendarSeries = useAppStore((state) => state.hideCalendarSeries);
   const moveCalendarItem = useAppStore((state) => state.moveCalendarItem);
   const effectiveView = !fullChrome && calendarView === "month" ? "week" : calendarView;
   const initialView = effectiveView === "month" ? "dayGridMonth" : effectiveView === "week" ? "timeGridWeek" : "timeGridDay";
   const availableViews = fullChrome ? (["day", "week", "month"] as const) : (["day", "week"] as const);
 
-  const generatedItems = useMemo(() => {
-    return filterGeneratedCalendarItems(capitalOneWorkBlocks(), hiddenCalendarEventIds, hiddenCalendarSeries);
-  }, [hiddenCalendarEventIds, hiddenCalendarSeries]);
-
   const visibleItems = useMemo(() => {
-    return [
-      ...generatedItems,
-      ...calendarItems.filter((item) => !demoCalendarIdPattern.test(item.id))
-    ];
-  }, [calendarItems, generatedItems]);
+    return calendarItems.filter((item) => !demoCalendarIdPattern.test(item.id));
+  }, [calendarItems]);
 
   const events = visibleItems
     .filter((item) =>
@@ -95,10 +83,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
         backgroundColor: tone.hex,
         borderColor: tone.hex,
         textColor: tone.eventText,
-        extendedProps: {
-          ...toFullCalendarEvent(item).extendedProps,
-          generatedSeriesId: item.id.startsWith(`${capitalOneSeriesId}-`) ? capitalOneSeriesId : undefined
-        }
+        extendedProps: toFullCalendarEvent(item).extendedProps
       };
     });
 
@@ -179,50 +164,12 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   }
 
   function handleEventDrop(event: EventDropArg) {
-    if (event.event.id.startsWith(`${capitalOneSeriesId}-`)) {
-      const item = visibleItems.find((calendarItem) => calendarItem.id === event.event.id);
-      if (item && event.event.start) {
-        addCalendarItem({
-          title: item.title,
-          type: item.type,
-          responsibilityId: item.responsibilityId,
-          startsAt: event.event.start.toISOString(),
-          endsAt: event.event.end?.toISOString() ?? item.endsAt,
-          location: item.location,
-          notes: item.notes,
-          source: "app"
-        });
-        hideCalendarEvent(item.id);
-      } else {
-        event.revert();
-      }
-      return;
-    }
     if (event.event.start) {
       moveCalendarItem(event.event.id, event.event.start.toISOString(), event.event.end?.toISOString());
     }
   }
 
   function handleEventResize(event: EventResizeDoneArg) {
-    if (event.event.id.startsWith(`${capitalOneSeriesId}-`)) {
-      const item = visibleItems.find((calendarItem) => calendarItem.id === event.event.id);
-      if (item && event.event.start) {
-        addCalendarItem({
-          title: item.title,
-          type: item.type,
-          responsibilityId: item.responsibilityId,
-          startsAt: event.event.start.toISOString(),
-          endsAt: event.event.end?.toISOString() ?? item.endsAt,
-          location: item.location,
-          notes: item.notes,
-          source: "app"
-        });
-        hideCalendarEvent(item.id);
-      } else {
-        event.revert();
-      }
-      return;
-    }
     if (event.event.start) {
       moveCalendarItem(event.event.id, event.event.start.toISOString(), event.event.end?.toISOString());
     }
@@ -234,19 +181,9 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     calendarRef.current?.getApi().changeView(nextView);
   }
 
-  function deleteSelectedEvent(mode: "this" | "all" | "following") {
+  function deleteSelectedEvent() {
     if (!selectedItem) return;
-    if (selectedItem.id.startsWith(`${capitalOneSeriesId}-`)) {
-      if (mode === "this") {
-        hideCalendarEvent(selectedItem.id);
-      } else if (mode === "all") {
-        hideCalendarSeries(capitalOneSeriesId, "all");
-      } else {
-        hideCalendarSeries(capitalOneSeriesId, "following", selectedItem.startsAt);
-      }
-    } else {
-      deleteCalendarItem(selectedItem.id);
-    }
+    deleteCalendarItem(selectedItem.id);
     setSelectedItem(null);
     setDeleteMenuOpen(false);
     setEventPanelMode("preview");
@@ -366,24 +303,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     event.preventDefault();
     if (!selectedItem) return;
     if (!selectedItem.title.trim() || !selectedItem.startsAt || !selectedItem.endsAt) return;
-
-    if (selectedItem.id.startsWith(`${capitalOneSeriesId}-`)) {
-      addCalendarItem({
-        title: selectedItem.title.trim(),
-        type: selectedItem.type,
-        startsAt: selectedItem.startsAt,
-        endsAt: selectedItem.endsAt,
-        responsibilityId: selectedItem.responsibilityId,
-        location: selectedItem.location?.trim() || undefined,
-        notes: selectedItem.notes?.trim() || undefined,
-        source: "app"
-      });
-      hideCalendarEvent(selectedItem.id);
-      setSelectedItem(null);
-      setDeleteMenuOpen(false);
-      setEventPanelMode("preview");
-      return;
-    }
 
     updateCalendarItem(selectedItem.id, {
       title: selectedItem.title.trim(),
@@ -593,27 +512,10 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
           {deleteMenuOpen && (
             <div className="mx-4 mb-3 rounded-2xl border border-[#3c4043] bg-[#282a2d] p-2">
-              {selectedItem.id.startsWith(`${capitalOneSeriesId}-`) ? (
-                <>
-                  <button type="button" onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                    <Trash2 className="size-5 text-[#9aa0a6]" />
-                    Delete this event
-                  </button>
-                  <button type="button" onClick={() => deleteSelectedEvent("following")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                    <Trash2 className="size-5 text-[#9aa0a6]" />
-                    Delete this and following events
-                  </button>
-                  <button type="button" onClick={() => deleteSelectedEvent("all")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                    <Trash2 className="size-5 text-[#9aa0a6]" />
-                    Delete all events
-                  </button>
-                </>
-              ) : (
-                <button type="button" onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                  <Trash2 className="size-5 text-[#9aa0a6]" />
-                  Delete event
-                </button>
-              )}
+              <button type="button" onClick={() => deleteSelectedEvent()} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                <Trash2 className="size-5 text-[#9aa0a6]" />
+                Delete event
+              </button>
             </div>
           )}
 
