@@ -571,7 +571,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("calendar_items").insert({ id: itemId, user_id: userId, responsibility_id: input.responsibilityId || null, type: input.type, title: input.title, starts_at: input.startsAt, ends_at: input.endsAt, source: input.source ?? "app", location: input.location ?? null, notes: input.notes ?? null })
-            .then(({ error }) => { if (error) console.error("addCalendarItem:", error); });
+            .then(({ error }) => { if (error) console.error("addCalendarItem:", error.message); });
         }
       },
 
@@ -592,7 +592,7 @@ export const useAppStore = create<AppState>()(
               ...(input.notes !== undefined && { notes: input.notes }),
               ...(input.responsibilityId !== undefined && { responsibility_id: input.responsibilityId }),
             }).eq("id", itemId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("updateCalendarItem:", error); });
+              .then(({ error }) => { if (error) console.error("updateCalendarItem:", error.message); });
           }
         }
       },
@@ -602,7 +602,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("calendar_items").delete().eq("id", itemId).eq("user_id", userId)
-            .then(({ error }) => { if (error) console.error("deleteCalendarItem:", error); });
+            .then(({ error }) => { if (error) console.error("deleteCalendarItem:", error.message); });
         }
       },
 
@@ -620,7 +620,7 @@ export const useAppStore = create<AppState>()(
               starts_at: startsAt,
               ...(endsAt !== undefined && { ends_at: endsAt }),
             }).eq("id", itemId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("moveCalendarItem:", error); });
+              .then(({ error }) => { if (error) console.error("moveCalendarItem:", error.message); });
           }
         }
       },
@@ -653,7 +653,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("tasks").insert({ id: taskId, user_id: userId, responsibility_id: input.responsibilityId ?? null, title: input.title, description: input.description ?? null, priority: input.priority ?? "medium", due_at: input.dueAt ?? null, labels: input.labels?.length ? input.labels.slice(0, 1) : ["Life"], subtasks: [], estimate_minutes: 30, recurrence: input.recurrence ?? null })
-            .then(({ error }) => { if (error) console.error("addTask:", error); });
+            .then(({ error }) => { if (error) console.error("addTask:", error.message); });
         }
       },
 
@@ -678,7 +678,7 @@ export const useAppStore = create<AppState>()(
               ...(input.responsibilityId !== undefined && { responsibility_id: input.responsibilityId }),
               ...(input.subtasks !== undefined && { subtasks: input.subtasks }),
             }).eq("id", taskId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("updateTask:", error); });
+              .then(({ error }) => { if (error) console.error("updateTask:", error.message); });
           }
         }
       },
@@ -688,7 +688,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("tasks").delete().eq("id", taskId).eq("user_id", userId)
-            .then(({ error }) => { if (error) console.error("deleteTask:", error); });
+            .then(({ error }) => { if (error) console.error("deleteTask:", error.message); });
         }
       },
 
@@ -706,7 +706,7 @@ export const useAppStore = create<AppState>()(
             }));
             if (userId) {
               getDb()?.from("tasks").update({ status: "todo", due_at: nextDue }).eq("id", taskId).eq("user_id", userId)
-                .then(({ error }) => { if (error) console.error("toggleTask:", error); });
+                .then(({ error }) => { if (error) console.error("toggleTask:", error.message); });
             }
             return;
           }
@@ -718,7 +718,7 @@ export const useAppStore = create<AppState>()(
         }));
         if (userId) {
           getDb()?.from("tasks").update({ status: newStatus }).eq("id", taskId).eq("user_id", userId)
-            .then(({ error }) => { if (error) console.error("toggleTask:", error); });
+            .then(({ error }) => { if (error) console.error("toggleTask:", error.message); });
         }
       },
 
@@ -742,7 +742,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("notes").insert({ id: noteId, user_id: userId, responsibility_id: input.responsibilityId || null, folder_id: input.folderId ?? null, title: input.title, body: input.body, labels: input.labels ?? [], last_opened_at: timestamp })
-            .then(({ error }) => { if (error) console.error("addNote:", error); });
+            .then(({ error }) => { if (error) console.error("addNote:", error.message); });
         }
         return noteId;
       },
@@ -764,7 +764,7 @@ export const useAppStore = create<AppState>()(
               ...(input.responsibilityId !== undefined && { responsibility_id: input.responsibilityId }),
               ...(input.folderId !== undefined && { folder_id: input.folderId || null }),
             }).eq("id", noteId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("updateNote:", error); });
+              .then(({ error }) => { if (error) console.error("updateNote:", error.message); });
           }
         }
       },
@@ -779,7 +779,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("notes").update({ last_opened_at: ts }).eq("id", noteId).eq("user_id", userId)
-            .then(({ error }) => { if (error) console.error("markNoteOpened:", error); });
+            .then(({ error }) => { if (error) console.error("markNoteOpened:", error.message); });
         }
       },
 
@@ -788,7 +788,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("notes").delete().eq("id", noteId).eq("user_id", userId)
-            .then(({ error }) => { if (error) console.error("deleteNote:", error); });
+            .then(({ error }) => { if (error) console.error("deleteNote:", error.message); });
         }
       },
 
@@ -809,7 +809,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("note_folders").insert({ id: folderId, user_id: userId, name: input.name, color: input.color ?? "blue", sort_order: sortOrder })
-            .then(({ error }) => { if (error) console.error("addNoteFolder:", error); });
+            .then(({ error }) => { if (error) console.error("addNoteFolder:", error.message); });
         }
         return folderId;
       },
@@ -826,7 +826,7 @@ export const useAppStore = create<AppState>()(
             ...(input.name !== undefined && { name: input.name }),
             ...(input.color !== undefined && { color: input.color }),
           }).eq("id", folderId).eq("user_id", userId)
-            .then(({ error }) => { if (error) console.error("updateNoteFolder:", error); });
+            .then(({ error }) => { if (error) console.error("updateNoteFolder:", error.message); });
         }
       },
 
@@ -842,9 +842,9 @@ export const useAppStore = create<AppState>()(
           const db = getDb();
           if (db) {
             db.from("notes").update({ folder_id: null }).eq("folder_id", folderId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("deleteNoteFolder notes:", error); });
+              .then(({ error }) => { if (error) console.error("deleteNoteFolder notes:", error.message); });
             db.from("note_folders").delete().eq("id", folderId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("deleteNoteFolder:", error); });
+              .then(({ error }) => { if (error) console.error("deleteNoteFolder:", error.message); });
           }
         }
       },
@@ -864,7 +864,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("lists").insert({ id: listId, user_id: userId, responsibility_id: input.responsibilityId || null, title: input.title, items: [] })
-            .then(({ error }) => { if (error) console.error("addList:", error); });
+            .then(({ error }) => { if (error) console.error("addList:", error.message); });
         }
       },
 
@@ -883,7 +883,7 @@ export const useAppStore = create<AppState>()(
           const list = get().lists.find((l) => l.id === input.listId);
           if (list) {
             getDb()?.from("lists").update({ items: list.items }).eq("id", input.listId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("addListItem:", error); });
+              .then(({ error }) => { if (error) console.error("addListItem:", error.message); });
           }
         }
       },
@@ -902,7 +902,7 @@ export const useAppStore = create<AppState>()(
           const list = get().lists.find((l) => l.id === listId);
           if (list) {
             getDb()?.from("lists").update({ items: list.items }).eq("id", listId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("toggleListItem:", error); });
+              .then(({ error }) => { if (error) console.error("toggleListItem:", error.message); });
           }
         }
       },
@@ -945,7 +945,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("responsibilities").insert({ id: respId, user_id: userId, name: input.name, description: input.description ?? "", color: input.color, icon: "Circle", weekly_goal_hours: 0, sort_order: sortOrder })
-            .then(({ error }) => { if (error) console.error("addResponsibility:", error); });
+            .then(({ error }) => { if (error) console.error("addResponsibility:", error.message); });
         }
         return respId;
       },
@@ -965,7 +965,7 @@ export const useAppStore = create<AppState>()(
               ...(input.description !== undefined && { description: input.description }),
               ...(input.color !== undefined && { color: input.color }),
             }).eq("id", responsibilityId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("updateResponsibility:", error); });
+              .then(({ error }) => { if (error) console.error("updateResponsibility:", error.message); });
           }
         }
       },
@@ -979,7 +979,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("responsibilities").update({ color }).eq("id", responsibilityId).eq("user_id", userId)
-            .then(({ error }) => { if (error) console.error("updateResponsibilityColor:", error); });
+            .then(({ error }) => { if (error) console.error("updateResponsibilityColor:", error.message); });
         }
       },
 
@@ -990,7 +990,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("responsibilities").delete().eq("id", responsibilityId).eq("user_id", userId)
-            .then(({ error }) => { if (error) console.error("deleteResponsibility:", error); });
+            .then(({ error }) => { if (error) console.error("deleteResponsibility:", error.message); });
         }
       },
 
@@ -1310,15 +1310,15 @@ export const useAppStore = create<AppState>()(
           if (!db) return;
           if (newTasks.length > 0) {
             db.from("tasks").insert(newTasks.map((t) => ({ id: t.id, user_id: userId, responsibility_id: t.responsibilityId ?? null, title: t.title, priority: t.priority, status: t.status, labels: [], subtasks: [] })))
-              .then(({ error }) => { if (error) console.error("commitExtraction tasks:", error); });
+              .then(({ error }) => { if (error) console.error("commitExtraction tasks:", error.message); });
           }
           if (newEvents.length > 0) {
             db.from("calendar_items").insert(newEvents.map((e) => ({ id: e.id, user_id: userId, responsibility_id: e.responsibilityId || null, type: e.type, title: e.title, starts_at: e.startsAt, ends_at: e.endsAt, source: e.source ?? "ai_review" })))
-              .then(({ error }) => { if (error) console.error("commitExtraction events:", error); });
+              .then(({ error }) => { if (error) console.error("commitExtraction events:", error.message); });
           }
           if (newNotes.length > 0) {
             db.from("notes").insert(newNotes.map((n) => ({ id: n.id, user_id: userId, responsibility_id: n.responsibilityId || null, title: n.title, body: n.body, labels: [] })))
-              .then(({ error }) => { if (error) console.error("commitExtraction notes:", error); });
+              .then(({ error }) => { if (error) console.error("commitExtraction notes:", error.message); });
           }
         }
       },
@@ -1360,7 +1360,7 @@ export const useAppStore = create<AppState>()(
         const { userId } = get();
         if (userId) {
           getDb()?.from("calendar_items").insert({ id: logId, user_id: userId, responsibility_id: input.responsibilityId || null, type: "time_log", title: input.title, starts_at: input.startedAt, ends_at: input.endedAt, source: "app" })
-            .then(({ error }) => { if (error) console.error("addManualTimeLog:", error); });
+            .then(({ error }) => { if (error) console.error("addManualTimeLog:", error.message); });
         }
       },
     }),
