@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, Calendar, Dumbbell, Flame, RefreshCw, Settings, Tags } from "lucide-react";
+import { BarChart3, Calendar, Dumbbell, Flame, LogOut, RefreshCw, Settings, Tags } from "lucide-react";
 import { useState } from "react";
 import { useAppStore } from "@/lib/stores/app-store";
+import { createBrowserSupabaseClient, hasSupabaseEnv } from "@/lib/supabase/browser";
 import { responsibilityTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -505,8 +506,29 @@ export function SettingsWorkspace() {
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted">Habits, gym, goals, food, ideas</span>
-            <span className="text-ink font-medium">Local storage</span>
+            <span className="text-ink font-medium">Supabase + local cache</span>
           </div>
+        </div>
+      </div>
+
+      {/* Account */}
+      <div className="rounded-xl border border-line bg-panel overflow-hidden">
+        <div className="border-b border-line bg-line/40 px-5 py-3">
+          <p className="text-sm font-medium text-ink">Account</p>
+        </div>
+        <div className="px-5 py-4">
+          <button
+            onClick={async () => {
+              if (hasSupabaseEnv()) {
+                await createBrowserSupabaseClient().auth.signOut();
+              }
+              window.location.href = "/login";
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:border-red-500/40 hover:text-red-400"
+          >
+            <LogOut className="size-4" />
+            Sign out
+          </button>
         </div>
       </div>
     </div>

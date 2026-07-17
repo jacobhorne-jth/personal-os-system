@@ -24,7 +24,9 @@ export function LoginForm() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/home`
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        // Only existing users (added in the Supabase dashboard) can sign in
+        shouldCreateUser: false
       }
     });
 

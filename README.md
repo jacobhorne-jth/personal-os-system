@@ -5,8 +5,8 @@ A single-user personal operating system: calendar, tasks, notes, habits, gym, fo
 ## Stack
 
 - **Next.js 15** (App Router) + TypeScript + Tailwind
-- **Supabase** — tasks, notes, calendar items, lists, responsibilities
-- **localStorage** (Zustand persist) — habits, gym, goals, food, ideas
+- **Supabase** — all data (tasks, notes, calendar, lists, responsibilities, habits, gym, goals, food, ideas) plus magic-link auth
+- **localStorage** (Zustand persist) — offline cache for the habit/gym/goal/food/idea slices
 - **FullCalendar** for the calendar surface
 - **OpenAI** for natural-language capture parsing
 - **Google Calendar API** for read-only import from personal + school accounts
@@ -26,11 +26,17 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable (anon) key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-side writes for Google sync |
-| `NEXT_PUBLIC_OWNER_USER_ID` | Your Supabase auth user id (single-user mode) |
 | `OPENAI_API_KEY` | Capture parsing |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud OAuth desktop-app credentials |
 | `GOOGLE_REFRESH_TOKEN_PERSONAL` | Refresh token for personal Google account |
 | `GOOGLE_REFRESH_TOKEN_SCHOOL` | Refresh token for school Google account |
+
+### Auth
+
+Sign-in is a Supabase magic link: enter your email on `/login`, click the link
+in the email, and the session persists per device. Row level security restricts
+every table to the signed-in user, so only accounts you create in the Supabase
+dashboard (Authentication → Add user) can see or change anything.
 
 ### Database
 
@@ -50,8 +56,13 @@ Run the migrations in `supabase/migrations/` in order against your Supabase proj
 
 - **Recurring tasks**: capture with natural language ("gym every mon", "review notes every day"). Completing a recurring task advances its due date instead of finishing it. Edit or remove recurrence from the task detail page.
 - **Capture**: the center action parses dates, times, recurrence, and `@responsibility` mentions locally; the review flow uses OpenAI for messier input.
-- **Data locality**: tasks/notes/calendar/lists/responsibilities live in Supabase (cross-device); habits/gym/goals/food/ideas live in browser localStorage (single device).
+- **Cross-device**: everything syncs through Supabase. The habit/gym/goal/food/idea slices also keep a localStorage cache and push changes up on a short debounce, so each device converges on next load.
 
 ## Deploy
 
-Push to GitHub, import into Vercel, add every variable from `.env.example`, deploy. The app runs in single-user mode — no login flow — so keep the deployment URL private or add auth before sharing it.
+1. Push to GitHub and import the repo into [Vercel](https://vercel.com).
+2. Add every variable from `.env.example` in the Vercel project settings.
+3. In Supabase → Authentication → URL Configuration, set the site URL to your Vercel domain and add `https://<your-domain>/auth/callback` to the redirect allow-list.
+4. Deploy, open the URL, sign in with your email.
+
+**Phone**: open the deployed URL in Safari/Chrome → Share → Add to Home Screen. The PWA manifest and service worker are already set up, so it installs as a fullscreen app.

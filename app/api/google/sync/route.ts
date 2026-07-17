@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { fetchEvents } from "@/lib/google/calendar";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/types/database";
 
 export async function POST() {
-  const userId = process.env.NEXT_PUBLIC_OWNER_USER_ID;
-  if (!userId) {
-    return NextResponse.json({ error: "NEXT_PUBLIC_OWNER_USER_ID not set" }, { status: 500 });
+  const authClient = await createServerSupabaseClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = user.id;
 
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) {

@@ -3,8 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useAppStore } from "@/lib/stores/app-store";
-
-const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_USER_ID ?? "";
+import { createBrowserSupabaseClient, hasSupabaseEnv } from "@/lib/supabase/browser";
 
 const GOOGLE_SYNC_INTERVAL_MS = 15 * 60 * 1000;
 
@@ -12,15 +11,21 @@ function DataLoader() {
   const loadFromSupabase = useAppStore((s) => s.loadFromSupabase);
 
   useEffect(() => {
-    if (!OWNER_ID) return;
-    loadFromSupabase(OWNER_ID).then(() => {
-      const { lastGoogleSync, syncGoogleCalendar } = useAppStore.getState();
-      const stale = !lastGoogleSync || Date.now() - new Date(lastGoogleSync).getTime() > GOOGLE_SYNC_INTERVAL_MS;
-      if (stale) {
-        syncGoogleCalendar().catch(() => {
-          // Google sync is best-effort on load; the Settings page surfaces errors
-        });
-      }
+    if (!hasSupabaseEnv()) return;
+    const supabase = createBrowserSupabaseClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      // Middleware redirects unauthenticated visitors to /login,
+      // so no user here just means we're on a public page.
+      if (!user) return;
+      loadFromSupabase(user.id).then(() => {
+        const { lastGoogleSync, syncGoogleCalendar } = useAppStore.getState();
+        const stale = !lastGoogleSync || Date.now() - new Date(lastGoogleSync).getTime() > GOOGLE_SYNC_INTERVAL_MS;
+        if (stale) {
+          syncGoogleCalendar().catch(() => {
+            // Google sync is best-effort on load; the Settings page surfaces errors
+          });
+        }
+      });
     });
   }, [loadFromSupabase]);
 

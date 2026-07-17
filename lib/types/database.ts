@@ -3,6 +3,21 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      app_state: {
+        Row: {
+          user_id: string;
+          key: string;
+          data: Json;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          key: string;
+          data: Json;
+        };
+        Update: Partial<Omit<Database["public"]["Tables"]["app_state"]["Insert"], "user_id">>;
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;

@@ -7,7 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { aiReviewItems, calendarItems, lists, responsibilities, tasks } from "@/lib/data/mock";
 import { nextOccurrence } from "@/lib/recurrence";
 import type { ActiveGymSession, CalendarItem, CaptureExtraction, FileAsset, FoodEntry, FoodMeal, Goal, GymDay, GymExercise, GymSession, GymSessionExercise, GymSet, Habit, HabitLog, HabitType, Idea, IdeaStatus, Note, NoteFolder, Responsibility, ResponsibilityColor, SavedList, Task } from "@/lib/types/domain";
-import type { Database } from "@/lib/types/database";
+import type { Database, Json } from "@/lib/types/database";
 
 // ─── Supabase client singleton ────────────────────────────────────────────────
 
@@ -20,6 +20,31 @@ function getDb(): SupabaseClient<Database> | null {
   if (!url || !key) return null;
   if (!_db) _db = createBrowserClient<Database>(url, key);
   return _db;
+}
+
+// ─── Cross-device slice sync ──────────────────────────────────────────────────
+// These slices have no dedicated tables; they sync as one JSONB document in
+// app_state so phone and laptop share habits, gym, goals, food, and ideas.
+
+const LOCAL_SLICE_KEYS = [
+  "habits",
+  "habitLogs",
+  "gymExercises",
+  "gymDays",
+  "gymSessions",
+  "activeGymSession",
+  "gymWeightUnit",
+  "goals",
+  "foodEntries",
+  "foodTargets",
+  "ideas",
+] as const;
+
+let applyingServerSlices = false;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function localSlices(state: any): Record<string, unknown> {
+  return Object.fromEntries(LOCAL_SLICE_KEYS.map((k) => [k, state[k]]));
 }
 
 // ─── DB → Domain mappers ──────────────────────────────────────────────────────
@@ -474,6 +499,7 @@ export const useAppStore = create<AppState>()(
           { data: dbNoteFolders },
           { data: dbLists },
           { data: dbResp },
+          { data: dbAppState },
         ] = await Promise.all([
           db.from("tasks").select("*").eq("user_id", userId).neq("status", "archived"),
           db.from("calendar_items").select("*").eq("user_id", userId).order("starts_at"),
@@ -481,6 +507,7 @@ export const useAppStore = create<AppState>()(
           db.from("note_folders").select("*").eq("user_id", userId).order("sort_order"),
           db.from("lists").select("*").eq("user_id", userId),
           db.from("responsibilities").select("*").eq("user_id", userId).order("sort_order"),
+          db.from("app_state").select("data").eq("user_id", userId).eq("key", "local_slices").maybeSingle(),
         ]);
 
         const loadedTasks = (dbTasks ?? []).map(dbTaskToDomain);
@@ -535,6 +562,18 @@ export const useAppStore = create<AppState>()(
           files: [],
           aiReviewItems: [],
         });
+
+        // Cross-device slices (habits, gym, goals, food, ideas): server copy
+        // wins when it exists; otherwise push this device's local data up once.
+        if (dbAppState?.data && typeof dbAppState.data === "object") {
+          applyingServerSlices = true;
+          set(dbAppState.data as Partial<AppState>);
+          applyingServerSlices = false;
+        } else {
+          db.from("app_state")
+            .upsert({ user_id: userId, key: "local_slices", data: localSlices(get()) as Json })
+            .then(({ error }) => { if (error) console.error("app_state seed:", error.message); });
+        }
       },
 
       // ── Captures ─────────────────────────────────────────────────────────
@@ -1385,3 +1424,22 @@ export const useAppStore = create<AppState>()(
     }
   )
 );
+
+// Push slice changes to Supabase (debounced) so other devices pick them up
+// on their next load. localStorage persistence above stays as the offline cache.
+let sliceSyncTimer: ReturnType<typeof setTimeout> | null = null;
+
+if (typeof window !== "undefined") {
+  useAppStore.subscribe((state, prevState) => {
+    if (!state.userId || applyingServerSlices) return;
+    if (LOCAL_SLICE_KEYS.every((k) => state[k] === prevState[k])) return;
+    if (sliceSyncTimer) clearTimeout(sliceSyncTimer);
+    sliceSyncTimer = setTimeout(() => {
+      const current = useAppStore.getState();
+      if (!current.userId) return;
+      getDb()?.from("app_state")
+        .upsert({ user_id: current.userId, key: "local_slices", data: localSlices(current) as Json })
+        .then(({ error }) => { if (error) console.error("app_state sync:", error.message); });
+    }, 1500);
+  });
+}
