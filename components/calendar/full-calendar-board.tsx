@@ -25,6 +25,9 @@ type DraftEvent = {
   type: CalendarItemType;
 };
 
+// Viewport rect of the drag selection, used to place the draft card beside it
+type SelectAnchor = { colLeft: number; colRight: number; top: number };
+
 const creatableTypes: Array<{ type: CalendarItemType; label: string }> = [
   { type: "app_event", label: "Event" },
   { type: "time_block", label: "Time block" },
@@ -46,10 +49,15 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const searchParams = useSearchParams();
   const calendarRef = useRef<FullCalendar | null>(null);
   const shellRef = useRef<HTMLDivElement | null>(null);
-  const selectRef = useRef<(s: { start: Date; end: Date; allDay: boolean }) => void>(() => {});
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const selectRef = useRef<(s: { start: Date; end: Date; allDay: boolean; anchor?: SelectAnchor }) => void>(() => {});
+  const closeDraftRef = useRef<() => void>(() => {});
+  const clearPlacedOverlayRef = useRef<() => void>(() => {});
+  const cardOpenRef = useRef(false);
   const handledQueryDraft = useRef(false);
   const [calendarTitle, setCalendarTitle] = useState(() => new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }));
   const [draftEvent, setDraftEvent] = useState<DraftEvent | null>(null);
+  const [draftCardPos, setDraftCardPos] = useState<{ left: number; top: number } | null>(null);
   const [selectedItem, setSelectedItem] = useState<CalendarItem | null>(null);
   const [eventPanelMode, setEventPanelMode] = useState<"preview" | "edit">("preview");
   const [deleteMenuOpen, setDeleteMenuOpen] = useState(false);
@@ -128,7 +136,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     setCalendarGotoDate(null);
   }, [calendarGotoDate, setCalendarGotoDate, setCalendarView]);
 
-  function handleSelect(selection: { start: Date; end: Date; allDay: boolean }) {
+  function handleSelect(selection: { start: Date; end: Date; allDay: boolean; anchor?: SelectAnchor }) {
     const start = selection.start;
     const end = selection.end;
 
@@ -139,6 +147,23 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     setCreateMode(false);
     setSelectedItem(null);
     setEventPanelMode("preview");
+
+    // Place the card beside the selection like Google Calendar: prefer the
+    // left of the day column, flip to the right when there's no room.
+    const root = rootRef.current;
+    if (selection.anchor && root) {
+      const rootRect = root.getBoundingClientRect();
+      const CARD_WIDTH = 380;
+      const GAP = 12;
+      let left = selection.anchor.colLeft - rootRect.left - CARD_WIDTH - GAP;
+      if (left < 8) left = selection.anchor.colRight - rootRect.left + GAP;
+      left = Math.max(8, Math.min(left, rootRect.width - CARD_WIDTH - 8));
+      const top = Math.max(56, Math.min(selection.anchor.top - rootRect.top - 8, rootRect.height - 420));
+      setDraftCardPos({ left, top });
+    } else {
+      setDraftCardPos(null);
+    }
+
     setDraftEvent({
       startsAt: start.toISOString(),
       endsAt: end.toISOString(),
@@ -150,6 +175,19 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     });
   }
   selectRef.current = handleSelect;
+  closeDraftRef.current = () => {
+    setDraftEvent(null);
+    setSelectedItem(null);
+    setEventPanelMode("preview");
+    setDeleteMenuOpen(false);
+  };
+
+  // The placed selection block lives outside React (imperative DOM); remove it
+  // whenever the draft card closes for any reason (cancel, save, new drag).
+  useEffect(() => {
+    cardOpenRef.current = Boolean(draftEvent);
+    if (!draftEvent) clearPlacedOverlayRef.current();
+  }, [draftEvent]);
 
   // Google Calendar-style drag-to-create in the time grid: the selection box
   // is ours (not FullCalendar's), stays locked to the day column where the
@@ -165,10 +203,18 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     let colEl: HTMLElement | null = null;
     let dayDate: Date | null = null;
     let overlay: HTMLDivElement | null = null;
+    let titleLine: HTMLDivElement | null = null;
     let label: HTMLDivElement | null = null;
+    let placed: HTMLDivElement | null = null; // block left on the grid while the draft card is open
     let startMinutes = 0;
     let endMinutes = 0;
     let dragging = false;
+    let dismissedCard = false; // gesture began while a draft card was open
+
+    clearPlacedOverlayRef.current = () => {
+      placed?.remove();
+      placed = null;
+    };
 
     function rawMinutes(e: { clientY: number }) {
       const rect = colEl!.getBoundingClientRect();
@@ -202,17 +248,44 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       document.removeEventListener("pointercancel", onUp);
       if (!dragging) return;
       dragging = false;
-      overlay?.remove();
-      overlay = null;
 
       const a = Math.min(startMinutes, endMinutes);
       let b = Math.max(startMinutes, endMinutes);
-      if (b - a < SNAP) b = Math.min(a + 60, TOTAL_MINUTES); // plain click → 1 hour
+      const plainClick = b - a < SNAP;
+
+      // A plain click while a card was open only dismisses it (Google behavior);
+      // an actual drag goes on to open the next card.
+      if (plainClick && dismissedCard) {
+        overlay?.remove();
+        overlay = null;
+        return;
+      }
+
+      if (plainClick) b = Math.min(a + 60, TOTAL_MINUTES); // plain click → 1 hour
       const start = new Date(dayDate!);
       start.setMinutes(a);
       const end = new Date(dayDate!);
       end.setMinutes(b);
-      selectRef.current({ start, end, allDay: false });
+
+      // Keep the block on the grid while the draft card is open, like
+      // Google Calendar's "(No title)" placeholder.
+      if (overlay) {
+        endMinutes = b;
+        startMinutes = a;
+        render();
+        if (titleLine) titleLine.textContent = "(No title)";
+        placed = overlay;
+        overlay = null;
+      }
+
+      const colRect = colEl!.getBoundingClientRect();
+      const anchorTop = colRect.top + (a / TOTAL_MINUTES) * colRect.height;
+      selectRef.current({
+        start,
+        end,
+        allDay: false,
+        anchor: { colLeft: colRect.left, colRight: colRect.right, top: anchorTop },
+      });
     }
 
     function onDown(e: PointerEvent) {
@@ -235,6 +308,12 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       e.preventDefault();
       e.stopPropagation();
 
+      // A new gesture dismisses the previous draft card and its placed block
+      dismissedCard = cardOpenRef.current;
+      placed?.remove();
+      placed = null;
+      closeDraftRef.current();
+
       colEl = col;
       const [y, m, d] = dateAttr.split("-").map(Number);
       dayDate = new Date(y, m - 1, d, 0, 0, 0, 0);
@@ -245,9 +324,12 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       const frame = col.querySelector<HTMLElement>(".fc-timegrid-col-frame") ?? col;
       overlay = document.createElement("div");
       overlay.style.cssText =
-        "position:absolute;left:2px;right:3px;z-index:5;border-radius:6px;background:rgba(66,133,244,0.4);border:1px solid rgba(138,180,248,0.9);pointer-events:none;padding:2px 6px;overflow:hidden;";
+        "position:absolute;left:2px;right:3px;z-index:5;border-radius:6px;background:#4285f4;pointer-events:none;padding:3px 7px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.35);";
+      titleLine = document.createElement("div");
+      titleLine.style.cssText = "font-size:12px;font-weight:500;color:#fff;white-space:nowrap;";
       label = document.createElement("div");
-      label.style.cssText = "font-size:11px;color:#e8eaed;white-space:nowrap;";
+      label.style.cssText = "font-size:11px;color:rgba(255,255,255,0.9);white-space:nowrap;";
+      overlay.appendChild(titleLine);
       overlay.appendChild(label);
       frame.appendChild(overlay);
       render();
@@ -264,6 +346,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       document.removeEventListener("pointerup", onUp);
       document.removeEventListener("pointercancel", onUp);
       overlay?.remove();
+      placed?.remove();
     };
   }, []);
 
@@ -453,7 +536,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   }
 
   return (
-    <div className={cn("calendar-board gcal-board gcal-board-compact relative flex h-full min-h-0 flex-col", fullChrome && "gcal-board-full")}>
+    <div ref={rootRef} className={cn("calendar-board gcal-board gcal-board-compact relative flex h-full min-h-0 flex-col", fullChrome && "gcal-board-full")}>
       <div className="gcal-topbar">
         <div className="gcal-nav-controls">
           <button
@@ -547,7 +630,10 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       </div>
 
       {draftEvent && (
-        <div className="absolute left-3 top-14 z-30 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#3c4043] bg-[#282a2d] shadow-lift">
+        <div
+          className="absolute z-30 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#3c4043] bg-[#282a2d] shadow-lift"
+          style={draftCardPos ? { left: draftCardPos.left, top: draftCardPos.top } : { left: 12, top: 56 }}
+        >
           <form onSubmit={saveDraftEvent}>
             <div className="px-5 pt-5 pb-4">
               <input
