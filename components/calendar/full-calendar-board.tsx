@@ -5,7 +5,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type EventResizeDoneArg } from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import type { DatesSetArg, DateSelectArg, EventClickArg, EventDropArg, EventContentArg } from "@fullcalendar/core";
+import type { DatesSetArg, EventClickArg, EventDropArg, EventContentArg } from "@fullcalendar/core";
 import { ChevronLeft, ChevronRight, FileText, MapPin, Pencil, Tags, Trash2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toFullCalendarEvent } from "@/lib/queries/calendar";
@@ -45,6 +45,8 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const router = useRouter();
   const searchParams = useSearchParams();
   const calendarRef = useRef<FullCalendar | null>(null);
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const selectRef = useRef<(s: { start: Date; end: Date; allDay: boolean }) => void>(() => {});
   const handledQueryDraft = useRef(false);
   const [calendarTitle, setCalendarTitle] = useState(() => new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }));
   const [draftEvent, setDraftEvent] = useState<DraftEvent | null>(null);
@@ -126,21 +128,9 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     setCalendarGotoDate(null);
   }, [calendarGotoDate, setCalendarGotoDate, setCalendarView]);
 
-  function handleSelect(selection: DateSelectArg) {
-    let start = selection.start;
-    let end = selection.end;
-
-    // Timed selections stay on the day where the drag began: dragging into a
-    // neighboring column keeps extending the time range, and the event lands
-    // on the origin day using the end position's time of day.
-    if (!selection.allDay && end.toDateString() !== start.toDateString()) {
-      const clamped = new Date(start);
-      clamped.setHours(end.getHours(), end.getMinutes(), 0, 0);
-      if (clamped <= start) {
-        clamped.setTime(start.getTime() + 60 * 60 * 1000);
-      }
-      end = clamped;
-    }
+  function handleSelect(selection: { start: Date; end: Date; allDay: boolean }) {
+    const start = selection.start;
+    const end = selection.end;
 
     if (!fullChrome) {
       router.push(`/calendar?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}&date=${encodeURIComponent(start.toISOString())}`);
@@ -159,6 +149,112 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       type: "app_event"
     });
   }
+  selectRef.current = handleSelect;
+
+  // Google Calendar-style drag-to-create in the time grid: the selection box
+  // is ours (not FullCalendar's), stays locked to the day column where the
+  // drag began, and keeps tracking the cursor's vertical position even when
+  // the mouse wanders into neighboring days.
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) return;
+
+    const TOTAL_MINUTES = 25 * 60; // slotMinTime 00:00 → slotMaxTime 25:00
+    const SNAP = 15;
+
+    let colEl: HTMLElement | null = null;
+    let dayDate: Date | null = null;
+    let overlay: HTMLDivElement | null = null;
+    let label: HTMLDivElement | null = null;
+    let startMinutes = 0;
+    let endMinutes = 0;
+    let dragging = false;
+
+    function rawMinutes(e: MouseEvent) {
+      const rect = colEl!.getBoundingClientRect();
+      const ratio = (e.clientY - rect.top) / rect.height;
+      return Math.max(0, Math.min(TOTAL_MINUTES, ratio * TOTAL_MINUTES));
+    }
+
+    function fmt(mins: number) {
+      const d = new Date(2000, 0, 1, Math.floor(mins / 60) % 24, mins % 60);
+      return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    }
+
+    function render() {
+      if (!overlay) return;
+      const a = Math.min(startMinutes, endMinutes);
+      const b = Math.max(startMinutes, endMinutes);
+      overlay.style.top = `${(a / TOTAL_MINUTES) * 100}%`;
+      overlay.style.height = `${(Math.max(b - a, SNAP) / TOTAL_MINUTES) * 100}%`;
+      if (label) label.textContent = `${fmt(a)} – ${fmt(Math.max(b, a + SNAP))}`;
+    }
+
+    function onMove(e: MouseEvent) {
+      if (!dragging) return;
+      endMinutes = Math.round(rawMinutes(e) / SNAP) * SNAP;
+      render();
+    }
+
+    function onUp() {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      if (!dragging) return;
+      dragging = false;
+      overlay?.remove();
+      overlay = null;
+
+      const a = Math.min(startMinutes, endMinutes);
+      let b = Math.max(startMinutes, endMinutes);
+      if (b - a < SNAP) b = Math.min(a + 60, TOTAL_MINUTES); // plain click → 1 hour
+      const start = new Date(dayDate!);
+      start.setMinutes(a);
+      const end = new Date(dayDate!);
+      end.setMinutes(b);
+      selectRef.current({ start, end, allDay: false });
+    }
+
+    function onDown(e: MouseEvent) {
+      if (e.button !== 0) return;
+      const target = e.target as HTMLElement;
+      if (target.closest(".fc-event")) return; // clicks on events pass through
+      const col = target.closest<HTMLElement>(".fc-timegrid-col");
+      const dateAttr = col?.getAttribute("data-date");
+      if (!col || !dateAttr) return; // month view / axis column: not ours
+
+      // Take over from FullCalendar's own selection
+      e.preventDefault();
+      e.stopPropagation();
+
+      colEl = col;
+      const [y, m, d] = dateAttr.split("-").map(Number);
+      dayDate = new Date(y, m - 1, d, 0, 0, 0, 0);
+      startMinutes = Math.floor(rawMinutes(e) / SNAP) * SNAP;
+      endMinutes = startMinutes;
+      dragging = true;
+
+      const frame = col.querySelector<HTMLElement>(".fc-timegrid-col-frame") ?? col;
+      overlay = document.createElement("div");
+      overlay.style.cssText =
+        "position:absolute;left:2px;right:3px;z-index:5;border-radius:6px;background:rgba(66,133,244,0.4);border:1px solid rgba(138,180,248,0.9);pointer-events:none;padding:2px 6px;overflow:hidden;";
+      label = document.createElement("div");
+      label.style.cssText = "font-size:11px;color:#e8eaed;white-space:nowrap;";
+      overlay.appendChild(label);
+      frame.appendChild(overlay);
+      render();
+
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    }
+
+    shell.addEventListener("mousedown", onDown, true); // capture: runs before FullCalendar
+    return () => {
+      shell.removeEventListener("mousedown", onDown, true);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      overlay?.remove();
+    };
+  }, []);
 
   function handleEventClick(event: EventClickArg) {
     const item = visibleItems.find((calendarItem) => calendarItem.id === event.event.id);
@@ -399,7 +495,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       </div>
 
       <div className="gcal-main">
-        <div className="gcal-calendar-shell">
+        <div className="gcal-calendar-shell" ref={shellRef}>
           {createMode && (
             <div className="absolute left-1/2 top-3 z-20 -translate-x-1/2 rounded-full border border-[#3c4043] bg-[#282a2d] px-4 py-2 text-sm text-[#e8eaed] shadow-lift">
               Drag across the calendar to create an event
