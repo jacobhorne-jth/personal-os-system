@@ -193,6 +193,21 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     if (!draftEvent) clearPlacedOverlayRef.current();
   }, [draftEvent]);
 
+  // Any click outside the open card/panel dismisses it — sidebar, top bar,
+  // mini calendar, nav links (navigation still goes through).
+  useEffect(() => {
+    if (!draftEvent && !selectedItem) return;
+    function onOutsidePointerDown(e: PointerEvent) {
+      const target = e.target as HTMLElement;
+      if (target.closest("[data-popup-card]")) return; // inside the card
+      if (target.closest(".fc-event")) return; // event clicks manage the panel themselves
+      if (target.closest(".fc-timegrid-body")) return; // grid clicks are handled by drag-create
+      closeDraftRef.current();
+    }
+    document.addEventListener("pointerdown", onOutsidePointerDown, true);
+    return () => document.removeEventListener("pointerdown", onOutsidePointerDown, true);
+  }, [draftEvent, selectedItem]);
+
   // Google Calendar-style drag-to-create in the time grid: the selection box
   // is ours (not FullCalendar's), stays locked to the day column where the
   // drag began, and keeps tracking the cursor's vertical position even when
@@ -635,6 +650,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
       {draftEvent && (
         <div
+          data-popup-card
           className="absolute z-30 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#3c4043] bg-[#282a2d] shadow-lift"
           style={draftCardPos ? { left: draftCardPos.left, top: draftCardPos.top } : { left: 12, top: 56 }}
         >
@@ -703,7 +719,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       )}
 
       {selectedItem && (
-        <div className="absolute left-6 top-16 z-30 w-[min(560px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[#3c4043] bg-[#202124] shadow-[0_24px_72px_rgba(0,0,0,0.55)]">
+        <div data-popup-card className="absolute left-6 top-16 z-30 w-[min(560px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[#3c4043] bg-[#202124] shadow-[0_24px_72px_rgba(0,0,0,0.55)]">
           <div className="flex h-12 items-center justify-end gap-1 px-4 text-[#bdc1c6]">
             {eventPanelMode === "preview" && (
               <button type="button" onClick={() => { setEventPanelMode("edit"); setDeleteMenuOpen(false); }} className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]" title="Edit">
