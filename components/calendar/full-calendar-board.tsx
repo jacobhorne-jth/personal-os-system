@@ -400,6 +400,17 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             nowIndicator
             selectable
             selectMirror
+            selectAllow={(span) => {
+              // Keep drag-to-create inside one day column; a sideways drag in
+              // week view would otherwise draft an event spanning several days.
+              if (span.allDay) return true;
+              const sameDay = span.start.toDateString() === span.end.toDateString();
+              const endsAtMidnightNextDay =
+                span.end.getHours() === 0 &&
+                span.end.getMinutes() === 0 &&
+                span.end.getTime() - span.start.getTime() <= 24 * 60 * 60 * 1000;
+              return sameDay || endsAtMidnightNextDay;
+            }}
             editable
             eventResizableFromStart
             allDaySlot={false}
