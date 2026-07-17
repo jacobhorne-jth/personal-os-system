@@ -170,7 +170,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     let endMinutes = 0;
     let dragging = false;
 
-    function rawMinutes(e: MouseEvent) {
+    function rawMinutes(e: { clientY: number }) {
       const rect = colEl!.getBoundingClientRect();
       const ratio = (e.clientY - rect.top) / rect.height;
       return Math.max(0, Math.min(TOTAL_MINUTES, ratio * TOTAL_MINUTES));
@@ -190,15 +190,16 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       if (label) label.textContent = `${fmt(a)} – ${fmt(Math.max(b, a + SNAP))}`;
     }
 
-    function onMove(e: MouseEvent) {
+    function onMove(e: PointerEvent) {
       if (!dragging) return;
       endMinutes = Math.round(rawMinutes(e) / SNAP) * SNAP;
       render();
     }
 
     function onUp() {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onUp);
       if (!dragging) return;
       dragging = false;
       overlay?.remove();
@@ -214,15 +215,17 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       selectRef.current({ start, end, allDay: false });
     }
 
-    function onDown(e: MouseEvent) {
-      if (e.button !== 0) return;
+    function onDown(e: PointerEvent) {
+      if (e.button !== 0 || e.pointerType !== "mouse") return; // touch keeps FullCalendar's long-press
       const target = e.target as HTMLElement;
       if (target.closest(".fc-event")) return; // clicks on events pass through
       const col = target.closest<HTMLElement>(".fc-timegrid-col");
       const dateAttr = col?.getAttribute("data-date");
       if (!col || !dateAttr) return; // month view / axis column: not ours
 
-      // Take over from FullCalendar's own selection
+      // Take over from FullCalendar's own selection. preventDefault on
+      // pointerdown also suppresses the compatibility mouse events, so
+      // FullCalendar never sees this gesture regardless of which it uses.
       e.preventDefault();
       e.stopPropagation();
 
@@ -243,15 +246,17 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       frame.appendChild(overlay);
       render();
 
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup", onUp);
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onUp);
     }
 
-    shell.addEventListener("mousedown", onDown, true); // capture: runs before FullCalendar
+    shell.addEventListener("pointerdown", onDown, true); // capture: runs before FullCalendar
     return () => {
-      shell.removeEventListener("mousedown", onDown, true);
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
+      shell.removeEventListener("pointerdown", onDown, true);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onUp);
       overlay?.remove();
     };
   }, []);
