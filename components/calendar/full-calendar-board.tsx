@@ -110,6 +110,8 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       setSelectedItem(item);
       setEventPanelMode("preview");
       setDeleteMenuOpen(false);
+      // Consume the params so a refresh doesn't replay this panel
+      router.replace("/calendar", { scroll: false });
       return;
     }
     if (!start || !end) return;
@@ -124,7 +126,9 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       responsibilityId: responsibilities[0]?.id ?? "school",
       type: "app_event"
     });
-  }, [fullChrome, responsibilities, searchParams, visibleItems]);
+    // Consume the params so a refresh doesn't replay this draft
+    router.replace("/calendar", { scroll: false });
+  }, [fullChrome, responsibilities, router, searchParams, visibleItems]);
 
   useEffect(() => {
     if (!calendarGotoDate) return;
