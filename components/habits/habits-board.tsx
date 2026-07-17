@@ -38,10 +38,13 @@ function todayStr(): string {
 function getStreak(habit: Habit, allLogs: ReturnType<typeof useAppStore.getState>["habitLogs"]): number {
   if (habit.type === "weekly") return 0;
   const today = todayStr();
+  const createdDate = habit.createdAt.slice(0, 10);
   let streak = 0;
   const check = new Date(today);
   for (let i = 0; i < 365; i++) {
     const dateStr = check.toISOString().slice(0, 10);
+    // Days before the habit existed can't count toward a streak
+    if (dateStr < createdDate) break;
     const log = allLogs.find((l) => l.habitId === habit.id && l.date === dateStr);
     const value = log?.value ?? 0;
     if (habit.type === "avoid") {
@@ -177,6 +180,16 @@ export function HabitsBoard() {
     }
   }
 
+  const [numericEntry, setNumericEntry] = useState<{ habitId: string; date: string } | null>(null);
+  const [numericValue, setNumericValue] = useState("");
+
+  // Right-click on a countable cell sets the exact count without click-cycling
+  function commitNumericEntry(habit: Habit, date: string) {
+    const parsed = Math.max(0, Math.min(999, parseInt(numericValue) || 0));
+    logHabit(habit.id, date, parsed);
+    setNumericEntry(null);
+  }
+
   function handleCellClick(habit: Habit, date: string) {
     const log = habitLogs.find((l) => l.habitId === habit.id && l.date === date);
     const current = log?.value ?? 0;
@@ -207,10 +220,10 @@ export function HabitsBoard() {
   };
 
   const typeHints: Record<HabitType, string> = {
-    daily: "Do it N times every day. Each cell cycles through 0 → target.",
+    daily: "Do it N times every day. Click to count up, right-click to type an exact number.",
     weekly: "Do it N times this week. Each cell marks one occurrence.",
     avoid: "Don't do it. Each cell marks a failure (red) or clean day (green).",
-    limit: "Stay at or under N per day. Each click logs one occurrence — turns red if you exceed the cap.",
+    limit: "Stay at or under N per day. Click to log one, right-click to type a count — red when over the cap.",
   };
 
   return (
@@ -412,16 +425,44 @@ export function HabitsBoard() {
                     const log = habitLogs.find((l) => l.habitId === habit.id && l.date === date);
                     const isFuture = date > today;
                     const isT = date === today;
+                    const countable = habit.type === "daily" || habit.type === "limit";
+                    const isNumericTarget = numericEntry?.habitId === habit.id && numericEntry?.date === date;
                     return (
-                      <div key={date} className="flex justify-center">
-                        <HabitCell
-                          habit={habit}
-                          date={date}
-                          value={log?.value ?? 0}
-                          isFuture={isFuture}
-                          isToday={isT}
-                          onClick={() => handleCellClick(habit, date)}
-                        />
+                      <div
+                        key={date}
+                        className="flex justify-center"
+                        onContextMenu={(e) => {
+                          if (!countable || isFuture) return;
+                          e.preventDefault();
+                          setNumericValue(String(log?.value ?? 0));
+                          setNumericEntry({ habitId: habit.id, date });
+                        }}
+                      >
+                        {isNumericTarget ? (
+                          <input
+                            autoFocus
+                            type="number"
+                            min={0}
+                            max={999}
+                            value={numericValue}
+                            onChange={(e) => setNumericValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") commitNumericEntry(habit, date);
+                              if (e.key === "Escape") setNumericEntry(null);
+                            }}
+                            onBlur={() => commitNumericEntry(habit, date)}
+                            className="h-8 w-12 rounded-md border border-blue bg-paper text-center text-xs text-ink outline-none"
+                          />
+                        ) : (
+                          <HabitCell
+                            habit={habit}
+                            date={date}
+                            value={log?.value ?? 0}
+                            isFuture={isFuture}
+                            isToday={isT}
+                            onClick={() => handleCellClick(habit, date)}
+                          />
+                        )}
                       </div>
                     );
                   })}

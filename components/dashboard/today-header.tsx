@@ -25,7 +25,7 @@ export function TodayHeader() {
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <Link key={stat.label} href={stat.label === "events" ? "/calendar" : stat.label === "tasks" ? "/responsibilities" : "/analytics"} className="rounded-lg border border-line bg-line p-3 transition hover:border-muted hover:bg-[#4a4d52]">
+              <Link key={stat.label} href={stat.label === "events" ? "/calendar" : stat.label === "tasks" ? "/responsibilities" : "/progress"} className="rounded-lg border border-line bg-line p-3 transition hover:border-muted hover:bg-[#4a4d52]">
                 <div className="flex items-center justify-between">
                   <Icon className={`size-4 ${stat.tone}`} />
                   <Sparkles className="size-3 text-white/[0.22]" />

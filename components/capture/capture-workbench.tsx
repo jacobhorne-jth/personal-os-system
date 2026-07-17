@@ -142,7 +142,7 @@ export function CaptureWorkbench() {
       const data = await res.json();
 
       addParsedExtraction({
-        source: mode === "time_log" ? "time_log" : mode as "typed" | "voice" | "upload" | "paste",
+        source: mode === "time_log" ? "time_log" : mode === "type" ? "typed" : (mode as "voice" | "upload" | "paste"),
         summary: data.summary,
         confidence: data.confidence,
         status: "pending_review",

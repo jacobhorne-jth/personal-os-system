@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Check, FileText, Folder, FolderPlus, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { noteLabels } from "@/lib/note-labels";
 import { ResponsibilityColorPicker } from "@/components/responsibilities/color-picker";
-import { useAppStore } from "@/lib/stores/app-store";
+import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { responsibilityTone } from "@/lib/theme";
 import type { ResponsibilityColor } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ type FolderFilter = "all" | "unfiled" | string;
 export function NotesWorkspace() {
   const router = useRouter();
   const responsibilities = useAppStore((state) => state.responsibilities);
+  const activeResponsibilities = useActiveResponsibilities();
   const notes = useAppStore((state) => state.notes);
   const noteFolders = useAppStore((state) => state.noteFolders);
   const addNote = useAppStore((state) => state.addNote);
@@ -61,7 +62,7 @@ export function NotesWorkspace() {
     const noteId = addNote({
       title: "",
       body: "",
-      responsibilityId: "personal",
+      responsibilityId: activeResponsibilities[0]?.id ?? "personal",
       folderId: folderFilter === "all" || folderFilter === "unfiled" ? undefined : folderFilter,
       labels: labelFilter === "all" ? [] : [labelFilter]
     });

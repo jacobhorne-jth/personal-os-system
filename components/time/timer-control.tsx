@@ -13,7 +13,29 @@ export function TimerControl({ plain = false }: { plain?: boolean }) {
   const startTimer = useAppStore((state) => state.startTimer);
   const pauseTimer = useAppStore((state) => state.pauseTimer);
   const stopTimer = useAppStore((state) => state.stopTimer);
+  const addManualTimeLog = useAppStore((state) => state.addManualTimeLog);
   const [tick, setTick] = useState(0);
+  const [logPastOpen, setLogPastOpen] = useState(false);
+  const [pastTitle, setPastTitle] = useState("");
+  const [pastStart, setPastStart] = useState("");
+  const [pastEnd, setPastEnd] = useState("");
+
+  function submitPastLog() {
+    if (!pastTitle.trim() || !pastStart || !pastEnd) return;
+    const startedAt = new Date(pastStart);
+    const endedAt = new Date(pastEnd);
+    if (endedAt <= startedAt) return;
+    addManualTimeLog({
+      title: pastTitle.trim(),
+      responsibilityId,
+      startedAt: startedAt.toISOString(),
+      endedAt: endedAt.toISOString(),
+    });
+    setPastTitle("");
+    setPastStart("");
+    setPastEnd("");
+    setLogPastOpen(false);
+  }
   const responsibilityId = timer.responsibilityId;
   const startedAt = timer.startedAt ? new Date(timer.startedAt) : new Date();
   const activeResponsibility = responsibilities.find((item) => item.id === responsibilityId);
@@ -76,8 +98,51 @@ export function TimerControl({ plain = false }: { plain?: boolean }) {
           <Square className="size-4" />
           Stop
         </button>
-        <button className="h-10 rounded-lg border border-line text-sm text-muted transition hover:border-muted hover:text-ink">Log past</button>
+        <button
+          onClick={() => setLogPastOpen((open) => !open)}
+          className={cn("h-10 rounded-lg border text-sm transition", logPastOpen ? "border-blue/50 text-blue" : "border-line text-muted hover:border-muted hover:text-ink")}
+        >
+          Log past
+        </button>
       </div>
+
+      {logPastOpen && (
+        <div className="mt-3 space-y-2 rounded-lg border border-line bg-paper p-3">
+          <input
+            value={pastTitle}
+            onChange={(e) => setPastTitle(e.target.value)}
+            placeholder="What did you work on?"
+            className="h-9 w-full rounded-lg border border-line bg-panel px-2.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-[11px] text-muted">
+              From
+              <input
+                type="datetime-local"
+                value={pastStart}
+                onChange={(e) => setPastStart(e.target.value)}
+                className="mt-1 h-9 w-full rounded-lg border border-line bg-panel px-2 text-xs text-ink outline-none focus:border-blue"
+              />
+            </label>
+            <label className="text-[11px] text-muted">
+              To
+              <input
+                type="datetime-local"
+                value={pastEnd}
+                onChange={(e) => setPastEnd(e.target.value)}
+                className="mt-1 h-9 w-full rounded-lg border border-line bg-panel px-2 text-xs text-ink outline-none focus:border-blue"
+              />
+            </label>
+          </div>
+          <button
+            onClick={submitPastLog}
+            disabled={!pastTitle.trim() || !pastStart || !pastEnd || new Date(pastEnd) <= new Date(pastStart)}
+            className="h-9 w-full rounded-lg bg-blue text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            Save time log
+          </button>
+        </div>
+      )}
     </div>
   );
 }

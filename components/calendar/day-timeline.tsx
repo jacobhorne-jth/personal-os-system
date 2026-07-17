@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import { expandCalendarItems } from "@/lib/recurrence";
 import { useAppStore } from "@/lib/stores/app-store";
 import type { CalendarItem } from "@/lib/types/domain";
 import { responsibilityTone } from "@/lib/theme";
@@ -32,11 +33,22 @@ function hourLabel(hour: number) {
   return normalized > 12 ? `${normalized - 12} PM` : `${normalized} AM`;
 }
 
-export function DayTimeline({ filteredResponsibilityId, date = "2026-05-07" }: { filteredResponsibilityId?: string; date?: string }) {
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
+}
+
+export function DayTimeline({ filteredResponsibilityId, date }: { filteredResponsibilityId?: string; date?: string }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const calendarItems = useAppStore((state) => state.calendarItems);
   const responsibilities = useAppStore((state) => state.responsibilities);
-  const items = calendarItems.filter((item) => item.startsAt.startsWith(date) && (!filteredResponsibilityId || item.responsibilityId === filteredResponsibilityId));
+  const dayKey = date ?? todayKey();
+  const dayStart = new Date(`${dayKey}T00:00:00`);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+  const items = expandCalendarItems(calendarItems, dayStart, dayEnd).filter(
+    (item) => item.startsAt.startsWith(dayKey) && (!filteredResponsibilityId || item.responsibilityId === filteredResponsibilityId)
+  );
   const { hours, startHour, totalMinutes, contentHeight } = useMemo(() => {
     const earliestHour = items.length
       ? Math.min(...items.map((item) => new Date(item.startsAt).getHours()))

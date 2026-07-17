@@ -15,6 +15,7 @@ import {
   Home,
   Inbox,
   Lightbulb,
+  ListChecks,
   PlusCircle,
   Repeat2,
   Settings,
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/gym", label: "Gym", icon: Dumbbell },
   { href: "/food", label: "Food", icon: Apple },
   { href: "/ideas", label: "Ideas", icon: Lightbulb },
+  { href: "/lists", label: "Lists", icon: ListChecks },
   { href: "/notes", label: "Notes", icon: FileText },
   { href: "/progress", label: "Progress", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings }

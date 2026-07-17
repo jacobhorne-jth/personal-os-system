@@ -67,6 +67,21 @@ export function NoteEditor({ noteId }: { noteId: string }) {
     markNoteOpened(noteId);
   }, [markNoteOpened, noteId]);
 
+  // Discard the note if the user leaves without writing anything —
+  // otherwise "New" + back litters the list with untitled empty notes.
+  const emptinessRef = useRef({ empty: true, noteId });
+  emptinessRef.current = { empty: !title.trim() && !body.trim(), noteId };
+  useEffect(() => {
+    return () => {
+      const { empty, noteId: leavingId } = emptinessRef.current;
+      const stored = useAppStore.getState().notes.find((n) => n.id === leavingId);
+      if (empty && stored && !stored.title.trim() && !stored.body.trim()) {
+        deleteNote(leavingId);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (!note) return;

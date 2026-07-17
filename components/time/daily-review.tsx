@@ -7,7 +7,11 @@ import { cn, formatTime } from "@/lib/utils";
 export function DailyReview() {
   const calendarItems = useAppStore((state) => state.calendarItems);
   const responsibilities = useAppStore((state) => state.responsibilities);
-  const logs = calendarItems.filter((item) => item.type === "time_log" || item.type === "time_block");
+  const d = new Date();
+  const todayKey = `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
+  const logs = calendarItems.filter(
+    (item) => (item.type === "time_log" || item.type === "time_block") && item.startsAt.startsWith(todayKey)
+  );
 
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-panel shadow-glow">
@@ -16,6 +20,9 @@ export function DailyReview() {
         <p className="mt-1 text-xs text-muted">Compare planned blocks against actual logs before closing the day.</p>
       </div>
       <div className="divide-y divide-line">
+        {logs.length === 0 && (
+          <p className="px-4 py-4 text-sm text-muted">Nothing planned or logged today yet.</p>
+        )}
         {logs.map((item) => {
           const responsibility = responsibilities.find((entry) => entry.id === item.responsibilityId);
           const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;

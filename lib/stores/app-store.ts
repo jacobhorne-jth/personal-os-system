@@ -342,7 +342,7 @@ type AppState = {
   addCaptureExtraction: (input: { text: string; source: CaptureExtraction["source"]; responsibilityId: string }) => void;
   addParsedExtraction: (extraction: Omit<CaptureExtraction, "id">) => void;
   rejectExtraction: (extractionId: string) => void;
-  updateExtractionProposal: (extractionId: string, itemId: string, input: { title?: string; responsibilityId?: string }) => void;
+  updateExtractionProposal: (extractionId: string, itemId: string, input: { title?: string; responsibilityId?: string; startsAt?: string; endsAt?: string }) => void;
 
   // Calendar
   addCalendarItem: (input: Omit<CalendarItem, "id" | "source"> & { source?: CalendarItem["source"] }) => void;
@@ -372,6 +372,9 @@ type AppState = {
   addList: (input: { title: string; responsibilityId: string }) => void;
   addListItem: (input: { listId: string; title: string }) => void;
   toggleListItem: (listId: string, itemId: string) => void;
+  renameList: (listId: string, input: { title?: string; responsibilityId?: string }) => void;
+  deleteList: (listId: string) => void;
+  deleteListItem: (listId: string, itemId: string) => void;
 
   // Files (local only)
   addMockFile: (input: { filename: string; responsibilityId: string }) => void;
@@ -631,7 +634,13 @@ export const useAppStore = create<AppState>()(
               return {
                 ...item,
                 proposedEvents: item.proposedEvents.map((event) =>
-                  event.title === title ? updateCommon(event) : event
+                  event.title === title
+                    ? {
+                        ...updateCommon(event),
+                        ...(input.startsAt !== undefined && { startsAt: input.startsAt }),
+                        ...(input.endsAt !== undefined && { endsAt: input.endsAt }),
+                      }
+                    : event
                 ),
               };
             }
@@ -1041,6 +1050,53 @@ export const useAppStore = create<AppState>()(
         }
       },
 
+      renameList: (listId, input) => {
+        const updatedAt = new Date().toISOString();
+        set((state) => ({
+          lists: state.lists.map((list) =>
+            list.id === listId
+              ? { ...list, updatedAt, ...(input.title !== undefined && { title: input.title }), ...(input.responsibilityId !== undefined && { responsibilityId: input.responsibilityId }) }
+              : list
+          )
+        }));
+        const { userId } = get();
+        if (userId) {
+          getDb()?.from("lists").update({
+            ...(input.title !== undefined && { title: input.title }),
+            ...(input.responsibilityId !== undefined && { responsibility_id: input.responsibilityId }),
+          }).eq("id", listId).eq("user_id", userId)
+            .then(({ error }) => { if (error) console.error("renameList:", error.message); });
+        }
+      },
+
+      deleteList: (listId) => {
+        set((state) => ({ lists: state.lists.filter((list) => list.id !== listId) }));
+        const { userId } = get();
+        if (userId) {
+          getDb()?.from("lists").delete().eq("id", listId).eq("user_id", userId)
+            .then(({ error }) => { if (error) console.error("deleteList:", error.message); });
+        }
+      },
+
+      deleteListItem: (listId, itemId) => {
+        const updatedAt = new Date().toISOString();
+        set((state) => ({
+          lists: state.lists.map((list) =>
+            list.id === listId
+              ? { ...list, updatedAt, items: list.items.filter((item) => item.id !== itemId) }
+              : list
+          )
+        }));
+        const { userId } = get();
+        if (userId) {
+          const list = get().lists.find((l) => l.id === listId);
+          if (list) {
+            getDb()?.from("lists").update({ items: list.items }).eq("id", listId).eq("user_id", userId)
+              .then(({ error }) => { if (error) console.error("deleteListItem:", error.message); });
+          }
+        }
+      },
+
       // ── Files (local only) ────────────────────────────────────────────────
 
       addMockFile: (input) =>
@@ -1438,8 +1494,13 @@ export const useAppStore = create<AppState>()(
 
         const shouldCommit = (kind: string, title: string) => extraction.decisions?.[`${kind}-${title}`] !== false;
 
+        const respName = (respId?: string) => {
+          const resp = get().responsibilities.find((r) => r.id === respId);
+          return resp ? [resp.name] : [];
+        };
+
         const newTasks: Task[] = extraction.proposedTasks.filter((task) => shouldCommit("task", task.title)).map((task) => ({
-          id: id("task"), title: task.title, responsibilityId: task.responsibilityId, dueAt: task.dueAt, priority: task.priority ?? "medium", status: "todo" as const, labels: [], estimateMinutes: 30, subtasks: []
+          id: id("task"), title: task.title, responsibilityId: task.responsibilityId, dueAt: task.dueAt, priority: task.priority ?? "medium", status: "todo" as const, labels: respName(task.responsibilityId), estimateMinutes: 30, subtasks: []
         }));
 
         const newEvents: CalendarItem[] = extraction.proposedEvents.filter((event) => shouldCommit("event", event.title)).map((event) => ({
@@ -1476,7 +1537,7 @@ export const useAppStore = create<AppState>()(
           const db = getDb();
           if (!db) return;
           if (newTasks.length > 0) {
-            db.from("tasks").insert(newTasks.map((t) => ({ id: t.id, user_id: userId, responsibility_id: t.responsibilityId ?? null, title: t.title, priority: t.priority, status: t.status, labels: [], subtasks: [] })))
+            db.from("tasks").insert(newTasks.map((t) => ({ id: t.id, user_id: userId, responsibility_id: t.responsibilityId ?? null, title: t.title, priority: t.priority, status: t.status, due_at: t.dueAt ?? null, labels: t.labels ?? [], subtasks: [] })))
               .then(({ error }) => { if (error) console.error("commitExtraction tasks:", error.message); });
           }
           if (newEvents.length > 0) {

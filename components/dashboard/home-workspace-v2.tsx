@@ -18,7 +18,8 @@ function taskDate(taskDate?: string) {
 function matchesDate(filter: (typeof dateFilters)[number], today: string, dueAt?: string) {
   const due = taskDate(dueAt);
   if (filter === "All") return true;
-  return due === today;
+  // "Today" includes overdue — they're still today's reality
+  return due !== undefined && due <= today;
 }
 
 export function HomeWorkspaceV2() {
@@ -45,12 +46,12 @@ export function HomeWorkspaceV2() {
     });
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-1 bg-[#1f1f1f] xl:grid-cols-[minmax(0,1fr)_360px]">
-      <main className="min-h-0 min-w-0">
+    <div className="grid h-full min-h-0 grid-cols-1 overflow-y-auto bg-[#1f1f1f] xl:grid-cols-[minmax(0,1fr)_360px] xl:overflow-visible">
+      <main className="min-h-[70dvh] min-w-0 xl:min-h-0">
         <FullCalendarBoard />
       </main>
 
-      <aside className="hidden min-h-0 border-l border-[#303134] bg-[#1f1f1f] [--panel-inset:20px] xl:flex xl:flex-col">
+      <aside className="flex min-h-0 flex-col border-t border-[#303134] bg-[#1f1f1f] [--panel-inset:20px] xl:border-l xl:border-t-0">
         <div className="shrink-0 border-b border-[#303134] px-[var(--panel-inset)] py-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-medium text-[#e8eaed]">{todayHeading}</p>
@@ -112,7 +113,12 @@ export function HomeWorkspaceV2() {
                           <span className="size-1.5 rounded-full" style={{ backgroundColor: labelColor }} />
                           {label}
                         </span>
-                        {task.dueAt && <span>{new Date(task.dueAt).toLocaleDateString([], { month: "short", day: "numeric" })}</span>}
+                        {task.dueAt && (
+                          <span className={cn(taskDate(task.dueAt)! < today && "font-medium text-[#cf4444]")}>
+                            {taskDate(task.dueAt)! < today ? "Overdue · " : ""}
+                            {new Date(task.dueAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

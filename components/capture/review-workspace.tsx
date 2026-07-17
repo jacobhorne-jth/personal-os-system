@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarPlus, Check, FileText, GitPullRequestArrow, ListChecks, ListTodo, Pencil, X } from "lucide-react";
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, FileText, GitPullRequestArrow, ListChecks, ListTodo, Pencil, X } from "lucide-react";
+import { DateTimeRow } from "@/components/calendar/date-time-picker";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { responsibilityTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -9,13 +10,17 @@ import { cn } from "@/lib/utils";
 export function ReviewWorkspace() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
+  const [pendingIdx, setPendingIdx] = useState(0);
   const items = useAppStore((state) => state.aiReviewItems);
   const responsibilities = useActiveResponsibilities();
   const setExtractionDecision = useAppStore((state) => state.setExtractionDecision);
   const updateExtractionProposal = useAppStore((state) => state.updateExtractionProposal);
   const commitExtraction = useAppStore((state) => state.commitExtraction);
   const rejectExtraction = useAppStore((state) => state.rejectExtraction);
-  const item = items.find((entry) => entry.status !== "approved" && entry.status !== "rejected") ?? items[0];
+
+  const pending = items.filter((entry) => entry.status !== "approved" && entry.status !== "rejected");
+  const safeIdx = Math.min(pendingIdx, Math.max(0, pending.length - 1));
+  const item = pending[safeIdx] ?? items[0];
 
   if (!item) {
     return (
@@ -26,16 +31,18 @@ export function ReviewWorkspace() {
   }
 
   const rows = [
-    ...item.proposedTasks.map((task) => ({ id: `task-${task.title}`, kind: "Task", icon: ListTodo, title: task.title, editTitle: task.title, meta: task.responsibilityId })),
-    ...item.proposedEvents.map((event) => ({ id: `event-${event.title}`, kind: "Event", icon: CalendarPlus, title: event.title, editTitle: event.title, meta: event.responsibilityId })),
-    ...item.proposedNotes.map((note) => ({ id: `note-${note.title}`, kind: "Note", icon: FileText, title: note.title, editTitle: note.title, meta: note.responsibilityId })),
+    ...item.proposedTasks.map((task) => ({ id: `task-${task.title}`, kind: "Task", icon: ListTodo, title: task.title, editTitle: task.title, meta: task.responsibilityId, startsAt: undefined as string | undefined, endsAt: undefined as string | undefined })),
+    ...item.proposedEvents.map((event) => ({ id: `event-${event.title}`, kind: "Event", icon: CalendarPlus, title: event.title, editTitle: event.title, meta: event.responsibilityId, startsAt: event.startsAt, endsAt: event.endsAt })),
+    ...item.proposedNotes.map((note) => ({ id: `note-${note.title}`, kind: "Note", icon: FileText, title: note.title, editTitle: note.title, meta: note.responsibilityId, startsAt: undefined as string | undefined, endsAt: undefined as string | undefined })),
     ...(item.proposedListItems ?? []).map((listItem) => ({
       id: `list-${listItem.listTitle}:${listItem.itemTitle}`,
       kind: "List item",
       icon: ListChecks,
       title: `${listItem.itemTitle} -> ${listItem.listTitle}`,
       editTitle: listItem.itemTitle,
-      meta: listItem.responsibilityId
+      meta: listItem.responsibilityId,
+      startsAt: undefined as string | undefined,
+      endsAt: undefined as string | undefined
     }))
   ];
 
@@ -62,10 +69,29 @@ export function ReviewWorkspace() {
             <div className="grid size-9 place-items-center rounded-lg bg-mint text-white">
               <GitPullRequestArrow className="size-4" />
             </div>
-            <div>
-              <p className="text-sm font-medium text-ink">{item.summary}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-ink">{item.summary}</p>
               <p className="mt-1 text-xs text-muted">Review proposed changes before anything is committed.</p>
             </div>
+            {pending.length > 1 && (
+              <div className="flex shrink-0 items-center gap-1 rounded-lg border border-line bg-paper px-1 py-0.5">
+                <button
+                  onClick={() => setPendingIdx((i) => Math.max(0, i - 1))}
+                  disabled={safeIdx === 0}
+                  className="grid size-6 place-items-center rounded text-muted transition hover:text-ink disabled:opacity-30"
+                >
+                  <ChevronLeft className="size-3.5" />
+                </button>
+                <span className="text-xs tabular-nums text-muted">{safeIdx + 1} / {pending.length}</span>
+                <button
+                  onClick={() => setPendingIdx((i) => Math.min(pending.length - 1, i + 1))}
+                  disabled={safeIdx >= pending.length - 1}
+                  className="grid size-6 place-items-center rounded text-muted transition hover:text-ink disabled:opacity-30"
+                >
+                  <ChevronRight className="size-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
         <div className="divide-y divide-line">
@@ -82,35 +108,48 @@ export function ReviewWorkspace() {
                   </div>
                   <div>
                     {editingId === row.id ? (
-                      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]">
-                        <input
-                          value={draftTitle}
-                          onChange={(event) => setDraftTitle(event.target.value)}
-                          onBlur={saveDraft}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") saveDraft();
-                            if (event.key === "Escape") {
-                              setEditingId(null);
-                              setDraftTitle("");
-                            }
-                          }}
-                          className="h-9 rounded-md border border-line bg-paper px-2 text-sm text-ink outline-none focus:border-blue"
-                        />
-                        <select
-                          value={row.meta ?? ""}
-                          onChange={(event) => updateExtractionProposal(item.id, row.id, { responsibilityId: event.target.value })}
-                          className="h-9 rounded-md border border-line bg-paper px-2 text-xs text-ink outline-none focus:border-blue"
-                        >
-                          <option value="">Unsorted</option>
-                          {responsibilities.map((entry) => (
-                            <option key={entry.id} value={entry.id}>{entry.name}</option>
-                          ))}
-                        </select>
+                      <div className="space-y-2">
+                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]">
+                          <input
+                            value={draftTitle}
+                            onChange={(event) => setDraftTitle(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") saveDraft();
+                              if (event.key === "Escape") {
+                                setEditingId(null);
+                                setDraftTitle("");
+                              }
+                            }}
+                            className="h-9 rounded-md border border-line bg-paper px-2 text-sm text-ink outline-none focus:border-blue"
+                          />
+                          <select
+                            value={row.meta ?? ""}
+                            onChange={(event) => updateExtractionProposal(item.id, row.id, { responsibilityId: event.target.value })}
+                            className="h-9 rounded-md border border-line bg-paper px-2 text-xs text-ink outline-none focus:border-blue"
+                          >
+                            <option value="">Unsorted</option>
+                            {responsibilities.map((entry) => (
+                              <option key={entry.id} value={entry.id}>{entry.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {row.kind === "Event" && row.startsAt && row.endsAt && (
+                          <DateTimeRow
+                            startsAt={row.startsAt}
+                            endsAt={row.endsAt}
+                            onChange={(startsAt, endsAt) => updateExtractionProposal(item.id, row.id, { startsAt, endsAt })}
+                          />
+                        )}
                       </div>
                     ) : (
                       <>
                         <p className="text-sm font-medium text-ink">{row.title}</p>
-                        <p className="mt-1 text-xs text-muted">{row.kind} - {responsibility?.name ?? "Unsorted"}</p>
+                        <p className="mt-1 text-xs text-muted">
+                          {row.kind} - {responsibility?.name ?? "Unsorted"}
+                          {row.startsAt && (
+                            <> · {new Date(row.startsAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</>
+                          )}
+                        </p>
                       </>
                     )}
                   </div>

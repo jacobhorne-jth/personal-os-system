@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { BarChart3, Calendar, Dumbbell, Flame, LogOut, RefreshCw, Settings, Tags } from "lucide-react";
 import { useState } from "react";
+import { DailyReview } from "@/components/time/daily-review";
+import { TimerControl } from "@/components/time/timer-control";
 import { useAppStore } from "@/lib/stores/app-store";
 import { createBrowserSupabaseClient, hasSupabaseEnv } from "@/lib/supabase/browser";
 import { responsibilityTone } from "@/lib/theme";
@@ -323,8 +325,50 @@ export function ProgressWorkspace() {
               <Link href="/gym" className="mt-3 block text-xs text-blue hover:underline">Go to gym →</Link>
             </div>
           )}
+
+          <TimerControl />
         </div>
       </div>
+
+      {/* Time: planned vs actual per responsibility (folded in from analytics) */}
+      <div className="rounded-xl border border-line bg-panel overflow-hidden">
+        <div className="border-b border-line bg-line/40 px-5 py-3">
+          <p className="text-sm font-medium text-ink">Planned vs actual time</p>
+        </div>
+        <div className="divide-y divide-line">
+          {responsibilities.filter((r) => !r.archivedAt && (r.plannedHoursThisWeek > 0 || r.actualHoursThisWeek > 0)).map((r) => {
+            const tone = responsibilityTone[r.color];
+            return (
+              <Link key={r.id} href={`/r/${r.id}`} className="grid gap-3 px-4 py-3.5 transition hover:bg-line sm:grid-cols-[180px_1fr_80px] sm:items-center">
+                <p className="flex items-center gap-2 text-sm font-medium text-ink">
+                  <span className={cn("size-1.5 rounded-full", tone.dot)} />
+                  {r.name}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="mb-1 text-[11px] text-muted">Planned {r.plannedHoursThisWeek}h</div>
+                    <div className="h-2 rounded-full bg-line">
+                      <div className="h-full rounded-full bg-blue" style={{ width: `${Math.min(100, (r.plannedHoursThisWeek / Math.max(1, r.weeklyGoalHours)) * 100)}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-1 text-[11px] text-muted">Actual {r.actualHoursThisWeek}h</div>
+                    <div className="h-2 rounded-full bg-line">
+                      <div className={cn("h-full rounded-full", tone.dot)} style={{ width: `${Math.min(100, (r.actualHoursThisWeek / Math.max(1, r.weeklyGoalHours)) * 100)}%` }} />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-right text-sm text-muted">{r.weeklyGoalHours}h goal</p>
+              </Link>
+            );
+          })}
+          {responsibilities.filter((r) => !r.archivedAt && (r.plannedHoursThisWeek > 0 || r.actualHoursThisWeek > 0)).length === 0 && (
+            <p className="px-4 py-4 text-sm text-muted">No time blocks or logs yet this week. Use the timer or plan blocks on the calendar.</p>
+          )}
+        </div>
+      </div>
+
+      <DailyReview />
     </div>
   );
 }

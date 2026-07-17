@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarDays, CalendarRange, Plus, RefreshCw } from "lucide-react";
+import { AlertCircle, CalendarDays, CalendarRange, Check, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { QuickCaptureForm } from "@/components/capture/quick-capture-form";
 import { localDateKey } from "@/lib/dates";
 import { useAppStore } from "@/lib/stores/app-store";
@@ -29,21 +29,47 @@ export default function TodosPage() {
   const tasks = useAppStore((s) => s.tasks);
   const responsibilities = useAppStore((s) => s.responsibilities);
   const toggleTask = useAppStore((s) => s.toggleTask);
+  const updateTask = useAppStore((s) => s.updateTask);
+  const deleteTask = useAppStore((s) => s.deleteTask);
 
   const today = localDateKey();
   const [view, setView] = useState<string>("today");
   const [addingTask, setAddingTask] = useState(false);
+  const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
+  const [rescheduling, setRescheduling] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const open = tasks.filter((t) => t.status !== "done");
+  const overdueTasks = sortByDue(open.filter((t) => t.dueAt && t.dueAt.slice(0, 10) < today));
   const todayTasks = sortByDue(open.filter((t) => t.dueAt?.startsWith(today)));
   const upcomingTasks = sortByDue(open.filter((t) => t.dueAt && t.dueAt.slice(0, 10) > today));
   const selectedLabel = view.startsWith("label:") ? view.replace("label:", "") : "";
 
   const viewTasks =
-    view === "today" ? todayTasks :
+    view === "today" ? [...overdueTasks, ...todayTasks] :
     view === "upcoming" ? upcomingTasks :
     view === "all" ? sortByDue(open) :
     sortByDue(open.filter((t) => taskLabel(t.labels, t.responsibilityId, responsibilities) === selectedLabel));
+
+  function saveEdit() {
+    if (!editing || !editing.title.trim()) return;
+    updateTask(editing.id, { title: editing.title.trim() });
+    setEditing(null);
+  }
+
+  function reschedule(taskId: string, date: string) {
+    if (date) updateTask(taskId, { dueAt: `${date}T17:00:00` });
+    setRescheduling(null);
+  }
+
+  function handleDelete(taskId: string) {
+    if (deleteConfirm === taskId) {
+      deleteTask(taskId);
+      setDeleteConfirm(null);
+    } else {
+      setDeleteConfirm(taskId);
+    }
+  }
 
   const viewLabel =
     view === "today" ? "Today" :
@@ -75,6 +101,12 @@ export default function TodosPage() {
           >
             <CalendarDays className="size-4 shrink-0 text-[#dd4b39]" />
             <span className="flex-1 text-left">Today</span>
+            {overdueTasks.length > 0 && (
+              <span className="flex items-center gap-0.5 text-xs tabular-nums text-[#cf4444]">
+                <AlertCircle className="size-3" />
+                {overdueTasks.length}
+              </span>
+            )}
             {todayTasks.length > 0 && <span className="text-xs tabular-nums text-[#666]">{todayTasks.length}</span>}
           </button>
           <button
@@ -105,7 +137,7 @@ export default function TodosPage() {
 
         <p className="mb-1 px-5 text-[11px] font-semibold uppercase tracking-widest text-[#444]">Labels</p>
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-2">
-          {responsibilities.map((r) => {
+          {responsibilities.filter((r) => !r.archivedAt).map((r) => {
             const label = r.name;
             const color = taskLabelColor(label, responsibilities);
             const count = open.filter((t) => taskLabel(t.labels, t.responsibilityId, responsibilities) === label).length;
@@ -185,46 +217,115 @@ export default function TodosPage() {
             </div>
           ) : (
             <div>
-              {viewTasks.map((task) => {
+              {viewTasks.map((task, idx) => {
                 const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
                 const color = taskLabelColor(label, responsibilities);
                 const isToday = task.dueAt?.startsWith(today);
                 const isOverdue = task.dueAt && task.dueAt.slice(0, 10) < today;
+                const isEditing = editing?.id === task.id;
+
+                // Section headers when Today view mixes overdue + today
+                const showOverdueHeader = view === "today" && overdueTasks.length > 0 && idx === 0;
+                const showTodayHeader = view === "today" && overdueTasks.length > 0 && idx === overdueTasks.length;
 
                 return (
-                  <div key={task.id} className="group flex items-start gap-3 rounded-md px-2 py-2.5 transition hover:bg-[#282828]">
-                    <button
-                      onClick={() => toggleTask(task.id)}
-                      aria-label="Complete task"
-                      className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border-[1.5px] transition hover:opacity-60"
-                      style={{ borderColor: color }}
-                    />
-                    <Link href={`/task/${task.id}`} className="min-w-0 flex-1">
-                      <p className="text-sm text-[#ddd]">{task.title}</p>
-                      {task.description && (
-                        <p className="mt-0.5 line-clamp-1 text-xs text-[#666]">{task.description}</p>
+                  <div key={task.id}>
+                    {showOverdueHeader && (
+                      <p className="flex items-center gap-1.5 px-2 pb-1 pt-2 text-xs font-semibold text-[#cf4444]">
+                        <AlertCircle className="size-3.5" /> Overdue
+                      </p>
+                    )}
+                    {showTodayHeader && (
+                      <p className="px-2 pb-1 pt-3 text-xs font-semibold text-[#999]">Today</p>
+                    )}
+                    <div className="group flex items-start gap-3 rounded-md px-2 py-2.5 transition hover:bg-[#282828]">
+                      <button
+                        onClick={() => toggleTask(task.id)}
+                        aria-label="Complete task"
+                        className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border-[1.5px] transition hover:opacity-60"
+                        style={{ borderColor: color }}
+                      />
+                      {isEditing ? (
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <input
+                            autoFocus
+                            value={editing?.title ?? ""}
+                            onChange={(e) => setEditing((s) => s && { ...s, title: e.target.value })}
+                            onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditing(null); }}
+                            className="h-8 min-w-0 flex-1 rounded-md border border-[#3a3a3a] bg-[#242424] px-2.5 text-sm text-white outline-none focus:border-[#4285f4]"
+                          />
+                          <button onClick={saveEdit} className="grid size-7 place-items-center rounded text-[#4285f4] hover:bg-[#333]"><Check className="size-4" /></button>
+                          <button onClick={() => setEditing(null)} className="grid size-7 place-items-center rounded text-[#999] hover:bg-[#333]"><X className="size-4" /></button>
+                        </div>
+                      ) : (
+                        <>
+                          <Link href={`/task/${task.id}`} className="min-w-0 flex-1">
+                            <p className="text-sm text-[#ddd]">{task.title}</p>
+                            {task.description && (
+                              <p className="mt-0.5 line-clamp-1 text-xs text-[#666]">{task.description}</p>
+                            )}
+                            <div className="mt-1 flex items-center gap-2.5">
+                              {task.dueAt && (
+                                <span className={cn("flex items-center gap-1 text-xs",
+                                  isOverdue ? "text-[#cf4444]" : isToday ? "text-[#cc9a2a]" : "text-[#666]"
+                                )}>
+                                  <CalendarDays className="size-3" />
+                                  {formatDue(task.dueAt, today)}
+                                </span>
+                              )}
+                              {task.recurrence && (
+                                <span className="flex items-center gap-1 text-xs text-[#666]">
+                                  <RefreshCw className="size-3" />
+                                  {task.recurrence}
+                                </span>
+                              )}
+                              <span className="flex items-center gap-1 text-xs text-[#666]">
+                                <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
+                                {label}
+                              </span>
+                            </div>
+                          </Link>
+                          {/* Hover actions */}
+                          <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
+                            {rescheduling === task.id ? (
+                              <input
+                                autoFocus
+                                type="date"
+                                defaultValue={task.dueAt?.slice(0, 10) ?? today}
+                                onChange={(e) => reschedule(task.id, e.target.value)}
+                                onBlur={() => setRescheduling(null)}
+                                className="h-7 rounded-md border border-[#3a3a3a] bg-[#242424] px-1.5 text-xs text-white outline-none"
+                              />
+                            ) : (
+                              <button
+                                onClick={() => { setRescheduling(task.id); setDeleteConfirm(null); }}
+                                title="Reschedule"
+                                className="grid size-7 place-items-center rounded text-[#777] hover:bg-[#333] hover:text-white"
+                              >
+                                <CalendarRange className="size-3.5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => { setEditing({ id: task.id, title: task.title }); setDeleteConfirm(null); setRescheduling(null); }}
+                              title="Edit"
+                              className="grid size-7 place-items-center rounded text-[#777] hover:bg-[#333] hover:text-white"
+                            >
+                              <Pencil className="size-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(task.id)}
+                              title="Delete"
+                              className={cn(
+                                "grid h-7 place-items-center rounded transition",
+                                deleteConfirm === task.id ? "bg-[#cf4444]/15 px-1.5 text-xs text-[#cf4444]" : "size-7 text-[#777] hover:bg-[#333] hover:text-[#cf4444]"
+                              )}
+                            >
+                              {deleteConfirm === task.id ? "Confirm" : <Trash2 className="size-3.5" />}
+                            </button>
+                          </div>
+                        </>
                       )}
-                      <div className="mt-1 flex items-center gap-2.5">
-                        {task.dueAt && (
-                          <span className={cn("flex items-center gap-1 text-xs",
-                            isOverdue ? "text-[#cf4444]" : isToday ? "text-[#cc9a2a]" : "text-[#666]"
-                          )}>
-                            <CalendarDays className="size-3" />
-                            {formatDue(task.dueAt, today)}
-                          </span>
-                        )}
-                        {task.recurrence && (
-                          <span className="flex items-center gap-1 text-xs text-[#666]">
-                            <RefreshCw className="size-3" />
-                            {task.recurrence}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1 text-xs text-[#666]">
-                          <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
-                          {label}
-                        </span>
-                      </div>
-                    </Link>
+                    </div>
                   </div>
                 );
               })}
