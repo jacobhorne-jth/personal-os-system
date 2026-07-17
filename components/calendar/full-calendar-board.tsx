@@ -219,9 +219,15 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       if (e.button !== 0 || e.pointerType !== "mouse") return; // touch keeps FullCalendar's long-press
       const target = e.target as HTMLElement;
       if (target.closest(".fc-event")) return; // clicks on events pass through
-      const col = target.closest<HTMLElement>(".fc-timegrid-col");
+      if (!target.closest(".fc-timegrid-body")) return; // month view / header: not ours
+      // Empty-slot clicks land on the slot-lane layer, not the day columns,
+      // so locate the day column by the pointer's x position.
+      const col = Array.from(shell!.querySelectorAll<HTMLElement>(".fc-timegrid-col[data-date]")).find((c) => {
+        const r = c.getBoundingClientRect();
+        return e.clientX >= r.left && e.clientX < r.right;
+      });
       const dateAttr = col?.getAttribute("data-date");
-      if (!col || !dateAttr) return; // month view / axis column: not ours
+      if (!col || !dateAttr) return;
 
       // Take over from FullCalendar's own selection. preventDefault on
       // pointerdown also suppresses the compatibility mouse events, so
