@@ -209,28 +209,24 @@ function ColorWheel({
           if (!draggingRef.current) setHoverKey(null);
         }}
       >
-        {markers.map((m) => {
-          const active = m.key === value;
-          const hovered = m.key === hoverKey;
+        {(() => {
+          // Single thumb: sits on the selected color, follows the cursor while picking
+          const shown = markers.find((m) => m.key === (hoverKey ?? value));
+          if (!shown) return null;
           return (
             <span
-              key={m.key}
-              title={m.label}
-              className={cn(
-                "pointer-events-none absolute rounded-full border transition-transform",
-                active ? "z-10 border-white shadow-[0_0_0_2px_rgba(255,255,255,0.35)]" : "border-black/40",
-                (active || hovered) && "scale-150"
-              )}
+              title={shown.label}
+              className="pointer-events-none absolute z-10 rounded-full border-2 border-white shadow-[0_0_0_1.5px_rgba(0,0,0,0.45),0_1px_4px_rgba(0,0,0,0.4)] transition-[left,top] duration-75"
               style={{
-                left: m.x - 7,
-                top: m.y - 7,
-                width: 14,
-                height: 14,
-                backgroundColor: m.hex,
+                left: shown.x - 10,
+                top: shown.y - 10,
+                width: 20,
+                height: 20,
+                backgroundColor: shown.hex,
               }}
             />
           );
-        })}
+        })()}
       </div>
 
       {/* Neutrals live outside the hue wheel */}
