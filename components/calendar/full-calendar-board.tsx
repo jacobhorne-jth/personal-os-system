@@ -481,7 +481,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     const rect = event.el.getBoundingClientRect();
     if (root) {
       const rootRect = root.getBoundingClientRect();
-      const WIDTH = 560;
+      const WIDTH = 400;
       const GAP = 12;
       let left = rect.left - rootRect.left - WIDTH - GAP;
       if (left < 8) left = rect.right - rootRect.left + GAP;
@@ -1020,12 +1020,12 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       {selectedItem && (
         <div
           data-popup-card
-          className="absolute z-30 w-[min(560px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[#3c4043] bg-[#202124] shadow-[0_24px_72px_rgba(0,0,0,0.55)]"
+          className="absolute z-30 w-[min(400px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#3c4043] bg-[#202124] shadow-[0_24px_72px_rgba(0,0,0,0.55)]"
           style={selectedPanelPos ? { left: selectedPanelPos.left, top: selectedPanelPos.top } : { left: 24, top: 64 }}
         >
-          <div className="flex h-12 items-center justify-end gap-1 px-4 text-[#bdc1c6]">
-            <button type="button" onClick={() => openEditInExpanded(selectedItem)} className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]" title="Edit">
-              <Pencil className="size-4" />
+          <div className="flex h-10 items-center justify-end gap-0.5 px-2.5 pt-1.5 text-[#bdc1c6]">
+            <button type="button" onClick={() => openEditInExpanded(selectedItem)} className="grid size-8 place-items-center rounded-full transition hover:bg-[#303134]" title="Edit">
+              <Pencil className="size-3.5" />
             </button>
             <button
               type="button"
@@ -1038,56 +1038,56 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                   deleteSelectedEvent();
                 }
               }}
-              className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]"
+              className="grid size-8 place-items-center rounded-full transition hover:bg-[#303134]"
               title="Delete"
             >
-              <Trash2 className="size-4" />
+              <Trash2 className="size-3.5" />
             </button>
-            <button type="button" onClick={() => { setSelectedItem(null); setDeleteMenuOpen(false); }} className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]" title="Close">
-              <X className="size-5" />
+            <button type="button" onClick={() => { setSelectedItem(null); setDeleteMenuOpen(false); }} className="grid size-8 place-items-center rounded-full transition hover:bg-[#303134]" title="Close">
+              <X className="size-4" />
             </button>
           </div>
 
           {deleteMenuOpen && selectedItem.seriesId && (
-            <div className="mx-4 mb-3 rounded-2xl border border-[#3c4043] bg-[#282a2d] p-2">
-              <button type="button" onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                <Trash2 className="size-5 text-[#9aa0a6]" />
+            <div className="mx-3 mb-2 rounded-xl border border-[#3c4043] bg-[#282a2d] p-1.5">
+              <button type="button" onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                <Trash2 className="size-4 text-[#9aa0a6]" />
                 Delete this event
               </button>
-              <button type="button" onClick={() => deleteSelectedEvent("all")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                <Trash2 className="size-5 text-[#9aa0a6]" />
+              <button type="button" onClick={() => deleteSelectedEvent("all")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                <Trash2 className="size-4 text-[#9aa0a6]" />
                 Delete all events in series
               </button>
             </div>
           )}
 
-          <div className="px-6 pb-6">
-            <div className="grid grid-cols-[40px_1fr] gap-4">
-              <span className="mt-2 size-4 rounded" style={{ backgroundColor: selectedTone(selectedItem).hex }} />
+          <div className="px-4 pb-4">
+            <div className="grid grid-cols-[28px_1fr] gap-x-3 gap-y-2">
+              <span className="mt-1 size-3.5 rounded" style={{ backgroundColor: selectedTone(selectedItem).hex }} />
               <div>
-                <h3 className="text-2xl font-semibold leading-tight text-[#e8eaed]">{selectedItem.title || "Untitled"}</h3>
-                <p className="mt-2 text-base text-[#bdc1c6]">{formatDraftTime(selectedItem)}</p>
+                <h3 className="text-lg font-semibold leading-snug text-[#e8eaed]">{selectedItem.title || "Untitled"}</h3>
+                <p className="mt-0.5 text-sm text-[#bdc1c6]">{formatDraftTime(selectedItem)}</p>
                 {selectedItem.recurrence && (
-                  <p className="mt-1 text-sm text-[#9aa0a6]">{describeRecurrence(selectedItem.recurrence, new Date(selectedItem.startsAt))}</p>
+                  <p className="mt-0.5 text-xs text-[#9aa0a6]">{describeRecurrence(selectedItem.recurrence, new Date(selectedItem.startsAt))}</p>
                 )}
               </div>
 
               {selectedItem.location && (
                 <>
-                  <MapPin className="mt-0.5 size-5 text-[#bdc1c6]" />
-                  <p className="text-sm leading-6 text-[#e8eaed]">{selectedItem.location}</p>
+                  <MapPin className="mt-0.5 size-4 justify-self-center text-[#9aa0a6]" />
+                  <p className="text-sm leading-5 text-[#e8eaed]">{selectedItem.location}</p>
                 </>
               )}
 
-              <Tags className="mt-0.5 size-5 text-[#bdc1c6]" />
-              <p className="text-sm leading-6 text-[#e8eaed]">
+              <Tags className="mt-0.5 size-4 justify-self-center text-[#9aa0a6]" />
+              <p className="text-sm leading-5 text-[#e8eaed]">
                 {responsibilities.find((item) => item.id === selectedItem.responsibilityId)?.name ?? "No label"}
               </p>
 
               {selectedItem.notes && (
                 <>
-                  <FileText className="mt-0.5 size-5 text-[#bdc1c6]" />
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-[#e8eaed]">{selectedItem.notes}</p>
+                  <FileText className="mt-0.5 size-4 justify-self-center text-[#9aa0a6]" />
+                  <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-5 text-[#e8eaed]">{selectedItem.notes}</p>
                 </>
               )}
             </div>
