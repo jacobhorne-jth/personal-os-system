@@ -47,12 +47,13 @@ export const RECURRENCE_OPTIONS: Array<{ value: string; label: string }> = [
 // Viewport rect of the drag selection, used to place the draft card beside it
 type SelectAnchor = { colLeft: number; colRight: number; top: number };
 
+// Time logs are created by the timer / "Log past", not from the event card,
+// so the card offers a single "Time block" chip for planned time.
 const creatableTypes: Array<{ type: CalendarItemType; label: string }> = [
   { type: "app_event", label: "Event" },
   { type: "time_block", label: "Time block" },
   { type: "deadline", label: "Deadline" },
-  { type: "reminder", label: "Reminder" },
-  { type: "time_log", label: "Time log" }
+  { type: "reminder", label: "Reminder" }
 ];
 
 export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean }) {
@@ -77,6 +78,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const handledQueryDraft = useRef(false);
   const [calendarTitle, setCalendarTitle] = useState(() => new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }));
   const [draftEvent, setDraftEvent] = useState<DraftEvent | null>(null);
+  const [draftExpanded, setDraftExpanded] = useState(false);
   const [draftCardPos, setDraftCardPos] = useState<{ left: number; top: number } | null>(null);
   const [selectedItem, setSelectedItem] = useState<CalendarItem | null>(null);
   const [eventPanelMode, setEventPanelMode] = useState<"preview" | "edit">("preview");
@@ -244,10 +246,21 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   selectRef.current = handleSelect;
   closeDraftRef.current = () => {
     setDraftEvent(null);
+    setDraftExpanded(false);
     setSelectedItem(null);
     setEventPanelMode("preview");
     setDeleteMenuOpen(false);
   };
+
+  // Escape closes the draft card / expanded editor, like Google Calendar
+  useEffect(() => {
+    if (!draftEvent) return;
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") closeDraftRef.current();
+    }
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [draftEvent]);
 
   // The placed selection block lives outside React (imperative DOM); remove it
   // whenever the draft card closes for any reason (cancel, save, new drag).
@@ -701,6 +714,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       source: "app"
     });
     setDraftEvent(null);
+    setDraftExpanded(false);
     calendarRef.current?.getApi().unselect();
   }
 
@@ -798,20 +812,28 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
         </div>
       </div>
 
-      {draftEvent && (
+      {draftEvent && !draftExpanded && (
         <div
           data-popup-card
           className="absolute z-30 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#3c4043] bg-[#282a2d] shadow-lift"
           style={draftCardPos ? { left: draftCardPos.left, top: draftCardPos.top } : { left: 12, top: 56 }}
         >
           <form onSubmit={saveDraftEvent}>
+            <button
+              type="button"
+              onClick={() => closeDraftRef.current()}
+              className="absolute right-3 top-3 grid size-8 place-items-center rounded-full text-[#9aa0a6] transition hover:bg-[#3c4043] hover:text-[#e8eaed]"
+              aria-label="Close"
+            >
+              <X className="size-4" />
+            </button>
             <div className="px-5 pt-5 pb-3">
               <input
                 autoFocus
                 value={draftEvent.title}
                 onChange={(e) => setDraftEvent({ ...draftEvent, title: e.target.value })}
                 placeholder="Add title"
-                className="h-10 w-full border-b border-[#5f6368] bg-transparent text-lg text-[#e8eaed] outline-none placeholder:text-[#5f6368] focus:border-[#4285f4]"
+                className="h-10 w-[calc(100%-2.5rem)] border-b border-[#5f6368] bg-transparent text-lg text-[#e8eaed] outline-none placeholder:text-[#5f6368] focus:border-[#4285f4]"
               />
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {creatableTypes.map((item) => (
@@ -861,16 +883,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                   className="h-9 w-full bg-transparent text-sm text-[#e8eaed] outline-none placeholder:text-[#9aa0a6]"
                 />
               </div>
-              <div className="flex items-start gap-3 rounded-lg px-3 py-2 transition hover:bg-[#303134] focus-within:bg-[#303134]">
-                <AlignLeft className="mt-0.5 size-5 shrink-0 text-[#9aa0a6]" />
-                <textarea
-                  value={draftEvent.notes}
-                  onChange={(e) => setDraftEvent({ ...draftEvent, notes: e.target.value })}
-                  placeholder="Add description"
-                  rows={draftEvent.notes ? 3 : 1}
-                  className="w-full resize-none bg-transparent text-sm leading-6 text-[#e8eaed] outline-none placeholder:text-[#9aa0a6]"
-                />
-              </div>
               <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#303134]">
                 <Tags className="size-5 shrink-0 text-[#9aa0a6]" />
                 <select
@@ -887,17 +899,127 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             <div className="flex items-center justify-end gap-2 border-t border-[#3c4043] px-5 py-3">
               <button
                 type="button"
-                onClick={() => { setDraftEvent(null); calendarRef.current?.getApi().unselect(); }}
+                onClick={() => setDraftExpanded(true)}
                 className="rounded-full px-4 py-2 text-sm text-[#9aa0a6] transition hover:bg-[#3c4043] hover:text-[#e8eaed]"
               >
-                Cancel
+                More options
               </button>
               <button
                 disabled={!draftEvent.title.trim()}
-                className="rounded-full bg-[#4285f4] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#5094f5] disabled:opacity-40"
+                className="rounded-full bg-[#4285f4] px-6 py-2 text-sm font-medium text-white transition hover:bg-[#5094f5] disabled:opacity-40"
               >
                 Save
               </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {draftEvent && draftExpanded && (
+        <div data-popup-card className="absolute inset-0 z-40 flex flex-col bg-[#1f1f1f]">
+          <form onSubmit={saveDraftEvent} className="flex min-h-0 flex-1 flex-col">
+            {/* Header: X on the left, Save on the right, like Google Calendar */}
+            <div className="flex h-16 shrink-0 items-center gap-4 border-b border-[#3c4043] px-4 sm:px-6">
+              <button
+                type="button"
+                onClick={() => closeDraftRef.current()}
+                className="grid size-10 place-items-center rounded-full text-[#bdc1c6] transition hover:bg-[#303134]"
+                aria-label="Close"
+              >
+                <X className="size-5" />
+              </button>
+              <input
+                autoFocus
+                value={draftEvent.title}
+                onChange={(e) => setDraftEvent({ ...draftEvent, title: e.target.value })}
+                placeholder="Add title"
+                className="h-11 min-w-0 flex-1 border-b border-[#5f6368] bg-transparent text-2xl text-[#e8eaed] outline-none placeholder:text-[#5f6368] focus:border-[#4285f4]"
+              />
+              <button
+                disabled={!draftEvent.title.trim()}
+                className="rounded-full bg-[#4285f4] px-8 py-2.5 text-sm font-medium text-white transition hover:bg-[#5094f5] disabled:opacity-40"
+              >
+                Save
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="mx-auto max-w-3xl space-y-1 px-4 py-6 sm:px-6">
+                <div className="flex flex-wrap items-center gap-3 rounded-lg px-3 py-2">
+                  <Clock className="size-5 shrink-0 text-[#9aa0a6]" />
+                  <DateTimeRow
+                    startsAt={draftEvent.startsAt}
+                    endsAt={draftEvent.endsAt}
+                    onChange={(startsAt, endsAt) => setDraftEvent({ ...draftEvent, startsAt, endsAt })}
+                  />
+                </div>
+                <div className="flex items-center gap-3 rounded-lg px-3 py-1">
+                  <RefreshCw className="size-5 shrink-0 text-[#9aa0a6]" />
+                  <select
+                    value={draftEvent.recurrence}
+                    onChange={(e) => setDraftEvent({ ...draftEvent, recurrence: e.target.value })}
+                    className="h-10 w-56 cursor-pointer rounded-md bg-[#303134] px-3 text-sm text-[#e8eaed] outline-none [&>option]:bg-[#202124]"
+                  >
+                    {RECURRENCE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+                  <span className="size-5 shrink-0" />
+                  <div className="flex flex-wrap gap-1.5">
+                    {creatableTypes.map((item) => (
+                      <button
+                        type="button"
+                        key={item.type}
+                        onClick={() => setDraftEvent({ ...draftEvent, type: item.type })}
+                        className={cn(
+                          "rounded-full px-4 py-1.5 text-sm transition",
+                          draftEvent.type === item.type
+                            ? "bg-[#4285f4]/20 text-[#4285f4]"
+                            : "border border-[#3c4043] text-[#9aa0a6] hover:text-[#e8eaed]"
+                        )}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="my-3 h-px bg-[#3c4043]" />
+
+                <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+                  <MapPin className="size-5 shrink-0 text-[#9aa0a6]" />
+                  <input
+                    value={draftEvent.location}
+                    onChange={(e) => setDraftEvent({ ...draftEvent, location: e.target.value })}
+                    placeholder="Add location"
+                    className="h-11 w-full rounded-md bg-[#303134] px-3 text-sm text-[#e8eaed] outline-none placeholder:text-[#9aa0a6] focus:ring-1 focus:ring-[#8ab4f8]"
+                  />
+                </div>
+                <div className="flex items-start gap-3 rounded-lg px-3 py-2">
+                  <AlignLeft className="mt-3 size-5 shrink-0 text-[#9aa0a6]" />
+                  <textarea
+                    value={draftEvent.notes}
+                    onChange={(e) => setDraftEvent({ ...draftEvent, notes: e.target.value })}
+                    placeholder="Add description"
+                    rows={6}
+                    className="w-full resize-none rounded-md bg-[#303134] p-3 text-sm leading-6 text-[#e8eaed] outline-none placeholder:text-[#9aa0a6] focus:ring-1 focus:ring-[#8ab4f8]"
+                  />
+                </div>
+                <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+                  <Tags className="size-5 shrink-0 text-[#9aa0a6]" />
+                  <select
+                    value={draftEvent.responsibilityId}
+                    onChange={(e) => setDraftEvent({ ...draftEvent, responsibilityId: e.target.value })}
+                    className="h-10 w-56 cursor-pointer rounded-md bg-[#303134] px-3 text-sm text-[#e8eaed] outline-none [&>option]:bg-[#202124]"
+                  >
+                    {responsibilities.filter((resp) => !resp.archivedAt).map((item) => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           </form>
         </div>
