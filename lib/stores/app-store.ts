@@ -336,6 +336,8 @@ type AppState = {
   // Captures
   addCaptureExtraction: (input: { text: string; source: CaptureExtraction["source"]; responsibilityId: string }) => void;
   addParsedExtraction: (extraction: Omit<CaptureExtraction, "id">) => void;
+  rejectExtraction: (extractionId: string) => void;
+  updateExtractionProposal: (extractionId: string, itemId: string, input: { title?: string; responsibilityId?: string }) => void;
 
   // Calendar
   addCalendarItem: (input: Omit<CalendarItem, "id" | "source"> & { source?: CalendarItem["source"] }) => void;
@@ -586,6 +588,69 @@ export const useAppStore = create<AppState>()(
           aiReviewItems: [{ ...extraction, id: id("cap") }, ...state.aiReviewItems],
         })),
 
+      rejectExtraction: (extractionId) =>
+        set((state) => ({
+          aiReviewItems: state.aiReviewItems.map((item) =>
+            item.id === extractionId ? { ...item, status: "rejected" as const } : item
+          ),
+        })),
+
+      updateExtractionProposal: (extractionId, itemId, input) =>
+        set((state) => ({
+          aiReviewItems: state.aiReviewItems.map((item) => {
+            if (item.id !== extractionId) return item;
+
+            const [kind, ...rest] = itemId.split("-");
+            const title = rest.join("-");
+            const updateCommon = <T extends { title: string; responsibilityId?: string }>(entry: T): T => ({
+              ...entry,
+              ...(input.title !== undefined && { title: input.title }),
+              ...(input.responsibilityId !== undefined && { responsibilityId: input.responsibilityId }),
+            });
+
+            if (kind === "task") {
+              return {
+                ...item,
+                proposedTasks: item.proposedTasks.map((task) =>
+                  task.title === title ? updateCommon(task) : task
+                ),
+              };
+            }
+            if (kind === "event") {
+              return {
+                ...item,
+                proposedEvents: item.proposedEvents.map((event) =>
+                  event.title === title ? updateCommon(event) : event
+                ),
+              };
+            }
+            if (kind === "note") {
+              return {
+                ...item,
+                proposedNotes: item.proposedNotes.map((note) =>
+                  note.title === title ? updateCommon(note) : note
+                ),
+              };
+            }
+            if (kind === "list") {
+              const [listTitle, itemTitle] = title.split(":");
+              return {
+                ...item,
+                proposedListItems: (item.proposedListItems ?? []).map((listItem) =>
+                  listItem.listTitle === listTitle && listItem.itemTitle === itemTitle
+                    ? {
+                        ...listItem,
+                        ...(input.title !== undefined && { itemTitle: input.title }),
+                        ...(input.responsibilityId !== undefined && { responsibilityId: input.responsibilityId }),
+                      }
+                    : listItem
+                ),
+              };
+            }
+            return item;
+          }),
+        })),
+
       // ── Calendar ─────────────────────────────────────────────────────────
 
       addCalendarItem: (input) => {
@@ -706,15 +771,15 @@ export const useAppStore = create<AppState>()(
           if (db) {
             db.from("tasks").update({
               ...(input.title !== undefined && { title: input.title }),
-              ...(input.description !== undefined && { description: input.description }),
+              ...("description" in input && { description: input.description ?? null }),
               ...(input.status !== undefined && { status: input.status }),
               ...(input.status === "done" && { completed_at: new Date().toISOString() }),
               ...(input.priority !== undefined && { priority: input.priority }),
-              ...(input.dueAt !== undefined && { due_at: input.dueAt }),
+              ...("dueAt" in input && { due_at: input.dueAt ?? null }),
               ...("recurrence" in input && { recurrence: input.recurrence ?? null }),
               ...(input.labels !== undefined && { labels: input.labels }),
               ...(input.estimateMinutes !== undefined && { estimate_minutes: input.estimateMinutes }),
-              ...(input.responsibilityId !== undefined && { responsibility_id: input.responsibilityId }),
+              ...("responsibilityId" in input && { responsibility_id: input.responsibilityId ?? null }),
               ...(input.subtasks !== undefined && { subtasks: input.subtasks }),
             }).eq("id", taskId).eq("user_id", userId)
               .then(({ error }) => { if (error) console.error("updateTask:", error.message); });

@@ -1,15 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { CalendarPlus, Check, FileText, GitPullRequestArrow, ListChecks, ListTodo, Pencil, X } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
 import { responsibilityTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export function ReviewWorkspace() {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
   const items = useAppStore((state) => state.aiReviewItems);
   const responsibilities = useAppStore((state) => state.responsibilities);
   const setExtractionDecision = useAppStore((state) => state.setExtractionDecision);
+  const updateExtractionProposal = useAppStore((state) => state.updateExtractionProposal);
   const commitExtraction = useAppStore((state) => state.commitExtraction);
+  const rejectExtraction = useAppStore((state) => state.rejectExtraction);
   const item = items.find((entry) => entry.status !== "approved" && entry.status !== "rejected") ?? items[0];
 
   if (!item) {
@@ -21,19 +26,33 @@ export function ReviewWorkspace() {
   }
 
   const rows = [
-    ...item.proposedTasks.map((task) => ({ id: `task-${task.title}`, kind: "Task", icon: ListTodo, title: task.title, meta: task.responsibilityId })),
-    ...item.proposedEvents.map((event) => ({ id: `event-${event.title}`, kind: "Event", icon: CalendarPlus, title: event.title, meta: event.responsibilityId })),
-    ...item.proposedNotes.map((note) => ({ id: `note-${note.title}`, kind: "Note", icon: FileText, title: note.title, meta: note.responsibilityId })),
+    ...item.proposedTasks.map((task) => ({ id: `task-${task.title}`, kind: "Task", icon: ListTodo, title: task.title, editTitle: task.title, meta: task.responsibilityId })),
+    ...item.proposedEvents.map((event) => ({ id: `event-${event.title}`, kind: "Event", icon: CalendarPlus, title: event.title, editTitle: event.title, meta: event.responsibilityId })),
+    ...item.proposedNotes.map((note) => ({ id: `note-${note.title}`, kind: "Note", icon: FileText, title: note.title, editTitle: note.title, meta: note.responsibilityId })),
     ...(item.proposedListItems ?? []).map((listItem) => ({
       id: `list-${listItem.listTitle}:${listItem.itemTitle}`,
       kind: "List item",
       icon: ListChecks,
       title: `${listItem.itemTitle} -> ${listItem.listTitle}`,
+      editTitle: listItem.itemTitle,
       meta: listItem.responsibilityId
     }))
   ];
 
   const approvedCount = rows.filter((row) => item.decisions?.[row.id] !== false).length;
+
+  function startEditing(row: { id: string; editTitle: string }) {
+    setEditingId(row.id);
+    setDraftTitle(row.editTitle);
+  }
+
+  function saveDraft() {
+    if (!editingId) return;
+    const title = draftTitle.trim();
+    if (title) updateExtractionProposal(item.id, editingId, { title });
+    setEditingId(null);
+    setDraftTitle("");
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
@@ -62,12 +81,55 @@ export function ReviewWorkspace() {
                     <Icon className="size-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-ink">{row.title}</p>
-                    <p className="mt-1 text-xs text-muted">{row.kind} - {responsibility?.name ?? "Unsorted"}</p>
+                    {editingId === row.id ? (
+                      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]">
+                        <input
+                          value={draftTitle}
+                          onChange={(event) => setDraftTitle(event.target.value)}
+                          onBlur={saveDraft}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") saveDraft();
+                            if (event.key === "Escape") {
+                              setEditingId(null);
+                              setDraftTitle("");
+                            }
+                          }}
+                          className="h-9 rounded-md border border-line bg-paper px-2 text-sm text-ink outline-none focus:border-blue"
+                        />
+                        <select
+                          value={row.meta ?? ""}
+                          onChange={(event) => updateExtractionProposal(item.id, row.id, { responsibilityId: event.target.value })}
+                          className="h-9 rounded-md border border-line bg-paper px-2 text-xs text-ink outline-none focus:border-blue"
+                        >
+                          <option value="">Unsorted</option>
+                          {responsibilities.map((entry) => (
+                            <option key={entry.id} value={entry.id}>{entry.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium text-ink">{row.title}</p>
+                        <p className="mt-1 text-xs text-muted">{row.kind} - {responsibility?.name ?? "Unsorted"}</p>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button className="grid size-9 place-items-center rounded-lg border border-line text-muted transition hover:border-muted hover:text-ink">
+                  <button
+                    onClick={() => {
+                      if (editingId === row.id) {
+                        saveDraft();
+                      } else {
+                        startEditing(row);
+                      }
+                    }}
+                    className={cn(
+                      "grid size-9 place-items-center rounded-lg border border-line text-muted transition hover:border-muted hover:text-ink",
+                      editingId === row.id && "border-blue text-blue"
+                    )}
+                    title={editingId === row.id ? "Done editing" : "Edit proposed item"}
+                  >
                     <Pencil className="size-4" />
                   </button>
                   <button
@@ -100,7 +162,10 @@ export function ReviewWorkspace() {
           <p>Approved items will become real tasks, events, notes, or logs.</p>
           <p>Rejected items stay attached to the capture for audit.</p>
         </div>
-        <button onClick={() => commitExtraction(item.id)} className="mt-4 w-full rounded-lg bg-ink px-3 py-2 text-sm font-medium text-paper transition hover:bg-ink/90">Commit approved</button>
+        <div className="mt-4 grid gap-2">
+          <button onClick={() => commitExtraction(item.id)} className="w-full rounded-lg bg-ink px-3 py-2 text-sm font-medium text-paper transition hover:bg-ink/90">Commit approved</button>
+          <button onClick={() => rejectExtraction(item.id)} className="w-full rounded-lg border border-coral px-3 py-2 text-sm font-medium text-coral transition hover:bg-coral hover:text-white">Reject capture</button>
+        </div>
       </aside>
     </div>
   );
