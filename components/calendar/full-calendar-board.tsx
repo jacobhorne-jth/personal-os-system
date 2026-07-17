@@ -8,9 +8,10 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import type { DatesSetArg, EventClickArg, EventDropArg, EventContentArg } from "@fullcalendar/core";
 import { AlignLeft, ChevronLeft, ChevronRight, Clock, FileText, MapPin, Pencil, RefreshCw, Tags, Trash2, X } from "lucide-react";
 import { DateTimeRow } from "@/components/calendar/date-time-picker";
+import { RecurrencePicker } from "@/components/calendar/recurrence-picker";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toFullCalendarEvent } from "@/lib/queries/calendar";
-import { expandCalendarItems } from "@/lib/recurrence";
+import { describeRecurrence, expandCalendarItems } from "@/lib/recurrence";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { responsibilityTone } from "@/lib/theme";
@@ -27,22 +28,6 @@ type DraftEvent = {
   type: CalendarItemType;
   recurrence: string;
 };
-
-export const RECURRENCE_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: "", label: "Does not repeat" },
-  { value: "every day", label: "Every day" },
-  { value: "every week", label: "Every week" },
-  { value: "every other week", label: "Every other week" },
-  { value: "every month", label: "Every month" },
-  { value: "every year", label: "Every year" },
-  { value: "every monday", label: "Every Monday" },
-  { value: "every tuesday", label: "Every Tuesday" },
-  { value: "every wednesday", label: "Every Wednesday" },
-  { value: "every thursday", label: "Every Thursday" },
-  { value: "every friday", label: "Every Friday" },
-  { value: "every saturday", label: "Every Saturday" },
-  { value: "every sunday", label: "Every Sunday" },
-];
 
 // Viewport rect of the drag selection, used to place the draft card beside it
 type SelectAnchor = { colLeft: number; colRight: number; top: number };
@@ -862,17 +847,13 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                   onChange={(startsAt, endsAt) => setDraftEvent({ ...draftEvent, startsAt, endsAt })}
                 />
               </div>
-              <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#303134]">
+              <div className="flex items-center gap-3 rounded-lg px-3 py-1">
                 <RefreshCw className="size-5 shrink-0 text-[#9aa0a6]" />
-                <select
+                <RecurrencePicker
                   value={draftEvent.recurrence}
-                  onChange={(e) => setDraftEvent({ ...draftEvent, recurrence: e.target.value })}
-                  className="h-9 w-full cursor-pointer bg-transparent text-sm text-[#e8eaed] outline-none [&>option]:bg-[#202124]"
-                >
-                  {RECURRENCE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+                  startsAt={draftEvent.startsAt}
+                  onChange={(recurrence) => setDraftEvent({ ...draftEvent, recurrence })}
+                />
               </div>
               <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#303134] focus-within:bg-[#303134]">
                 <MapPin className="size-5 shrink-0 text-[#9aa0a6]" />
@@ -955,15 +936,11 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                 </div>
                 <div className="flex items-center gap-3 rounded-lg px-3 py-1">
                   <RefreshCw className="size-5 shrink-0 text-[#9aa0a6]" />
-                  <select
+                  <RecurrencePicker
                     value={draftEvent.recurrence}
-                    onChange={(e) => setDraftEvent({ ...draftEvent, recurrence: e.target.value })}
-                    className="h-10 w-56 cursor-pointer rounded-md bg-[#303134] px-3 text-sm text-[#e8eaed] outline-none [&>option]:bg-[#202124]"
-                  >
-                    {RECURRENCE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                    startsAt={draftEvent.startsAt}
+                    onChange={(recurrence) => setDraftEvent({ ...draftEvent, recurrence })}
+                  />
                 </div>
                 <div className="flex items-center gap-3 rounded-lg px-3 py-2">
                   <span className="size-5 shrink-0" />
@@ -1070,6 +1047,9 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                 <div>
                   <h3 className="text-2xl font-semibold leading-tight text-[#e8eaed]">{selectedItem.title || "Untitled"}</h3>
                   <p className="mt-2 text-base text-[#bdc1c6]">{formatDraftTime(selectedItem)}</p>
+                  {selectedItem.recurrence && (
+                    <p className="mt-1 text-sm text-[#9aa0a6]">{describeRecurrence(selectedItem.recurrence, new Date(selectedItem.startsAt))}</p>
+                  )}
                 </div>
 
                 {selectedItem.location && (
