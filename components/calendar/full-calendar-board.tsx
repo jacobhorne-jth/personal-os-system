@@ -127,16 +127,31 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   }, [calendarGotoDate, setCalendarGotoDate, setCalendarView]);
 
   function handleSelect(selection: DateSelectArg) {
+    let start = selection.start;
+    let end = selection.end;
+
+    // Timed selections stay on the day where the drag began: dragging into a
+    // neighboring column keeps extending the time range, and the event lands
+    // on the origin day using the end position's time of day.
+    if (!selection.allDay && end.toDateString() !== start.toDateString()) {
+      const clamped = new Date(start);
+      clamped.setHours(end.getHours(), end.getMinutes(), 0, 0);
+      if (clamped <= start) {
+        clamped.setTime(start.getTime() + 60 * 60 * 1000);
+      }
+      end = clamped;
+    }
+
     if (!fullChrome) {
-      router.push(`/calendar?start=${encodeURIComponent(selection.startStr)}&end=${encodeURIComponent(selection.endStr)}&date=${encodeURIComponent(selection.startStr)}`);
+      router.push(`/calendar?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}&date=${encodeURIComponent(start.toISOString())}`);
       return;
     }
     setCreateMode(false);
     setSelectedItem(null);
     setEventPanelMode("preview");
     setDraftEvent({
-      startsAt: selection.startStr,
-      endsAt: selection.endStr,
+      startsAt: start.toISOString(),
+      endsAt: end.toISOString(),
       title: "",
       location: "",
       notes: "",
@@ -400,17 +415,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             nowIndicator
             selectable
             selectMirror
-            selectAllow={(span) => {
-              // Keep drag-to-create inside one day column; a sideways drag in
-              // week view would otherwise draft an event spanning several days.
-              if (span.allDay) return true;
-              const sameDay = span.start.toDateString() === span.end.toDateString();
-              const endsAtMidnightNextDay =
-                span.end.getHours() === 0 &&
-                span.end.getMinutes() === 0 &&
-                span.end.getTime() - span.start.getTime() <= 24 * 60 * 60 * 1000;
-              return sameDay || endsAtMidnightNextDay;
-            }}
             editable
             eventResizableFromStart
             allDaySlot={false}
