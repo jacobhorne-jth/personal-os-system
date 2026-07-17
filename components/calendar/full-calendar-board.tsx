@@ -65,8 +65,11 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const [draftEvent, setDraftEvent] = useState<DraftEvent | null>(null);
   const [draftExpanded, setDraftExpanded] = useState(false);
   const [draftCardPos, setDraftCardPos] = useState<{ left: number; top: number } | null>(null);
+  const [selectedPanelPos, setSelectedPanelPos] = useState<{ left: number; top: number } | null>(null);
+  // When set, the expanded editor updates this existing event instead of creating
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editingIsSeries, setEditingIsSeries] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CalendarItem | null>(null);
-  const [eventPanelMode, setEventPanelMode] = useState<"preview" | "edit">("preview");
   const [deleteMenuOpen, setDeleteMenuOpen] = useState(false);
   const [createMode, setCreateMode] = useState(false);
   const { calendarView, setCalendarView, visibleOverlays, hiddenResponsibilities, calendarGotoDate, setCalendarGotoDate } = useUiStore();
@@ -129,7 +132,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       setDraftEvent(null);
       setCreateMode(false);
       setSelectedItem(item);
-      setEventPanelMode("preview");
       setDeleteMenuOpen(false);
       // Consume the params so a refresh doesn't replay this panel
       router.replace("/calendar", { scroll: false });
@@ -215,7 +217,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     }
     setCreateMode(false);
     setSelectedItem(null);
-    setEventPanelMode("preview");
     positionCard(selection.anchor ?? null);
     setDraftEvent({
       startsAt: start.toISOString(),
@@ -232,8 +233,9 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   closeDraftRef.current = () => {
     setDraftEvent(null);
     setDraftExpanded(false);
+    setEditingEventId(null);
+    setEditingIsSeries(false);
     setSelectedItem(null);
-    setEventPanelMode("preview");
     setDeleteMenuOpen(false);
   };
 
@@ -474,10 +476,24 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       router.push(`/calendar?event=${encodeURIComponent(item.id)}&date=${encodeURIComponent(item.startsAt)}`);
       return;
     }
+    // Anchor the panel beside the clicked event block, like Google Calendar
+    const root = rootRef.current;
+    const rect = event.el.getBoundingClientRect();
+    if (root) {
+      const rootRect = root.getBoundingClientRect();
+      const WIDTH = 560;
+      const GAP = 12;
+      let left = rect.left - rootRect.left - WIDTH - GAP;
+      if (left < 8) left = rect.right - rootRect.left + GAP;
+      left = Math.max(8, Math.min(left, rootRect.width - WIDTH - 8));
+      const top = Math.max(56, Math.min(rect.top - rootRect.top - 8, rootRect.height - 380));
+      setSelectedPanelPos({ left, top });
+    } else {
+      setSelectedPanelPos(null);
+    }
     setDraftEvent(null);
     setCreateMode(false);
     setSelectedItem(item);
-    setEventPanelMode("preview");
     setDeleteMenuOpen(false);
   }
 
@@ -522,7 +538,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     }
     setSelectedItem(null);
     setDeleteMenuOpen(false);
-    setEventPanelMode("preview");
   }
 
   function goToday() {
@@ -631,76 +646,77 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     return `${start.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}, ${start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} – ${end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
   }
 
-  function toInputDateTime(value: string) {
-    return value.slice(0, 16);
-  }
-
-  function fromInputDateTime(value: string) {
-    return value ? new Date(value).toISOString() : "";
-  }
-
   function selectedTone(item: CalendarItem) {
     const responsibility = responsibilities.find((entry) => entry.id === item.responsibilityId);
     return responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
   }
 
-  function saveSelectedEvent(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selectedItem) return;
-    if (!selectedItem.title.trim() || !selectedItem.startsAt || !selectedItem.endsAt) return;
-
-    if (selectedItem.seriesId) {
-      // Editing a recurring instance edits the whole series. Time-of-day
-      // changes re-anchor the master at the edited occurrence's times; the
-      // master keeps its original start date.
-      const master = calendarItems.find((item) => item.id === selectedItem.seriesId);
-      if (master) {
-        const editedStart = new Date(selectedItem.startsAt);
-        const editedEnd = new Date(selectedItem.endsAt);
-        const masterStart = new Date(master.startsAt);
-        masterStart.setHours(editedStart.getHours(), editedStart.getMinutes(), 0, 0);
-        const masterEnd = new Date(masterStart.getTime() + (editedEnd.getTime() - editedStart.getTime()));
-        updateCalendarItem(master.id, {
-          title: selectedItem.title.trim(),
-          startsAt: masterStart.toISOString(),
-          endsAt: masterEnd.toISOString(),
-          responsibilityId: selectedItem.responsibilityId,
-          location: selectedItem.location?.trim() || undefined,
-          notes: selectedItem.notes?.trim() || undefined
-        });
-      }
-    } else {
-      updateCalendarItem(selectedItem.id, {
-        title: selectedItem.title.trim(),
-        startsAt: selectedItem.startsAt,
-        endsAt: selectedItem.endsAt,
-        responsibilityId: selectedItem.responsibilityId,
-        location: selectedItem.location?.trim() || undefined,
-        notes: selectedItem.notes?.trim() || undefined
-      });
-    }
-    setSelectedItem(null);
-    setDeleteMenuOpen(false);
-    setEventPanelMode("preview");
-  }
-
   function saveDraftEvent(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!draftEvent || !draftEvent.title.trim()) return;
-    addCalendarItem({
-      title: draftEvent.title.trim(),
-      type: draftEvent.type,
-      responsibilityId: draftEvent.responsibilityId,
-      startsAt: draftEvent.startsAt,
-      endsAt: draftEvent.endsAt,
-      location: draftEvent.location.trim() || undefined,
-      notes: draftEvent.notes.trim() || undefined,
-      recurrence: draftEvent.recurrence || undefined,
-      source: "app"
-    });
+
+    if (editingEventId) {
+      const master = calendarItems.find((item) => item.id === editingEventId);
+      let startsAt = draftEvent.startsAt;
+      let endsAt = draftEvent.endsAt;
+      if (editingIsSeries && master) {
+        // Editing a series keeps the master's anchor date; only the
+        // time of day (and duration) from the editor applies
+        const editedStart = new Date(draftEvent.startsAt);
+        const editedEnd = new Date(draftEvent.endsAt);
+        const masterStart = new Date(master.startsAt);
+        masterStart.setHours(editedStart.getHours(), editedStart.getMinutes(), 0, 0);
+        startsAt = masterStart.toISOString();
+        endsAt = new Date(masterStart.getTime() + (editedEnd.getTime() - editedStart.getTime())).toISOString();
+      }
+      updateCalendarItem(editingEventId, {
+        title: draftEvent.title.trim(),
+        type: draftEvent.type,
+        responsibilityId: draftEvent.responsibilityId,
+        startsAt,
+        endsAt,
+        location: draftEvent.location.trim() || undefined,
+        notes: draftEvent.notes.trim() || undefined,
+        recurrence: draftEvent.recurrence || undefined,
+      });
+    } else {
+      addCalendarItem({
+        title: draftEvent.title.trim(),
+        type: draftEvent.type,
+        responsibilityId: draftEvent.responsibilityId,
+        startsAt: draftEvent.startsAt,
+        endsAt: draftEvent.endsAt,
+        location: draftEvent.location.trim() || undefined,
+        notes: draftEvent.notes.trim() || undefined,
+        recurrence: draftEvent.recurrence || undefined,
+        source: "app"
+      });
+    }
     setDraftEvent(null);
     setDraftExpanded(false);
+    setEditingEventId(null);
+    setEditingIsSeries(false);
     calendarRef.current?.getApi().unselect();
+  }
+
+  function openEditInExpanded(item: CalendarItem) {
+    const master = item.seriesId ? calendarItems.find((entry) => entry.id === item.seriesId) : item;
+    setDraftEvent({
+      startsAt: item.startsAt,
+      endsAt: item.endsAt,
+      title: item.title,
+      location: item.location ?? "",
+      notes: item.notes ?? "",
+      responsibilityId: item.responsibilityId,
+      type: item.type,
+      recurrence: master?.recurrence ?? "",
+    });
+    setEditingEventId(master?.id ?? item.id);
+    setEditingIsSeries(Boolean(item.seriesId || master?.recurrence));
+    setSelectedItem(null);
+    setDeleteMenuOpen(false);
+    setDraftCardPos(null);
+    setDraftExpanded(true);
   }
 
   return (
@@ -743,7 +759,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             <button
               onClick={() => {
                 setSelectedItem(null);
-                setEventPanelMode("preview");
                 setDeleteMenuOpen(false);
                 setDraftEvent(null);
                 setCreateMode(true);
@@ -1003,14 +1018,29 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       )}
 
       {selectedItem && (
-        <div data-popup-card className="absolute left-6 top-16 z-30 w-[min(560px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[#3c4043] bg-[#202124] shadow-[0_24px_72px_rgba(0,0,0,0.55)]">
+        <div
+          data-popup-card
+          className="absolute z-30 w-[min(560px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[#3c4043] bg-[#202124] shadow-[0_24px_72px_rgba(0,0,0,0.55)]"
+          style={selectedPanelPos ? { left: selectedPanelPos.left, top: selectedPanelPos.top } : { left: 24, top: 64 }}
+        >
           <div className="flex h-12 items-center justify-end gap-1 px-4 text-[#bdc1c6]">
-            {eventPanelMode === "preview" && (
-              <button type="button" onClick={() => { setEventPanelMode("edit"); setDeleteMenuOpen(false); }} className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]" title="Edit">
-                <Pencil className="size-4" />
-              </button>
-            )}
-            <button type="button" onClick={() => setDeleteMenuOpen((value) => !value)} className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]" title="Delete">
+            <button type="button" onClick={() => openEditInExpanded(selectedItem)} className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]" title="Edit">
+              <Pencil className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Single events delete immediately; recurring events still need
+                // the this-vs-series scope choice
+                if (selectedItem.seriesId) {
+                  setDeleteMenuOpen((value) => !value);
+                } else {
+                  deleteSelectedEvent();
+                }
+              }}
+              className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]"
+              title="Delete"
+            >
               <Trash2 className="size-4" />
             </button>
             <button type="button" onClick={() => { setSelectedItem(null); setDeleteMenuOpen(false); }} className="grid size-9 place-items-center rounded-full transition hover:bg-[#303134]" title="Close">
@@ -1018,130 +1048,50 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             </button>
           </div>
 
-          {deleteMenuOpen && (
+          {deleteMenuOpen && selectedItem.seriesId && (
             <div className="mx-4 mb-3 rounded-2xl border border-[#3c4043] bg-[#282a2d] p-2">
-              {selectedItem.seriesId ? (
+              <button type="button" onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                <Trash2 className="size-5 text-[#9aa0a6]" />
+                Delete this event
+              </button>
+              <button type="button" onClick={() => deleteSelectedEvent("all")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                <Trash2 className="size-5 text-[#9aa0a6]" />
+                Delete all events in series
+              </button>
+            </div>
+          )}
+
+          <div className="px-6 pb-6">
+            <div className="grid grid-cols-[40px_1fr] gap-4">
+              <span className="mt-2 size-4 rounded" style={{ backgroundColor: selectedTone(selectedItem).hex }} />
+              <div>
+                <h3 className="text-2xl font-semibold leading-tight text-[#e8eaed]">{selectedItem.title || "Untitled"}</h3>
+                <p className="mt-2 text-base text-[#bdc1c6]">{formatDraftTime(selectedItem)}</p>
+                {selectedItem.recurrence && (
+                  <p className="mt-1 text-sm text-[#9aa0a6]">{describeRecurrence(selectedItem.recurrence, new Date(selectedItem.startsAt))}</p>
+                )}
+              </div>
+
+              {selectedItem.location && (
                 <>
-                  <button type="button" onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                    <Trash2 className="size-5 text-[#9aa0a6]" />
-                    Delete this event
-                  </button>
-                  <button type="button" onClick={() => deleteSelectedEvent("all")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                    <Trash2 className="size-5 text-[#9aa0a6]" />
-                    Delete all events in series
-                  </button>
+                  <MapPin className="mt-0.5 size-5 text-[#bdc1c6]" />
+                  <p className="text-sm leading-6 text-[#e8eaed]">{selectedItem.location}</p>
                 </>
-              ) : (
-                <button type="button" onClick={() => deleteSelectedEvent()} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                  <Trash2 className="size-5 text-[#9aa0a6]" />
-                  Delete event
-                </button>
+              )}
+
+              <Tags className="mt-0.5 size-5 text-[#bdc1c6]" />
+              <p className="text-sm leading-6 text-[#e8eaed]">
+                {responsibilities.find((item) => item.id === selectedItem.responsibilityId)?.name ?? "No label"}
+              </p>
+
+              {selectedItem.notes && (
+                <>
+                  <FileText className="mt-0.5 size-5 text-[#bdc1c6]" />
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-[#e8eaed]">{selectedItem.notes}</p>
+                </>
               )}
             </div>
-          )}
-
-          {eventPanelMode === "preview" ? (
-            <div className="px-6 pb-6">
-              <div className="grid grid-cols-[40px_1fr] gap-4">
-                <span className="mt-2 size-4 rounded" style={{ backgroundColor: selectedTone(selectedItem).hex }} />
-                <div>
-                  <h3 className="text-2xl font-semibold leading-tight text-[#e8eaed]">{selectedItem.title || "Untitled"}</h3>
-                  <p className="mt-2 text-base text-[#bdc1c6]">{formatDraftTime(selectedItem)}</p>
-                  {selectedItem.recurrence && (
-                    <p className="mt-1 text-sm text-[#9aa0a6]">{describeRecurrence(selectedItem.recurrence, new Date(selectedItem.startsAt))}</p>
-                  )}
-                </div>
-
-                {selectedItem.location && (
-                  <>
-                    <MapPin className="mt-0.5 size-5 text-[#bdc1c6]" />
-                    <p className="text-sm leading-6 text-[#e8eaed]">{selectedItem.location}</p>
-                  </>
-                )}
-
-                <Tags className="mt-0.5 size-5 text-[#bdc1c6]" />
-                <p className="text-sm leading-6 text-[#e8eaed]">
-                  {responsibilities.find((item) => item.id === selectedItem.responsibilityId)?.name ?? "No label"}
-                </p>
-
-                {selectedItem.notes && (
-                  <>
-                    <FileText className="mt-0.5 size-5 text-[#bdc1c6]" />
-                    <p className="whitespace-pre-wrap text-sm leading-6 text-[#e8eaed]">{selectedItem.notes}</p>
-                  </>
-                )}
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={saveSelectedEvent} className="px-6 pb-6">
-              <div className="grid grid-cols-[40px_1fr] gap-4">
-                <span className="mt-8 size-4 rounded" style={{ backgroundColor: selectedTone(selectedItem).hex }} />
-                <div>
-                  <input
-                    value={selectedItem.title}
-                    onChange={(event) => setSelectedItem({ ...selectedItem, title: event.target.value })}
-                    className="h-14 w-full border-b border-[#5f6368] bg-transparent text-2xl text-[#e8eaed] outline-none placeholder:text-[#5f6368] focus:border-[#a8c7fa]"
-                    placeholder="Add title"
-                  />
-                  <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr]">
-                    <label className="grid gap-1">
-                      <span className="text-xs text-[#9aa0a6]">Start</span>
-                      <input
-                        type="datetime-local"
-                        value={toInputDateTime(selectedItem.startsAt)}
-                        onChange={(event) => setSelectedItem({ ...selectedItem, startsAt: fromInputDateTime(event.target.value) })}
-                        className="h-10 rounded-lg border border-[#3c4043] bg-[#282a2d] px-3 text-sm text-[#e8eaed] outline-none focus:border-[#a8c7fa]"
-                      />
-                    </label>
-                    <label className="grid gap-1">
-                      <span className="text-xs text-[#9aa0a6]">End</span>
-                      <input
-                        type="datetime-local"
-                        value={toInputDateTime(selectedItem.endsAt)}
-                        onChange={(event) => setSelectedItem({ ...selectedItem, endsAt: fromInputDateTime(event.target.value) })}
-                        className="h-10 rounded-lg border border-[#3c4043] bg-[#282a2d] px-3 text-sm text-[#e8eaed] outline-none focus:border-[#a8c7fa]"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <MapPin className="mt-3 size-5 text-[#bdc1c6]" />
-                <input
-                  value={selectedItem.location ?? ""}
-                  onChange={(event) => setSelectedItem({ ...selectedItem, location: event.target.value })}
-                  placeholder="Add location"
-                  className="h-11 rounded-lg border border-[#3c4043] bg-[#282a2d] px-3 text-sm text-[#e8eaed] outline-none placeholder:text-[#9aa0a6] focus:border-[#a8c7fa]"
-                />
-
-                <Tags className="mt-3 size-5 text-[#bdc1c6]" />
-                <select
-                  value={selectedItem.responsibilityId}
-                  onChange={(event) => setSelectedItem({ ...selectedItem, responsibilityId: event.target.value })}
-                  className="h-11 rounded-lg border border-[#3c4043] bg-[#282a2d] px-3 text-sm text-[#e8eaed] outline-none focus:border-[#a8c7fa]"
-                >
-                  {responsibilities.filter((resp) => !resp.archivedAt).map((item) => (
-                    <option key={item.id} value={item.id}>{item.name}</option>
-                  ))}
-                </select>
-
-                <FileText className="mt-3 size-5 text-[#bdc1c6]" />
-                <textarea
-                  value={selectedItem.notes ?? ""}
-                  onChange={(event) => setSelectedItem({ ...selectedItem, notes: event.target.value })}
-                  placeholder="Add description"
-                  className="min-h-28 resize-none rounded-lg border border-[#3c4043] bg-[#282a2d] p-3 text-sm leading-6 text-[#e8eaed] outline-none placeholder:text-[#9aa0a6] focus:border-[#a8c7fa]"
-                />
-              </div>
-              <div className="mt-5 flex justify-end gap-2">
-                <button type="button" onClick={() => { setEventPanelMode("preview"); setDeleteMenuOpen(false); }} className="rounded-full px-4 py-2 text-sm text-[#bdc1c6] transition hover:bg-[#303134] hover:text-[#e8eaed]">
-                  Cancel
-                </button>
-                <button disabled={!selectedItem.title.trim()} className="rounded-full bg-[#a8c7fa] px-5 py-2 text-sm font-medium text-[#062e6f] transition hover:bg-[#b7d0fb] disabled:opacity-40">
-                  Save
-                </button>
-              </div>
-            </form>
-          )}
+          </div>
         </div>
       )}
     </div>
