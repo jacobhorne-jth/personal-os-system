@@ -118,17 +118,9 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     if (!start || !end) return;
     handledQueryDraft.current = true;
     calendarRef.current?.getApi().gotoDate(start);
-    setDraftEvent({
-      startsAt: start,
-      endsAt: end,
-      title: "",
-      location: "",
-      notes: "",
-      responsibilityId: responsibilities[0]?.id ?? "school",
-      type: "app_event"
-    });
-    // Anchor the card and placeholder block to the selection's day column
-    // once FullCalendar has painted the target week.
+    // Wait for FullCalendar to paint the target week, then anchor the card
+    // and placeholder block BEFORE showing the draft — opening it earlier
+    // would flash the card at the fallback corner for a beat.
     const startDate = new Date(start);
     const endDate = new Date(end);
     setTimeout(() => {
@@ -137,19 +129,31 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       const d = `${startDate.getDate()}`.padStart(2, "0");
       const dateKey = `${y}-${m}-${d}`;
       const col = shellRef.current?.querySelector<HTMLElement>(`.fc-timegrid-col[data-date='${dateKey}']`);
-      if (!col) return;
-      const rect = col.getBoundingClientRect();
-      const startMin = startDate.getHours() * 60 + startDate.getMinutes();
-      const endMin = Math.max(startMin + 15, endDate.getHours() * 60 + endDate.getMinutes() || startMin + 60);
-      positionCard({
-        colLeft: rect.left,
-        colRight: rect.right,
-        top: rect.top + (startMin / (25 * 60)) * rect.height,
+      if (col) {
+        const rect = col.getBoundingClientRect();
+        const startMin = startDate.getHours() * 60 + startDate.getMinutes();
+        const endMin = Math.max(startMin + 15, endDate.getHours() * 60 + endDate.getMinutes() || startMin + 60);
+        positionCard({
+          colLeft: rect.left,
+          colRight: rect.right,
+          top: rect.top + (startMin / (25 * 60)) * rect.height,
+        });
+        placeBlockRef.current(dateKey, startMin, endMin);
+      } else {
+        positionCard(null);
+      }
+      setDraftEvent({
+        startsAt: start,
+        endsAt: end,
+        title: "",
+        location: "",
+        notes: "",
+        responsibilityId: responsibilities[0]?.id ?? "school",
+        type: "app_event"
       });
-      placeBlockRef.current(dateKey, startMin, endMin);
+      // Consume the params so a refresh doesn't replay this draft
+      router.replace("/calendar", { scroll: false });
     }, 80);
-    // Consume the params so a refresh doesn't replay this draft
-    router.replace("/calendar", { scroll: false });
   }, [fullChrome, responsibilities, router, searchParams, visibleItems]);
 
   useEffect(() => {
