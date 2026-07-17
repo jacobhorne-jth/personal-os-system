@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Plus, Trash2, X } from "lucide-react";
-import { useAppStore } from "@/lib/stores/app-store";
+import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { Panel } from "@/components/ui/panel";
 import { responsibilityTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,7 @@ const priorities: { value: Priority; label: string }[] = [
 export function TaskDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const task = useAppStore((state) => state.tasks.find((item) => item.id === id));
-  const responsibilities = useAppStore((s) => s.responsibilities);
+  const responsibilities = useActiveResponsibilities();
   const toggleTask = useAppStore((state) => state.toggleTask);
   const updateTask = useAppStore((state) => state.updateTask);
   const deleteTask = useAppStore((state) => state.deleteTask);

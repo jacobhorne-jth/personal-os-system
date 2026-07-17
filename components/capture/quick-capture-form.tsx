@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AtSign, CalendarDays, Plus, RefreshCw, Send, X, Clock } from "lucide-react";
-import { useAppStore } from "@/lib/stores/app-store";
+import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { nextOccurrence } from "@/lib/recurrence";
 import { parseInput, buildDueAt } from "@/lib/task-parser";
 import type { CaptureExtraction } from "@/lib/types/domain";
@@ -65,7 +65,7 @@ export function QuickCaptureForm({
   multiline = false,
   onComplete
 }: QuickCaptureFormProps) {
-  const responsibilities = useAppStore((state) => state.responsibilities);
+  const responsibilities = useActiveResponsibilities();
   const addTask = useAppStore((state) => state.addTask);
   const addCaptureExtraction = useAppStore((state) => state.addCaptureExtraction);
   const [internalText, setInternalText] = useState("");

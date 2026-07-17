@@ -84,10 +84,22 @@ export function FoodWorkspace() {
   const foodTargets = useAppStore((s) => s.foodTargets);
   const addFoodEntry = useAppStore((s) => s.addFoodEntry);
   const deleteFoodEntry = useAppStore((s) => s.deleteFoodEntry);
+  const savedFoods = useAppStore((s) => s.savedFoods);
+  const addSavedFood = useAppStore((s) => s.addSavedFood);
+  const deleteSavedFood = useAppStore((s) => s.deleteSavedFood);
 
   const [dateOffset, setDateOffset] = useState(0);
   const [adding, setAdding] = useState<FoodMeal | null>(null);
   const [form, setForm] = useState<AddState>({ meal: "breakfast", name: "", calories: "", protein: "" });
+  const [saveToLibrary, setSaveToLibrary] = useState(false);
+
+  // Library matches for the food-name search: typed query filters by name,
+  // empty query surfaces the most recent saves for one-tap logging
+  const libraryMatches = useMemo(() => {
+    const q = form.name.trim().toLowerCase();
+    const pool = q ? savedFoods.filter((f) => f.name.toLowerCase().includes(q)) : savedFoods;
+    return pool.slice(0, 6);
+  }, [form.name, savedFoods]);
 
   const today = todayStr();
   const viewDate = useMemo(() => {
@@ -106,17 +118,36 @@ export function FoodWorkspace() {
 
   function openAdd(meal: FoodMeal) {
     setForm({ meal, name: "", calories: "", protein: "" });
+    setSaveToLibrary(false);
     setAdding(meal);
   }
 
   function submitEntry() {
     if (!form.name.trim() || !form.calories || !form.protein) return;
+    const calories = Math.round(parseFloat(form.calories)) || 0;
+    const protein = parseFloat(form.protein) || 0;
     addFoodEntry({
       date: viewDate,
       name: form.name.trim(),
       meal: form.meal,
-      calories: Math.round(parseFloat(form.calories)) || 0,
-      protein: parseFloat(form.protein) || 0,
+      calories,
+      protein,
+    });
+    if (saveToLibrary) {
+      addSavedFood({ name: form.name.trim(), calories, protein });
+    }
+    setAdding(null);
+  }
+
+  function logSavedFood(meal: FoodMeal, foodId: string) {
+    const food = savedFoods.find((f) => f.id === foodId);
+    if (!food) return;
+    addFoodEntry({
+      date: viewDate,
+      name: food.name,
+      meal,
+      calories: food.calories,
+      protein: food.protein,
     });
     setAdding(null);
   }
@@ -237,13 +268,36 @@ export function FoodWorkspace() {
             {/* Inline add form */}
             {isAdding && (
               <div className="border-t border-blue/30 bg-blue/5 p-3">
+                {/* Library quick-select: search by name, tap to log with saved macros */}
+                {libraryMatches.length > 0 && (
+                  <div className="mb-2 overflow-hidden rounded-lg border border-line bg-paper">
+                    {libraryMatches.map((food) => (
+                      <div key={food.id} className="group/lib flex items-center">
+                        <button
+                          onClick={() => logSavedFood(mealId, food.id)}
+                          className="flex min-w-0 flex-1 items-baseline justify-between gap-3 px-3 py-2 text-left transition hover:bg-line"
+                        >
+                          <span className="truncate text-sm text-ink">{food.name}</span>
+                          <span className="shrink-0 text-xs text-muted">{food.calories} cal · {food.protein}g protein</span>
+                        </button>
+                        <button
+                          onClick={() => deleteSavedFood(food.id)}
+                          title="Remove from library"
+                          className="grid size-7 shrink-0 place-items-center text-muted opacity-0 transition hover:text-red-400 group-hover/lib:opacity-100"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="grid grid-cols-[1fr_80px_70px] gap-2">
                   <input
                     autoFocus
                     value={form.name}
                     onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
                     onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(null); }}
-                    placeholder="Food name"
+                    placeholder="Search library or type a new food"
                     className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
                   />
                   <input
@@ -266,7 +320,7 @@ export function FoodWorkspace() {
                     className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
                   />
                 </div>
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex items-center gap-3">
                   <button
                     onClick={submitEntry}
                     disabled={!form.name.trim() || !form.calories || !form.protein}
@@ -280,6 +334,15 @@ export function FoodWorkspace() {
                   >
                     Cancel
                   </button>
+                  <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-xs text-muted hover:text-ink">
+                    <input
+                      type="checkbox"
+                      checked={saveToLibrary}
+                      onChange={(e) => setSaveToLibrary(e.target.checked)}
+                      className="size-3.5 accent-blue"
+                    />
+                    Save to library
+                  </label>
                 </div>
               </div>
             )}

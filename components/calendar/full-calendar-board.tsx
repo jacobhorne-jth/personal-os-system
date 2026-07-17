@@ -6,10 +6,11 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type EventResizeDoneArg } from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { DatesSetArg, EventClickArg, EventDropArg, EventContentArg } from "@fullcalendar/core";
-import { AlignLeft, ChevronLeft, ChevronRight, Clock, FileText, MapPin, Pencil, Tags, Trash2, X } from "lucide-react";
+import { AlignLeft, ChevronLeft, ChevronRight, Clock, FileText, MapPin, Pencil, RefreshCw, Tags, Trash2, X } from "lucide-react";
 import { DateTimeRow } from "@/components/calendar/date-time-picker";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toFullCalendarEvent } from "@/lib/queries/calendar";
+import { expandCalendarItems } from "@/lib/recurrence";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { responsibilityTone } from "@/lib/theme";
@@ -24,7 +25,24 @@ type DraftEvent = {
   notes: string;
   responsibilityId: string;
   type: CalendarItemType;
+  recurrence: string;
 };
+
+export const RECURRENCE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "", label: "Does not repeat" },
+  { value: "every day", label: "Every day" },
+  { value: "every week", label: "Every week" },
+  { value: "every other week", label: "Every other week" },
+  { value: "every month", label: "Every month" },
+  { value: "every year", label: "Every year" },
+  { value: "every monday", label: "Every Monday" },
+  { value: "every tuesday", label: "Every Tuesday" },
+  { value: "every wednesday", label: "Every Wednesday" },
+  { value: "every thursday", label: "Every Thursday" },
+  { value: "every friday", label: "Every Friday" },
+  { value: "every saturday", label: "Every Saturday" },
+  { value: "every sunday", label: "Every Sunday" },
+];
 
 // Viewport rect of the drag selection, used to place the draft card beside it
 type SelectAnchor = { colLeft: number; colRight: number; top: number };
@@ -70,12 +88,25 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const addCalendarItem = useAppStore((state) => state.addCalendarItem);
   const updateCalendarItem = useAppStore((state) => state.updateCalendarItem);
   const deleteCalendarItem = useAppStore((state) => state.deleteCalendarItem);
+  const deleteCalendarOccurrence = useAppStore((state) => state.deleteCalendarOccurrence);
   const moveCalendarItem = useAppStore((state) => state.moveCalendarItem);
   const effectiveView = !fullChrome && calendarView === "month" ? "week" : calendarView;
   const initialView = effectiveView === "month" ? "dayGridMonth" : effectiveView === "week" ? "timeGridWeek" : "timeGridDay";
   const availableViews = fullChrome ? (["day", "week", "month"] as const) : (["day", "week"] as const);
 
-  const visibleItems = calendarItems;
+  // Recurring masters expand into concrete instances for the visible range
+  const [viewRange, setViewRange] = useState<{ start: Date; end: Date }>(() => {
+    const start = new Date();
+    start.setDate(start.getDate() - 45);
+    const end = new Date();
+    end.setDate(end.getDate() + 45);
+    return { start, end };
+  });
+
+  const visibleItems = useMemo(
+    () => expandCalendarItems(calendarItems, viewRange.start, viewRange.end),
+    [calendarItems, viewRange]
+  );
 
   const events = visibleItems
     .filter((item) =>
@@ -87,7 +118,8 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
       return {
         ...toFullCalendarEvent(item),
-        editable: true,
+        // Recurring instances aren't draggable — edit or delete via the panel
+        editable: !item.seriesId,
         backgroundColor: tone.hex,
         borderColor: tone.hex,
         textColor: tone.eventText,
@@ -150,7 +182,8 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
         location: "",
         notes: "",
         responsibilityId: responsibilities[0]?.id ?? "school",
-        type: "app_event"
+        type: "app_event",
+        recurrence: ""
       });
       // Consume the params so a refresh doesn't replay this draft
       router.replace("/calendar", { scroll: false });
@@ -204,7 +237,8 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       location: "",
       notes: "",
       responsibilityId: responsibilities[0]?.id ?? "school",
-      type: "app_event"
+      type: "app_event",
+      recurrence: ""
     });
   }
   selectRef.current = handleSelect;
@@ -450,12 +484,20 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   }
 
   function handleEventDrop(event: EventDropArg) {
+    if (event.event.id.includes("::")) {
+      event.revert(); // recurring instances move via editing the series
+      return;
+    }
     if (event.event.start) {
       moveCalendarItem(event.event.id, event.event.start.toISOString(), event.event.end?.toISOString());
     }
   }
 
   function handleEventResize(event: EventResizeDoneArg) {
+    if (event.event.id.includes("::")) {
+      event.revert();
+      return;
+    }
     if (event.event.start) {
       moveCalendarItem(event.event.id, event.event.start.toISOString(), event.event.end?.toISOString());
     }
@@ -467,9 +509,19 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     calendarRef.current?.getApi().changeView(nextView);
   }
 
-  function deleteSelectedEvent() {
+  function deleteSelectedEvent(mode: "this" | "all" = "this") {
     if (!selectedItem) return;
-    deleteCalendarItem(selectedItem.id);
+    if (selectedItem.seriesId) {
+      if (mode === "all") {
+        deleteCalendarItem(selectedItem.seriesId);
+      } else {
+        const d = new Date(selectedItem.startsAt);
+        const dateKey = `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
+        deleteCalendarOccurrence(selectedItem.seriesId, dateKey);
+      }
+    } else {
+      deleteCalendarItem(selectedItem.id);
+    }
     setSelectedItem(null);
     setDeleteMenuOpen(false);
     setEventPanelMode("preview");
@@ -486,6 +538,15 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   }
 
   function handleDatesSet(dateInfo: DatesSetArg) {
+    const rangeStart = new Date(dateInfo.start);
+    rangeStart.setDate(rangeStart.getDate() - 1);
+    const rangeEnd = new Date(dateInfo.end);
+    rangeEnd.setDate(rangeEnd.getDate() + 1);
+    setViewRange((prev) =>
+      prev.start.getTime() === rangeStart.getTime() && prev.end.getTime() === rangeEnd.getTime()
+        ? prev
+        : { start: rangeStart, end: rangeEnd }
+    );
     if (dateInfo.view.type === "timeGridWeek") {
       const start = dateInfo.start;
       const end = new Date(dateInfo.end);
@@ -590,14 +651,36 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     if (!selectedItem) return;
     if (!selectedItem.title.trim() || !selectedItem.startsAt || !selectedItem.endsAt) return;
 
-    updateCalendarItem(selectedItem.id, {
-      title: selectedItem.title.trim(),
-      startsAt: selectedItem.startsAt,
-      endsAt: selectedItem.endsAt,
-      responsibilityId: selectedItem.responsibilityId,
-      location: selectedItem.location?.trim() || undefined,
-      notes: selectedItem.notes?.trim() || undefined
-    });
+    if (selectedItem.seriesId) {
+      // Editing a recurring instance edits the whole series. Time-of-day
+      // changes re-anchor the master at the edited occurrence's times; the
+      // master keeps its original start date.
+      const master = calendarItems.find((item) => item.id === selectedItem.seriesId);
+      if (master) {
+        const editedStart = new Date(selectedItem.startsAt);
+        const editedEnd = new Date(selectedItem.endsAt);
+        const masterStart = new Date(master.startsAt);
+        masterStart.setHours(editedStart.getHours(), editedStart.getMinutes(), 0, 0);
+        const masterEnd = new Date(masterStart.getTime() + (editedEnd.getTime() - editedStart.getTime()));
+        updateCalendarItem(master.id, {
+          title: selectedItem.title.trim(),
+          startsAt: masterStart.toISOString(),
+          endsAt: masterEnd.toISOString(),
+          responsibilityId: selectedItem.responsibilityId,
+          location: selectedItem.location?.trim() || undefined,
+          notes: selectedItem.notes?.trim() || undefined
+        });
+      }
+    } else {
+      updateCalendarItem(selectedItem.id, {
+        title: selectedItem.title.trim(),
+        startsAt: selectedItem.startsAt,
+        endsAt: selectedItem.endsAt,
+        responsibilityId: selectedItem.responsibilityId,
+        location: selectedItem.location?.trim() || undefined,
+        notes: selectedItem.notes?.trim() || undefined
+      });
+    }
     setSelectedItem(null);
     setDeleteMenuOpen(false);
     setEventPanelMode("preview");
@@ -614,6 +697,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       endsAt: draftEvent.endsAt,
       location: draftEvent.location.trim() || undefined,
       notes: draftEvent.notes.trim() || undefined,
+      recurrence: draftEvent.recurrence || undefined,
       source: "app"
     });
     setDraftEvent(null);
@@ -756,6 +840,18 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                   onChange={(startsAt, endsAt) => setDraftEvent({ ...draftEvent, startsAt, endsAt })}
                 />
               </div>
+              <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#303134]">
+                <RefreshCw className="size-5 shrink-0 text-[#9aa0a6]" />
+                <select
+                  value={draftEvent.recurrence}
+                  onChange={(e) => setDraftEvent({ ...draftEvent, recurrence: e.target.value })}
+                  className="h-9 w-full cursor-pointer bg-transparent text-sm text-[#e8eaed] outline-none [&>option]:bg-[#202124]"
+                >
+                  {RECURRENCE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
               <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#303134] focus-within:bg-[#303134]">
                 <MapPin className="size-5 shrink-0 text-[#9aa0a6]" />
                 <input
@@ -782,7 +878,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                   onChange={(e) => setDraftEvent({ ...draftEvent, responsibilityId: e.target.value })}
                   className="h-9 w-full cursor-pointer bg-transparent text-sm text-[#e8eaed] outline-none [&>option]:bg-[#202124]"
                 >
-                  {responsibilities.map((item) => (
+                  {responsibilities.filter((resp) => !resp.archivedAt).map((item) => (
                     <option key={item.id} value={item.id}>{item.name}</option>
                   ))}
                 </select>
@@ -825,10 +921,23 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
           {deleteMenuOpen && (
             <div className="mx-4 mb-3 rounded-2xl border border-[#3c4043] bg-[#282a2d] p-2">
-              <button type="button" onClick={() => deleteSelectedEvent()} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                <Trash2 className="size-5 text-[#9aa0a6]" />
-                Delete event
-              </button>
+              {selectedItem.seriesId ? (
+                <>
+                  <button type="button" onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                    <Trash2 className="size-5 text-[#9aa0a6]" />
+                    Delete this event
+                  </button>
+                  <button type="button" onClick={() => deleteSelectedEvent("all")} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                    <Trash2 className="size-5 text-[#9aa0a6]" />
+                    Delete all events in series
+                  </button>
+                </>
+              ) : (
+                <button type="button" onClick={() => deleteSelectedEvent()} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
+                  <Trash2 className="size-5 text-[#9aa0a6]" />
+                  Delete event
+                </button>
+              )}
             </div>
           )}
 
@@ -908,7 +1017,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                   onChange={(event) => setSelectedItem({ ...selectedItem, responsibilityId: event.target.value })}
                   className="h-11 rounded-lg border border-[#3c4043] bg-[#282a2d] px-3 text-sm text-[#e8eaed] outline-none focus:border-[#a8c7fa]"
                 >
-                  {responsibilities.map((item) => (
+                  {responsibilities.filter((resp) => !resp.archivedAt).map((item) => (
                     <option key={item.id} value={item.id}>{item.name}</option>
                   ))}
                 </select>

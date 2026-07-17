@@ -43,6 +43,7 @@ export type Database = {
           icon: string;
           weekly_goal_hours: number;
           sort_order: number;
+          archived_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -54,6 +55,7 @@ export type Database = {
           icon?: string;
           weekly_goal_hours?: number;
           sort_order?: number;
+          archived_at?: string | null;
         };
         Update: Partial<Omit<Database["public"]["Tables"]["responsibilities"]["Insert"], "id" | "user_id">>;
         Relationships: [];
@@ -107,6 +109,8 @@ export type Database = {
           location: string | null;
           notes: string | null;
           external_id: string | null;
+          recurrence: string | null;
+          recurrence_exceptions: Json;
           created_at: string;
           updated_at: string;
         };
@@ -122,6 +126,8 @@ export type Database = {
           location?: string | null;
           notes?: string | null;
           external_id?: string | null;
+          recurrence?: string | null;
+          recurrence_exceptions?: Json;
         };
         Update: Partial<Omit<Database["public"]["Tables"]["calendar_items"]["Insert"], "user_id">>;
         Relationships: [];

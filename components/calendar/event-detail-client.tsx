@@ -116,7 +116,7 @@ export function EventDetailClient({ id }: { id: string }) {
           <label>
             <span className="mb-1 block text-xs text-muted">Category</span>
             <select value={responsibilityId} onChange={(event) => setResponsibilityId(event.target.value)} className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-ink outline-none focus:border-blue">
-              {responsibilities.map((item) => (
+              {responsibilities.filter((resp) => !resp.archivedAt).map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>

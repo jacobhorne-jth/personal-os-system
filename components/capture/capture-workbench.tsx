@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clipboard, FileUp, Image, Loader2, Mic, MicOff, Timer, Type, WandSparkles, X } from "lucide-react";
-import { useAppStore } from "@/lib/stores/app-store";
+import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { cn } from "@/lib/utils";
 
 type Mode = "type" | "voice" | "paste" | "upload" | "time_log";
@@ -28,7 +28,7 @@ type PastedImage = { dataUrl: string; mimeType: string };
 
 export function CaptureWorkbench() {
   const router = useRouter();
-  const responsibilities = useAppStore((s) => s.responsibilities);
+  const responsibilities = useActiveResponsibilities();
   const addParsedExtraction = useAppStore((s) => s.addParsedExtraction);
 
   const [mode, setMode] = useState<Mode>("type");

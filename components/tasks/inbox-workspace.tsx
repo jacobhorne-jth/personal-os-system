@@ -6,7 +6,7 @@ import { CalendarDays, CheckCircle2, ExternalLink, Trash2 } from "lucide-react";
 import { QuickCaptureForm } from "@/components/capture/quick-capture-form";
 import { ReviewWorkspace } from "@/components/capture/review-workspace";
 import { Panel } from "@/components/ui/panel";
-import { useAppStore } from "@/lib/stores/app-store";
+import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { taskLabel, taskLabelColor } from "@/lib/task-labels";
 
 function toDateInput(value?: string) {
@@ -19,7 +19,7 @@ function fromDateInput(value: string) {
 
 export function InboxWorkspace() {
   const tasks = useAppStore((state) => state.tasks);
-  const responsibilities = useAppStore((s) => s.responsibilities);
+  const responsibilities = useActiveResponsibilities();
   const aiReviewItems = useAppStore((state) => state.aiReviewItems);
   const toggleTask = useAppStore((state) => state.toggleTask);
   const deleteTask = useAppStore((state) => state.deleteTask);

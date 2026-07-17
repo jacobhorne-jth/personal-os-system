@@ -46,6 +46,7 @@ export type Responsibility = {
   plannedHoursThisWeek: number;
   taskCount: number;
   upcomingCount: number;
+  archivedAt?: string;
 };
 
 export type CalendarItemType =
@@ -68,6 +69,9 @@ export type CalendarItem = {
   externalId?: string;
   location?: string;
   notes?: string;
+  recurrence?: string; // same grammar as Task.recurrence ("every monday", "every day", …)
+  recurrenceExceptions?: string[]; // YYYY-MM-DD dates whose occurrence was deleted
+  seriesId?: string; // set on expanded instances, points at the master event
 };
 
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
@@ -183,6 +187,15 @@ export type FoodEntry = {
   meal: FoodMeal;
   calories: number;
   protein: number;
+};
+
+// A reusable food saved to the library for one-tap logging
+export type SavedFood = {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  createdAt: string;
 };
 
 // ─── Ideas ───────────────────────────────────────────────────────────────────

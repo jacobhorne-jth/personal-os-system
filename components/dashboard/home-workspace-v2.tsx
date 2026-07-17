@@ -79,7 +79,7 @@ export function HomeWorkspaceV2() {
             <Search className="size-3.5 text-[#bdc1c6]" />
             <select value={labelFilter} onChange={(event) => setLabelFilter(event.target.value)} className="h-10 min-w-0 flex-1 bg-transparent text-sm text-[#bdc1c6] outline-none">
               <option value="all">All labels</option>
-              {responsibilities.map((r) => (
+              {responsibilities.filter((resp) => !resp.archivedAt).map((r) => (
                 <option key={r.id} value={r.name}>{r.name}</option>
               ))}
             </select>

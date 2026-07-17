@@ -65,7 +65,7 @@ export function ListsWorkspace() {
             onChange={(event) => setNewListResponsibilityId(event.target.value)}
             className="mb-3 h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none focus:border-blue"
           >
-            {responsibilities.map((item) => (
+            {responsibilities.filter((resp) => !resp.archivedAt).map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
               </option>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { startOfWeek } from "@/lib/calendar-generated";
+import { expandCalendarItems } from "@/lib/recurrence";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { responsibilityTone } from "@/lib/theme";
@@ -65,7 +66,9 @@ export function CalendarSidebar() {
     return end;
   }, [weekStart]);
   const weeklyInsights = useMemo(() => {
-    const allItems = calendarItems.filter((item) => !hiddenResponsibilities.includes(item.responsibilityId));
+    const allItems = expandCalendarItems(calendarItems, weekStart, weekEnd).filter(
+      (item) => !hiddenResponsibilities.includes(item.responsibilityId)
+    );
     const minutesByResponsibility = allItems.reduce<Record<string, number>>((current, item) => {
       const minutes = overlapMinutes(item, weekStart, weekEnd);
       if (minutes <= 0) return current;
@@ -139,7 +142,7 @@ export function CalendarSidebar() {
 
       <div className="flex-1 overflow-y-auto px-[var(--panel-inset)]">
         <p className="mb-2 text-xs font-medium text-[#9aa0a6]">Responsibilities</p>
-        {responsibilities.map((item) => {
+        {responsibilities.filter((resp) => !resp.archivedAt).map((item) => {
           const tone = responsibilityTone[item.color];
           const hidden = hiddenResponsibilities.includes(item.id);
           return (

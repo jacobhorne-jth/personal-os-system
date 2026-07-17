@@ -157,7 +157,7 @@ export function IdeasWorkspace() {
                   className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue"
                 >
                   <option value="">— none —</option>
-                  {responsibilities.map((r) => (
+                  {responsibilities.filter((resp) => !resp.archivedAt).map((r) => (
                     <option key={r.id} value={r.id}>{r.name}</option>
                   ))}
                 </select>

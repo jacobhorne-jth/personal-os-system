@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight, CalendarDays, CheckCircle2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowRight, CalendarDays, CheckCircle2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { ResponsibilityColorPicker } from "@/components/responsibilities/color-picker";
 import { useAppStore } from "@/lib/stores/app-store";
 import { responsibilityTone } from "@/lib/theme";
@@ -23,9 +23,14 @@ export function ResponsibilitiesBoard() {
   const updateResponsibility = useAppStore((s) => s.updateResponsibility);
   const updateResponsibilityColor = useAppStore((s) => s.updateResponsibilityColor);
   const deleteResponsibility = useAppStore((s) => s.deleteResponsibility);
+  const setResponsibilityArchived = useAppStore((s) => s.setResponsibilityArchived);
 
   const [editing, setEditing] = useState<EditState | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+
+  const activeItems = responsibilities.filter((r) => !r.archivedAt);
+  const archivedItems = responsibilities.filter((r) => r.archivedAt);
 
   function startEdit(r: Responsibility) {
     setDeleteConfirm(null);
@@ -80,7 +85,7 @@ export function ResponsibilitiesBoard() {
       </header>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {responsibilities.map((item) => {
+        {activeItems.map((item) => {
           const isEditing = editing?.id === item.id;
           const tone = responsibilityTone[isEditing ? editing!.color : item.color];
 
@@ -163,6 +168,13 @@ export function ResponsibilitiesBoard() {
                     <Pencil className="size-3.5" />
                   </button>
                   <button
+                    onClick={() => setResponsibilityArchived(item.id, true)}
+                    className="rounded p-1 text-muted hover:bg-line hover:text-ink"
+                    title="Archive"
+                  >
+                    <Archive className="size-3.5" />
+                  </button>
+                  <button
                     onClick={() => router.push(`/responsibilities/${item.id}`)}
                     className="rounded p-1 text-muted hover:bg-line hover:text-ink"
                     title="View"
@@ -242,6 +254,69 @@ export function ResponsibilitiesBoard() {
           </div>
         )}
       </div>
+
+      {archivedItems.length > 0 && (
+        <div className="rounded-xl border border-line bg-panel overflow-hidden">
+          <button
+            onClick={() => setShowArchived((s) => !s)}
+            className="flex w-full items-center justify-between px-5 py-3 text-left transition hover:bg-line/40"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium text-muted">
+              <Archive className="size-4" />
+              Archived ({archivedItems.length})
+            </span>
+            <span className="text-xs text-muted">{showArchived ? "Hide" : "Show"}</span>
+          </button>
+          {showArchived && (
+            <div className="divide-y divide-line border-t border-line">
+              {archivedItems.map((item) => {
+                const tone = responsibilityTone[item.color];
+                return (
+                  <div key={item.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className={cn("size-2.5 shrink-0 rounded-full opacity-60", tone.dot)} />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm text-ink">{item.name}</p>
+                        <p className="text-[11px] text-muted">
+                          archived {item.archivedAt ? new Date(item.archivedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        onClick={() => setResponsibilityArchived(item.id, false)}
+                        className="flex items-center gap-1.5 rounded-md border border-line bg-paper px-2.5 py-1.5 text-xs text-ink transition hover:bg-line"
+                        title="Restore"
+                      >
+                        <ArchiveRestore className="size-3.5" />
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (deleteConfirm === item.id) {
+                            deleteResponsibility(item.id);
+                            setDeleteConfirm(null);
+                          } else {
+                            setDeleteConfirm(item.id);
+                          }
+                        }}
+                        className={cn(
+                          "rounded-md border px-2.5 py-1.5 text-xs transition",
+                          deleteConfirm === item.id
+                            ? "border-red-500/40 bg-red-500/10 text-red-400"
+                            : "border-line bg-paper text-muted hover:text-red-400"
+                        )}
+                      >
+                        {deleteConfirm === item.id ? "Confirm" : <Trash2 className="size-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

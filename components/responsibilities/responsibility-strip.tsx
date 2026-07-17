@@ -12,7 +12,7 @@ export function ResponsibilityStrip() {
   const updateResponsibilityColor = useAppStore((state) => state.updateResponsibilityColor);
   return (
     <div className="flex gap-3 overflow-x-auto p-4 no-scrollbar">
-      {responsibilities.map((item) => (
+      {responsibilities.filter((resp) => !resp.archivedAt).map((item) => (
         <Link
           href={`/r/${item.id}`}
           key={item.id}

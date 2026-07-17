@@ -1,12 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { aiReviewItems, calendarItems, lists, responsibilities, tasks } from "@/lib/data/mock";
 import { nextOccurrence } from "@/lib/recurrence";
-import type { ActiveGymSession, CalendarItem, CaptureExtraction, FileAsset, FoodEntry, FoodMeal, Goal, GymDay, GymExercise, GymSession, GymSessionExercise, GymSet, Habit, HabitLog, HabitType, Idea, IdeaStatus, Note, NoteFolder, Responsibility, ResponsibilityColor, SavedList, Task } from "@/lib/types/domain";
+import type { ActiveGymSession, CalendarItem, CaptureExtraction, FileAsset, FoodEntry, FoodMeal, Goal, GymDay, GymExercise, GymSession, GymSessionExercise, GymSet, Habit, HabitLog, HabitType, Idea, IdeaStatus, Note, NoteFolder, Responsibility, ResponsibilityColor, SavedFood, SavedList, Task } from "@/lib/types/domain";
 import type { Database, Json } from "@/lib/types/database";
 
 // ─── Supabase client singleton ────────────────────────────────────────────────
@@ -37,6 +38,7 @@ const LOCAL_SLICE_KEYS = [
   "goals",
   "foodEntries",
   "foodTargets",
+  "savedFoods",
   "ideas",
 ] as const;
 
@@ -84,6 +86,8 @@ function dbCalendarItemToDomain(row: DbCalendarItem): CalendarItem {
     externalId: row.external_id ?? undefined,
     location: row.location ?? undefined,
     notes: row.notes ?? undefined,
+    recurrence: row.recurrence ?? undefined,
+    recurrenceExceptions: (row.recurrence_exceptions as string[]) ?? [],
   };
 }
 
@@ -176,6 +180,7 @@ function dbResponsibilityToDomain(
     plannedHoursThisWeek: Math.round(plannedHoursThisWeek * 10) / 10,
     taskCount,
     upcomingCount,
+    archivedAt: row.archived_at ?? undefined,
   };
 }
 
@@ -343,6 +348,7 @@ type AppState = {
   addCalendarItem: (input: Omit<CalendarItem, "id" | "source"> & { source?: CalendarItem["source"] }) => void;
   updateCalendarItem: (itemId: string, input: Partial<Omit<CalendarItem, "id">>) => void;
   deleteCalendarItem: (itemId: string) => void;
+  deleteCalendarOccurrence: (masterId: string, dateKey: string) => void;
   moveCalendarItem: (itemId: string, startsAt: string, endsAt?: string) => void;
 
   // Tasks
@@ -375,6 +381,7 @@ type AppState = {
   updateResponsibility: (responsibilityId: string, input: { name?: string; description?: string; color?: ResponsibilityColor }) => void;
   updateResponsibilityColor: (responsibilityId: string, color: ResponsibilityColor) => void;
   deleteResponsibility: (responsibilityId: string) => void;
+  setResponsibilityArchived: (responsibilityId: string, archived: boolean) => void;
 
   // Gym (localStorage only)
   gymExercises: GymExercise[];
@@ -416,6 +423,9 @@ type AppState = {
   addFoodEntry: (input: { date: string; name: string; meal: FoodMeal; calories: number; protein: number }) => void;
   deleteFoodEntry: (entryId: string) => void;
   setFoodTargets: (targets: { calories?: number; protein?: number }) => void;
+  savedFoods: SavedFood[];
+  addSavedFood: (input: { name: string; calories: number; protein: number }) => void;
+  deleteSavedFood: (foodId: string) => void;
 
   // Ideas (localStorage only)
   ideas: Idea[];
@@ -454,6 +464,7 @@ export const useAppStore = create<AppState>()(
       goals: [],
       foodEntries: [],
       foodTargets: { calories: 2500, protein: 160 },
+      savedFoods: [],
       ideas: [],
       gymExercises: [],
       gymDays: [],
@@ -547,7 +558,7 @@ export const useAppStore = create<AppState>()(
             }))
           );
           loadedResp = responsibilities.map((r) =>
-            dbResponsibilityToDomain({ id: r.id, user_id: userId, name: r.name, description: r.description, color: r.color, icon: r.icon, weekly_goal_hours: r.weeklyGoalHours, sort_order: 0, created_at: new Date().toISOString() }, loadedTasks, loadedItems)
+            dbResponsibilityToDomain({ id: r.id, user_id: userId, name: r.name, description: r.description, color: r.color, icon: r.icon, weekly_goal_hours: r.weeklyGoalHours, sort_order: 0, archived_at: null, created_at: new Date().toISOString() }, loadedTasks, loadedItems)
           );
         } else {
           loadedResp = dbResp.map((r) => dbResponsibilityToDomain(r, loadedTasks, loadedItems));
@@ -665,6 +676,8 @@ export const useAppStore = create<AppState>()(
           source: input.source ?? "app",
           location: input.location,
           notes: input.notes,
+          recurrence: input.recurrence,
+          recurrenceExceptions: [],
         };
         set((state) => ({
           calendarItems: [newItem, ...state.calendarItems],
@@ -674,7 +687,7 @@ export const useAppStore = create<AppState>()(
         }));
         const { userId } = get();
         if (userId) {
-          getDb()?.from("calendar_items").insert({ id: itemId, user_id: userId, responsibility_id: input.responsibilityId || null, type: input.type, title: input.title, starts_at: input.startsAt, ends_at: input.endsAt, source: input.source ?? "app", location: input.location ?? null, notes: input.notes ?? null })
+          getDb()?.from("calendar_items").insert({ id: itemId, user_id: userId, responsibility_id: input.responsibilityId || null, type: input.type, title: input.title, starts_at: input.startsAt, ends_at: input.endsAt, source: input.source ?? "app", location: input.location ?? null, notes: input.notes ?? null, recurrence: input.recurrence ?? null })
             .then(({ error }) => { if (error) console.error("addCalendarItem:", error.message); });
         }
       },
@@ -695,6 +708,7 @@ export const useAppStore = create<AppState>()(
               ...(input.location !== undefined && { location: input.location }),
               ...(input.notes !== undefined && { notes: input.notes }),
               ...(input.responsibilityId !== undefined && { responsibility_id: input.responsibilityId }),
+              ...("recurrence" in input && { recurrence: input.recurrence ?? null }),
             }).eq("id", itemId).eq("user_id", userId)
               .then(({ error }) => { if (error) console.error("updateCalendarItem:", error.message); });
           }
@@ -707,6 +721,22 @@ export const useAppStore = create<AppState>()(
         if (userId) {
           getDb()?.from("calendar_items").delete().eq("id", itemId).eq("user_id", userId)
             .then(({ error }) => { if (error) console.error("deleteCalendarItem:", error.message); });
+        }
+      },
+
+      deleteCalendarOccurrence: (masterId, dateKey) => {
+        let nextExceptions: string[] = [];
+        set((state) => ({
+          calendarItems: state.calendarItems.map((item) => {
+            if (item.id !== masterId) return item;
+            nextExceptions = [...(item.recurrenceExceptions ?? []), dateKey];
+            return { ...item, recurrenceExceptions: nextExceptions };
+          }),
+        }));
+        const { userId } = get();
+        if (userId) {
+          getDb()?.from("calendar_items").update({ recurrence_exceptions: nextExceptions }).eq("id", masterId).eq("user_id", userId)
+            .then(({ error }) => { if (error) console.error("deleteCalendarOccurrence:", error.message); });
         }
       },
 
@@ -1098,6 +1128,20 @@ export const useAppStore = create<AppState>()(
         }
       },
 
+      setResponsibilityArchived: (responsibilityId, archived) => {
+        const archivedAt = archived ? new Date().toISOString() : undefined;
+        set((state) => ({
+          responsibilities: state.responsibilities.map((r) =>
+            r.id === responsibilityId ? { ...r, archivedAt } : r
+          ),
+        }));
+        const { userId } = get();
+        if (userId) {
+          getDb()?.from("responsibilities").update({ archived_at: archivedAt ?? null }).eq("id", responsibilityId).eq("user_id", userId)
+            .then(({ error }) => { if (error) console.error("setResponsibilityArchived:", error.message); });
+        }
+      },
+
       // ── Gym ───────────────────────────────────────────────────────────────
 
       addGymExercise: (input) => {
@@ -1333,6 +1377,25 @@ export const useAppStore = create<AppState>()(
       setFoodTargets: (targets) =>
         set((state) => ({ foodTargets: { ...state.foodTargets, ...targets } })),
 
+      addSavedFood: (input) =>
+        set((state) => {
+          // One library entry per name — re-saving updates the macros
+          const existing = state.savedFoods.find((f) => f.name.toLowerCase() === input.name.toLowerCase());
+          if (existing) {
+            return {
+              savedFoods: state.savedFoods.map((f) =>
+                f.id === existing.id ? { ...f, name: input.name, calories: input.calories, protein: input.protein } : f
+              ),
+            };
+          }
+          return {
+            savedFoods: [{ id: id("sfood"), createdAt: new Date().toISOString(), ...input }, ...state.savedFoods],
+          };
+        }),
+
+      deleteSavedFood: (foodId) =>
+        set((state) => ({ savedFoods: state.savedFoods.filter((f) => f.id !== foodId) })),
+
       // ── Ideas ─────────────────────────────────────────────────────────────
 
       addIdea: (input) =>
@@ -1484,11 +1547,19 @@ export const useAppStore = create<AppState>()(
         goals: state.goals,
         foodEntries: state.foodEntries,
         foodTargets: state.foodTargets,
+        savedFoods: state.savedFoods,
         ideas: state.ideas,
       }),
     }
   )
 );
+
+// Responsibilities that should appear in pickers, filters, and capture —
+// archived ones stay in the main array so history keeps its colors.
+export function useActiveResponsibilities() {
+  const responsibilities = useAppStore((s) => s.responsibilities);
+  return useMemo(() => responsibilities.filter((r) => !r.archivedAt), [responsibilities]);
+}
 
 // Push slice changes to Supabase (debounced) so other devices pick them up
 // on their next load. localStorage persistence above stays as the offline cache.

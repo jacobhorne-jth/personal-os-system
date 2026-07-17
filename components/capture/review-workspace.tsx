@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CalendarPlus, Check, FileText, GitPullRequestArrow, ListChecks, ListTodo, Pencil, X } from "lucide-react";
-import { useAppStore } from "@/lib/stores/app-store";
+import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { responsibilityTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +10,7 @@ export function ReviewWorkspace() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const items = useAppStore((state) => state.aiReviewItems);
-  const responsibilities = useAppStore((state) => state.responsibilities);
+  const responsibilities = useActiveResponsibilities();
   const setExtractionDecision = useAppStore((state) => state.setExtractionDecision);
   const updateExtractionProposal = useAppStore((state) => state.updateExtractionProposal);
   const commitExtraction = useAppStore((state) => state.commitExtraction);

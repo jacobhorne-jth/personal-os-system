@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, Dumbbell, History, Pencil, Plus, Settings, Trash2, X } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
 import { ExerciseHistory } from "@/components/gym/exercise-history";
+import { GymProgressCharts } from "@/components/gym/progress-charts";
 import { SplitEditor } from "@/components/gym/split-editor";
 import type { GymExercise } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
@@ -540,6 +541,8 @@ export function GymWorkspace() {
           </div>
         </div>
       )}
+
+      <GymProgressCharts />
     </div>
   );
 }
