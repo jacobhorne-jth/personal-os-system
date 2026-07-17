@@ -6,7 +6,8 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type EventResizeDoneArg } from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { DatesSetArg, EventClickArg, EventDropArg, EventContentArg } from "@fullcalendar/core";
-import { ChevronLeft, ChevronRight, FileText, MapPin, Pencil, Tags, Trash2, X } from "lucide-react";
+import { AlignLeft, ChevronLeft, ChevronRight, Clock, FileText, MapPin, Pencil, Tags, Trash2, X } from "lucide-react";
+import { DateTimeRow } from "@/components/calendar/date-time-picker";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toFullCalendarEvent } from "@/lib/queries/calendar";
 import { useAppStore } from "@/lib/stores/app-store";
@@ -220,6 +221,22 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     cardOpenRef.current = Boolean(draftEvent);
     if (!draftEvent) clearPlacedOverlayRef.current();
   }, [draftEvent]);
+
+  // Keep the placeholder block in sync when the draft's date/time is edited
+  // from the card (mini calendar or time dropdowns).
+  const draftStartsAt = draftEvent?.startsAt;
+  const draftEndsAt = draftEvent?.endsAt;
+  useEffect(() => {
+    if (!draftStartsAt || !draftEndsAt) return;
+    const s = new Date(draftStartsAt);
+    const e = new Date(draftEndsAt);
+    const dateKey = `${s.getFullYear()}-${`${s.getMonth() + 1}`.padStart(2, "0")}-${`${s.getDate()}`.padStart(2, "0")}`;
+    const aMin = s.getHours() * 60 + s.getMinutes();
+    const rawEnd = e.getHours() * 60 + e.getMinutes();
+    const bMin = Math.max(aMin + 15, rawEnd === 0 ? 24 * 60 : rawEnd);
+    clearPlacedOverlayRef.current();
+    placeBlockRef.current(dateKey, aMin, bMin);
+  }, [draftStartsAt, draftEndsAt]);
 
   // Any click outside the open card/panel dismisses it — sidebar, top bar,
   // mini calendar, nav links (navigation still goes through).
@@ -704,7 +721,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
           style={draftCardPos ? { left: draftCardPos.left, top: draftCardPos.top } : { left: 12, top: 56 }}
         >
           <form onSubmit={saveDraftEvent}>
-            <div className="px-5 pt-5 pb-4">
+            <div className="px-5 pt-5 pb-3">
               <input
                 autoFocus
                 value={draftEvent.title}
@@ -712,25 +729,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                 placeholder="Add title"
                 className="h-10 w-full border-b border-[#5f6368] bg-transparent text-lg text-[#e8eaed] outline-none placeholder:text-[#5f6368] focus:border-[#4285f4]"
               />
-              <p className="mt-3 text-sm text-[#9aa0a6]">{formatDraftTime(draftEvent)}</p>
-            </div>
-            <div className="space-y-2.5 px-5 pb-4">
-              <input
-                value={draftEvent.location}
-                onChange={(e) => setDraftEvent({ ...draftEvent, location: e.target.value })}
-                placeholder="Add location"
-                className="h-9 w-full rounded-lg border border-[#3c4043] bg-[#202124] px-3 text-sm text-[#e8eaed] outline-none placeholder:text-[#5f6368] focus:border-[#4285f4]"
-              />
-              <select
-                value={draftEvent.responsibilityId}
-                onChange={(e) => setDraftEvent({ ...draftEvent, responsibilityId: e.target.value })}
-                className="h-9 w-full rounded-lg border border-[#3c4043] bg-[#202124] px-3 text-sm text-[#e8eaed] outline-none focus:border-[#4285f4]"
-              >
-                {responsibilities.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-              <div className="flex flex-wrap gap-1.5 pt-1">
+              <div className="mt-3 flex flex-wrap gap-1.5">
                 {creatableTypes.map((item) => (
                   <button
                     type="button"
@@ -746,6 +745,47 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                     {item.label}
                   </button>
                 ))}
+              </div>
+            </div>
+            <div className="space-y-0.5 px-2 pb-3">
+              <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+                <Clock className="size-5 shrink-0 text-[#9aa0a6]" />
+                <DateTimeRow
+                  startsAt={draftEvent.startsAt}
+                  endsAt={draftEvent.endsAt}
+                  onChange={(startsAt, endsAt) => setDraftEvent({ ...draftEvent, startsAt, endsAt })}
+                />
+              </div>
+              <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#303134] focus-within:bg-[#303134]">
+                <MapPin className="size-5 shrink-0 text-[#9aa0a6]" />
+                <input
+                  value={draftEvent.location}
+                  onChange={(e) => setDraftEvent({ ...draftEvent, location: e.target.value })}
+                  placeholder="Add location"
+                  className="h-9 w-full bg-transparent text-sm text-[#e8eaed] outline-none placeholder:text-[#9aa0a6]"
+                />
+              </div>
+              <div className="flex items-start gap-3 rounded-lg px-3 py-2 transition hover:bg-[#303134] focus-within:bg-[#303134]">
+                <AlignLeft className="mt-0.5 size-5 shrink-0 text-[#9aa0a6]" />
+                <textarea
+                  value={draftEvent.notes}
+                  onChange={(e) => setDraftEvent({ ...draftEvent, notes: e.target.value })}
+                  placeholder="Add description"
+                  rows={draftEvent.notes ? 3 : 1}
+                  className="w-full resize-none bg-transparent text-sm leading-6 text-[#e8eaed] outline-none placeholder:text-[#9aa0a6]"
+                />
+              </div>
+              <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#303134]">
+                <Tags className="size-5 shrink-0 text-[#9aa0a6]" />
+                <select
+                  value={draftEvent.responsibilityId}
+                  onChange={(e) => setDraftEvent({ ...draftEvent, responsibilityId: e.target.value })}
+                  className="h-9 w-full cursor-pointer bg-transparent text-sm text-[#e8eaed] outline-none [&>option]:bg-[#202124]"
+                >
+                  {responsibilities.map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-[#3c4043] px-5 py-3">
