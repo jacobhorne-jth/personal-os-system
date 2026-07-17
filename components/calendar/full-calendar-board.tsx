@@ -53,6 +53,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const selectRef = useRef<(s: { start: Date; end: Date; allDay: boolean; anchor?: SelectAnchor }) => void>(() => {});
   const closeDraftRef = useRef<() => void>(() => {});
   const clearPlacedOverlayRef = useRef<() => void>(() => {});
+  const placeBlockRef = useRef<(dateKey: string, startMin: number, endMin: number) => void>(() => {});
   const cardOpenRef = useRef(false);
   const handledQueryDraft = useRef(false);
   const [calendarTitle, setCalendarTitle] = useState(() => new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }));
@@ -126,6 +127,27 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       responsibilityId: responsibilities[0]?.id ?? "school",
       type: "app_event"
     });
+    // Anchor the card and placeholder block to the selection's day column
+    // once FullCalendar has painted the target week.
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    setTimeout(() => {
+      const y = startDate.getFullYear();
+      const m = `${startDate.getMonth() + 1}`.padStart(2, "0");
+      const d = `${startDate.getDate()}`.padStart(2, "0");
+      const dateKey = `${y}-${m}-${d}`;
+      const col = shellRef.current?.querySelector<HTMLElement>(`.fc-timegrid-col[data-date='${dateKey}']`);
+      if (!col) return;
+      const rect = col.getBoundingClientRect();
+      const startMin = startDate.getHours() * 60 + startDate.getMinutes();
+      const endMin = Math.max(startMin + 15, endDate.getHours() * 60 + endDate.getMinutes() || startMin + 60);
+      positionCard({
+        colLeft: rect.left,
+        colRight: rect.right,
+        top: rect.top + (startMin / (25 * 60)) * rect.height,
+      });
+      placeBlockRef.current(dateKey, startMin, endMin);
+    }, 80);
     // Consume the params so a refresh doesn't replay this draft
     router.replace("/calendar", { scroll: false });
   }, [fullChrome, responsibilities, router, searchParams, visibleItems]);
@@ -140,6 +162,24 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     setCalendarGotoDate(null);
   }, [calendarGotoDate, setCalendarGotoDate, setCalendarView]);
 
+  // Place the card beside the selection like Google Calendar: prefer the
+  // left of the day column, flip to the right when there's no room.
+  function positionCard(anchor: SelectAnchor | null) {
+    const root = rootRef.current;
+    if (!anchor || !root) {
+      setDraftCardPos(null);
+      return;
+    }
+    const rootRect = root.getBoundingClientRect();
+    const CARD_WIDTH = 380;
+    const GAP = 12;
+    let left = anchor.colLeft - rootRect.left - CARD_WIDTH - GAP;
+    if (left < 8) left = anchor.colRight - rootRect.left + GAP;
+    left = Math.max(8, Math.min(left, rootRect.width - CARD_WIDTH - 8));
+    const top = Math.max(56, Math.min(anchor.top - rootRect.top - 8, rootRect.height - 420));
+    setDraftCardPos({ left, top });
+  }
+
   function handleSelect(selection: { start: Date; end: Date; allDay: boolean; anchor?: SelectAnchor }) {
     const start = selection.start;
     const end = selection.end;
@@ -151,23 +191,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     setCreateMode(false);
     setSelectedItem(null);
     setEventPanelMode("preview");
-
-    // Place the card beside the selection like Google Calendar: prefer the
-    // left of the day column, flip to the right when there's no room.
-    const root = rootRef.current;
-    if (selection.anchor && root) {
-      const rootRect = root.getBoundingClientRect();
-      const CARD_WIDTH = 380;
-      const GAP = 12;
-      let left = selection.anchor.colLeft - rootRect.left - CARD_WIDTH - GAP;
-      if (left < 8) left = selection.anchor.colRight - rootRect.left + GAP;
-      left = Math.max(8, Math.min(left, rootRect.width - CARD_WIDTH - 8));
-      const top = Math.max(56, Math.min(selection.anchor.top - rootRect.top - 8, rootRect.height - 420));
-      setDraftCardPos({ left, top });
-    } else {
-      setDraftCardPos(null);
-    }
-
+    positionCard(selection.anchor ?? null);
     setDraftEvent({
       startsAt: start.toISOString(),
       endsAt: end.toISOString(),
@@ -235,15 +259,43 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       placed = null;
     };
 
+    function fmtMin(mins: number) {
+      const d = new Date(2000, 0, 1, Math.floor(mins / 60) % 24, mins % 60);
+      return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    }
+
+    function createBlock(col: HTMLElement, aMin: number, bMin: number, withTitle: boolean) {
+      const frame = col.querySelector<HTMLElement>(".fc-timegrid-col-frame") ?? col;
+      const el = document.createElement("div");
+      el.style.cssText =
+        "position:absolute;left:2px;right:3px;z-index:5;border-radius:6px;background:#4285f4;pointer-events:none;padding:3px 7px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.35);";
+      const t = document.createElement("div");
+      t.style.cssText = "font-size:12px;font-weight:500;color:#fff;white-space:nowrap;";
+      const l = document.createElement("div");
+      l.style.cssText = "font-size:11px;color:rgba(255,255,255,0.9);white-space:nowrap;";
+      if (withTitle) t.textContent = "(No title)";
+      l.textContent = `${fmtMin(aMin)} – ${fmtMin(bMin)}`;
+      el.style.top = `${(aMin / TOTAL_MINUTES) * 100}%`;
+      el.style.height = `${(Math.max(bMin - aMin, SNAP) / TOTAL_MINUTES) * 100}%`;
+      el.appendChild(t);
+      el.appendChild(l);
+      frame.appendChild(el);
+      return { el, t, l };
+    }
+
+    // Lets the query-param draft (home page → calendar handoff) show the same
+    // placeholder block as a native drag.
+    placeBlockRef.current = (dateKey, aMin, bMin) => {
+      const col = shell!.querySelector<HTMLElement>(`.fc-timegrid-col[data-date='${dateKey}']`);
+      if (!col) return;
+      placed?.remove();
+      placed = createBlock(col, aMin, bMin, true).el;
+    };
+
     function rawMinutes(e: { clientY: number }) {
       const rect = colEl!.getBoundingClientRect();
       const ratio = (e.clientY - rect.top) / rect.height;
       return Math.max(0, Math.min(TOTAL_MINUTES, ratio * TOTAL_MINUTES));
-    }
-
-    function fmt(mins: number) {
-      const d = new Date(2000, 0, 1, Math.floor(mins / 60) % 24, mins % 60);
-      return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     }
 
     function render() {
@@ -252,7 +304,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       const b = Math.max(startMinutes, endMinutes);
       overlay.style.top = `${(a / TOTAL_MINUTES) * 100}%`;
       overlay.style.height = `${(Math.max(b - a, SNAP) / TOTAL_MINUTES) * 100}%`;
-      if (label) label.textContent = `${fmt(a)} – ${fmt(Math.max(b, a + SNAP))}`;
+      if (label) label.textContent = `${fmtMin(a)} – ${fmtMin(Math.max(b, a + SNAP))}`;
     }
 
     function onMove(e: PointerEvent) {
@@ -340,17 +392,10 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       endMinutes = startMinutes;
       dragging = true;
 
-      const frame = col.querySelector<HTMLElement>(".fc-timegrid-col-frame") ?? col;
-      overlay = document.createElement("div");
-      overlay.style.cssText =
-        "position:absolute;left:2px;right:3px;z-index:5;border-radius:6px;background:#4285f4;pointer-events:none;padding:3px 7px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.35);";
-      titleLine = document.createElement("div");
-      titleLine.style.cssText = "font-size:12px;font-weight:500;color:#fff;white-space:nowrap;";
-      label = document.createElement("div");
-      label.style.cssText = "font-size:11px;color:rgba(255,255,255,0.9);white-space:nowrap;";
-      overlay.appendChild(titleLine);
-      overlay.appendChild(label);
-      frame.appendChild(overlay);
+      const block = createBlock(col, startMinutes, endMinutes, false);
+      overlay = block.el;
+      titleLine = block.t;
+      label = block.l;
       render();
 
       document.addEventListener("pointermove", onMove);
