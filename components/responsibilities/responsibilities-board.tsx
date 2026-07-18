@@ -24,13 +24,39 @@ export function ResponsibilitiesBoard() {
   const updateResponsibilityColor = useAppStore((s) => s.updateResponsibilityColor);
   const deleteResponsibility = useAppStore((s) => s.deleteResponsibility);
   const setResponsibilityArchived = useAppStore((s) => s.setResponsibilityArchived);
+  const reorderResponsibilities = useAppStore((s) => s.reorderResponsibilities);
 
   const [editing, setEditing] = useState<EditState | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [previewOrder, setPreviewOrder] = useState<string[] | null>(null);
 
-  const activeItems = responsibilities.filter((r) => !r.archivedAt);
   const archivedItems = responsibilities.filter((r) => r.archivedAt);
+  const baseItems = responsibilities.filter((r) => !r.archivedAt);
+  const activeItems = previewOrder
+    ? previewOrder.map((rid) => baseItems.find((r) => r.id === rid)).filter((r): r is Responsibility => Boolean(r))
+    : baseItems;
+
+  function dragEnterCard(targetId: string) {
+    if (!dragId || dragId === targetId) return;
+    setPreviewOrder((order) => {
+      const current = order ?? baseItems.map((r) => r.id);
+      // Dragging forward drops after the target, backward drops before it
+      const after = current.indexOf(dragId) < current.indexOf(targetId);
+      const without = current.filter((rid) => rid !== dragId);
+      without.splice(without.indexOf(targetId) + (after ? 1 : 0), 0, dragId);
+      return without;
+    });
+  }
+
+  function endDrag() {
+    if (previewOrder && previewOrder.join() !== baseItems.map((r) => r.id).join()) {
+      reorderResponsibilities(previewOrder);
+    }
+    setDragId(null);
+    setPreviewOrder(null);
+  }
 
   function startEdit(r: Responsibility) {
     setDeleteConfirm(null);
@@ -142,7 +168,18 @@ export function ResponsibilitiesBoard() {
           return (
             <div
               key={item.id}
-              className="group relative z-0 overflow-hidden rounded-lg border border-line bg-panel p-3.5 shadow-glow transition duration-200 hover:z-20 hover:-translate-y-0.5 hover:border-muted hover:bg-[#303134]"
+              draggable
+              onDragStart={(e) => {
+                setDragId(item.id);
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragEnter={() => dragEnterCard(item.id)}
+              onDragOver={(e) => e.preventDefault()}
+              onDragEnd={endDrag}
+              className={cn(
+                "group relative z-0 cursor-grab overflow-hidden rounded-lg border border-line bg-panel p-3.5 shadow-glow transition duration-200 hover:z-20 hover:-translate-y-0.5 hover:border-muted hover:bg-[#303134] active:cursor-grabbing",
+                dragId === item.id && "opacity-40"
+              )}
             >
               <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: tone.hex }} />
               <div className="flex items-center justify-between gap-3 pt-1.5">

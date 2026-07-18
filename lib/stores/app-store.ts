@@ -385,6 +385,7 @@ type AppState = {
   updateResponsibilityColor: (responsibilityId: string, color: ResponsibilityColor) => void;
   deleteResponsibility: (responsibilityId: string) => void;
   setResponsibilityArchived: (responsibilityId: string, archived: boolean) => void;
+  reorderResponsibilities: (orderedIds: string[]) => void;
 
   // Gym (localStorage only)
   gymExercises: GymExercise[];
@@ -1195,6 +1196,23 @@ export const useAppStore = create<AppState>()(
         if (userId) {
           getDb()?.from("responsibilities").update({ archived_at: archivedAt ?? null }).eq("id", responsibilityId).eq("user_id", userId)
             .then(({ error }) => { if (error) console.error("setResponsibilityArchived:", error.message); });
+        }
+      },
+
+      reorderResponsibilities: (orderedIds) => {
+        set((state) => {
+          const byId = new Map(state.responsibilities.map((r) => [r.id, r]));
+          const reordered = orderedIds.map((rid) => byId.get(rid)).filter((r): r is Responsibility => Boolean(r));
+          const rest = state.responsibilities.filter((r) => !orderedIds.includes(r.id));
+          return { responsibilities: [...reordered, ...rest] };
+        });
+        const { userId } = get();
+        const db = getDb();
+        if (userId && db) {
+          get().responsibilities.forEach((r, i) => {
+            db.from("responsibilities").update({ sort_order: i }).eq("id", r.id).eq("user_id", userId)
+              .then(({ error }) => { if (error) console.error("reorderResponsibilities:", error.message); });
+          });
         }
       },
 
