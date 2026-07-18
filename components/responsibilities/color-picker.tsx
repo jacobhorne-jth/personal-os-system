@@ -47,7 +47,6 @@ export function ResponsibilityColorPicker({
   value: ResponsibilityColor;
   onChange: (color: ResponsibilityColor) => void;
   compact?: boolean;
-  showLabels?: boolean;
 }) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
