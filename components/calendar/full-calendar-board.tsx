@@ -8,6 +8,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import type { DatesSetArg, EventClickArg, EventDropArg, EventContentArg } from "@fullcalendar/core";
 import { AlignLeft, ChevronLeft, ChevronRight, Clock, FileText, MapPin, Pencil, RefreshCw, Tags, Trash2, X } from "lucide-react";
 import { DateTimeRow } from "@/components/calendar/date-time-picker";
+import { LabelSelect } from "@/components/calendar/label-select";
 import { RecurrencePicker } from "@/components/calendar/recurrence-picker";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toFullCalendarEvent } from "@/lib/queries/calendar";
@@ -59,6 +60,10 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const closeDraftRef = useRef<() => void>(() => {});
   const clearPlacedOverlayRef = useRef<() => void>(() => {});
   const placeBlockRef = useRef<(dateKey: string, startMin: number, endMin: number) => void>(() => {});
+  // Color for the drag-create placeholder: the draft's label color (defaults
+  // to the first label, which the draft auto-selects)
+  const draftColorRef = useRef("#4285f4");
+  const recolorPlacedRef = useRef<(hex: string) => void>(() => {});
   const cardOpenRef = useRef(false);
   const handledQueryDraft = useRef(false);
   const [calendarTitle, setCalendarTitle] = useState(() => new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }));
@@ -75,6 +80,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const { calendarView, setCalendarView, visibleOverlays, hiddenResponsibilities, calendarGotoDate, setCalendarGotoDate } = useUiStore();
   const calendarItems = useAppStore((state) => state.calendarItems);
   const responsibilities = useAppStore((state) => state.responsibilities);
+  const activeResponsibilities = responsibilities.filter((resp) => !resp.archivedAt);
   const addCalendarItem = useAppStore((state) => state.addCalendarItem);
   const updateCalendarItem = useAppStore((state) => state.updateCalendarItem);
   const deleteCalendarItem = useAppStore((state) => state.deleteCalendarItem);
@@ -118,6 +124,17 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     });
 
   const initialDate = searchParams.get("start") ?? searchParams.get("date") ?? undefined;
+
+  // Keep the placeholder-block color in sync with the draft's label (or the
+  // default label before a draft exists), and recolor a placed block live
+  // when the label changes in the open card.
+  useEffect(() => {
+    const respId = draftEvent?.responsibilityId ?? responsibilities[0]?.id;
+    const resp = responsibilities.find((r) => r.id === respId);
+    const hex = getTone(resp?.color).hex;
+    draftColorRef.current = hex;
+    recolorPlacedRef.current(hex);
+  }, [draftEvent?.responsibilityId, responsibilities]);
 
   useEffect(() => {
     if (!fullChrome || handledQueryDraft.current) return;
@@ -342,6 +359,10 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       placed = null;
     };
 
+    recolorPlacedRef.current = (hex) => {
+      if (placed) placed.style.background = hex;
+    };
+
     function fmtMin(mins: number) {
       const d = new Date(2000, 0, 1, Math.floor(mins / 60) % 24, mins % 60);
       return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -351,7 +372,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       const frame = col.querySelector<HTMLElement>(".fc-timegrid-col-frame") ?? col;
       const el = document.createElement("div");
       el.style.cssText =
-        "position:absolute;left:2px;right:3px;z-index:5;border-radius:6px;background:#4285f4;pointer-events:none;padding:3px 7px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.35);";
+        `position:absolute;left:2px;right:3px;z-index:5;border-radius:6px;background:${draftColorRef.current};pointer-events:none;padding:3px 7px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.35);`;
       const t = document.createElement("div");
       t.style.cssText = "font-size:12px;font-weight:500;color:#fff;white-space:nowrap;";
       const l = document.createElement("div");
@@ -909,15 +930,12 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
               </div>
               <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#303134]">
                 <Tags className="size-5 shrink-0 text-[#9aa0a6]" />
-                <select
+                <LabelSelect
                   value={draftEvent.responsibilityId}
-                  onChange={(e) => setDraftEvent({ ...draftEvent, responsibilityId: e.target.value })}
-                  className="h-9 w-full cursor-pointer bg-transparent text-sm text-[#e8eaed] outline-none [&>option]:bg-[#202124]"
-                >
-                  {responsibilities.filter((resp) => !resp.archivedAt).map((item) => (
-                    <option key={item.id} value={item.id}>{item.name}</option>
-                  ))}
-                </select>
+                  options={activeResponsibilities}
+                  onChange={(responsibilityId) => setDraftEvent({ ...draftEvent, responsibilityId })}
+                  className="w-full"
+                />
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-[#3c4043] px-5 py-3">
@@ -1029,15 +1047,12 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                 </div>
                 <div className="flex items-center gap-3 rounded-lg px-3 py-2">
                   <Tags className="size-5 shrink-0 text-[#9aa0a6]" />
-                  <select
+                  <LabelSelect
                     value={draftEvent.responsibilityId}
-                    onChange={(e) => setDraftEvent({ ...draftEvent, responsibilityId: e.target.value })}
-                    className="h-10 w-56 cursor-pointer rounded-md bg-[#303134] px-3 text-sm text-[#e8eaed] outline-none [&>option]:bg-[#202124]"
-                  >
-                    {responsibilities.filter((resp) => !resp.archivedAt).map((item) => (
-                      <option key={item.id} value={item.id}>{item.name}</option>
-                    ))}
-                  </select>
+                    options={activeResponsibilities}
+                    onChange={(responsibilityId) => setDraftEvent({ ...draftEvent, responsibilityId })}
+                    className="h-10 w-56 rounded-md bg-[#303134] px-3"
+                  />
                 </div>
               </div>
             </div>
@@ -1108,8 +1123,16 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
               )}
 
               <Tags className="mt-0.5 size-4 justify-self-center text-[#9aa0a6]" />
-              <p className="text-sm leading-5 text-[#e8eaed]">
-                {responsibilities.find((item) => item.id === selectedItem.responsibilityId)?.name ?? "No label"}
+              <p className="flex items-center gap-2 text-sm leading-5 text-[#e8eaed]">
+                {(() => {
+                  const resp = responsibilities.find((item) => item.id === selectedItem.responsibilityId);
+                  return (
+                    <>
+                      {resp && <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: getTone(resp.color).hex }} />}
+                      {resp?.name ?? "No label"}
+                    </>
+                  );
+                })()}
               </p>
 
               {selectedItem.notes && (
