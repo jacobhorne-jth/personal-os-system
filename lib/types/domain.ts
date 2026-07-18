@@ -1,39 +1,6 @@
-export type ResponsibilityColor =
-  | "tomato"
-  | "tangerine"
-  | "banana"
-  | "mango"
-  | "pumpkin"
-  | "lemon"
-  | "lime"
-  | "sage"
-  | "basil"
-  | "emerald"
-  | "teal"
-  | "cyan"
-  | "peacock"
-  | "sky"
-  | "cobalt"
-  | "blueberry"
-  | "indigo"
-  | "periwinkle"
-  | "lavender"
-  | "lilac"
-  | "grape"
-  | "orchid"
-  | "magenta"
-  | "pink"
-  | "rose"
-  | "flamingo"
-  | "cherry"
-  | "graphite"
-  | "slate"
-  | "stone"
-  | "blue"
-  | "mint"
-  | "coral"
-  | "amber"
-  | "violet";
+// Any CSS hex color ("#a142f4"); legacy palette names ("blue", "tomato", …)
+// from before the free color wheel still resolve via lib/theme's getTone.
+export type ResponsibilityColor = string;
 
 export type Responsibility = {
   id: string;

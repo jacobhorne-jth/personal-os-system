@@ -5,7 +5,7 @@ import Link from "next/link";
 import { expandCalendarItems } from "@/lib/recurrence";
 import { useAppStore } from "@/lib/stores/app-store";
 import type { CalendarItem } from "@/lib/types/domain";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import { cn, minutesBetween } from "@/lib/utils";
 
 const DEFAULT_START_HOUR = 7;
@@ -101,10 +101,9 @@ export function DayTimeline({ filteredResponsibilityId, date }: { filteredRespon
                   key={item.id}
                   className={cn(
                     "group absolute left-2 right-3 overflow-hidden rounded-md border-0 px-3 text-xs transition duration-200 hover:brightness-110 sm:left-4 sm:right-5",
-                    compact ? "flex min-h-7 items-center py-1" : "py-2",
-                    responsibilityTone[color].fill
+                    compact ? "flex min-h-7 items-center py-1" : "py-2"
                   )}
-                  style={itemPosition(item, startHour, totalMinutes)}
+                  style={{ ...itemPosition(item, startHour, totalMinutes), backgroundColor: getTone(color).hex }}
                 >
                   <div className={cn("relative min-w-0", compact && "w-full")}>
                     <div className={cn("min-w-0", compact && "flex items-center gap-2")}>

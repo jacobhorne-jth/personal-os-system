@@ -6,7 +6,7 @@ import { startOfWeek } from "@/lib/calendar-generated";
 import { expandCalendarItems } from "@/lib/recurrence";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import type { CalendarItem } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
@@ -82,7 +82,7 @@ export function CalendarSidebar() {
         id: responsibility.id,
         name: responsibility.name,
         minutes: minutesByResponsibility[responsibility.id] ?? 0,
-        color: responsibilityTone[responsibility.color].hex
+        color: getTone(responsibility.color).hex
       }))
       .filter((item) => item.minutes > 0)
       .sort((a, b) => b.minutes - a.minutes);
@@ -143,7 +143,7 @@ export function CalendarSidebar() {
       <div className="flex-1 overflow-y-auto px-[var(--panel-inset)]">
         <p className="mb-2 text-xs font-medium text-[#9aa0a6]">Responsibilities</p>
         {responsibilities.filter((resp) => !resp.archivedAt).map((item) => {
-          const tone = responsibilityTone[item.color];
+          const tone = getTone(item.color);
           const hidden = hiddenResponsibilities.includes(item.id);
           return (
             <button

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export function ResponsibilityHeading({ responsibilityId }: { responsibilityId: string }) {
@@ -13,10 +13,10 @@ export function ResponsibilityHeading({ responsibilityId }: { responsibilityId: 
 
   return (
     <>
-      <span className={cn("absolute inset-x-0 top-0 h-1", responsibilityTone[responsibility.color].dot)} />
+      <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: getTone(responsibility.color).hex }} />
       <div>
         <div className="flex items-center gap-2">
-          <span className={cn("size-3 rounded-sm", responsibilityTone[responsibility.color].dot)} />
+          <span className="size-3 rounded-sm" style={{ backgroundColor: getTone(responsibility.color).hex }} />
           <span className="text-sm text-muted">Responsibility</span>
         </div>
         <h1 className="mt-2 text-3xl font-normal text-ink">{responsibility.name}</h1>

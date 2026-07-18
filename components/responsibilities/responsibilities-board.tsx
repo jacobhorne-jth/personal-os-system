@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Archive, ArchiveRestore, ArrowRight, CalendarDays, CheckCircle2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { ResponsibilityColorPicker } from "@/components/responsibilities/color-picker";
 import { useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import type { Responsibility, ResponsibilityColor } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
@@ -87,12 +87,12 @@ export function ResponsibilitiesBoard() {
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {activeItems.map((item) => {
           const isEditing = editing?.id === item.id;
-          const tone = responsibilityTone[isEditing ? editing!.color : item.color];
+          const tone = getTone(isEditing ? editing!.color : item.color);
 
           if (isEditing) {
             return (
               <div key={item.id} className="relative overflow-hidden rounded-lg border border-blue/40 bg-panel p-4 shadow-glow">
-                <span className={cn("absolute inset-x-0 top-0 h-1", tone.dot)} />
+                <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: tone.hex }} />
                 <div className="mt-1 space-y-3">
                   <input
                     autoFocus
@@ -153,7 +153,7 @@ export function ResponsibilitiesBoard() {
               key={item.id}
               className="group relative z-0 overflow-hidden rounded-lg border border-line bg-panel p-4 shadow-glow transition duration-200 hover:z-20 hover:-translate-y-0.5 hover:border-muted hover:bg-[#303134]"
             >
-              <span className={cn("absolute inset-x-0 top-0 h-1", tone.dot)} />
+              <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: tone.hex }} />
               <div className="flex items-start justify-between gap-2 pt-1">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-ink">{item.name}</p>
@@ -210,7 +210,7 @@ export function ResponsibilitiesBoard() {
         {/* New label card */}
         {editing?.id === "new" && (
           <div className="relative overflow-hidden rounded-lg border border-blue/40 bg-panel p-4 shadow-glow">
-            <span className={cn("absolute inset-x-0 top-0 h-1", responsibilityTone[editing.color].dot)} />
+            <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: getTone(editing.color).hex }} />
             <div className="mt-1 space-y-3">
               <input
                 autoFocus
@@ -270,11 +270,11 @@ export function ResponsibilitiesBoard() {
           {showArchived && (
             <div className="divide-y divide-line border-t border-line">
               {archivedItems.map((item) => {
-                const tone = responsibilityTone[item.color];
+                const tone = getTone(item.color);
                 return (
                   <div key={item.id} className="flex items-center justify-between gap-3 px-5 py-3">
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span className={cn("size-2.5 shrink-0 rounded-full opacity-60", tone.dot)} />
+                      <span className="size-2.5 shrink-0 rounded-full opacity-60" style={{ backgroundColor: tone.hex }} />
                       <div className="min-w-0">
                         <p className="truncate text-sm text-ink">{item.name}</p>
                         <p className="text-[11px] text-muted">

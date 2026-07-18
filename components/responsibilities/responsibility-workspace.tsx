@@ -9,7 +9,7 @@ import { ResponsibilityColorPicker } from "@/components/responsibilities/color-p
 import { WorkspacePanels } from "@/components/responsibilities/workspace-panels";
 import { Panel } from "@/components/ui/panel";
 import { useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import { cn, formatTime } from "@/lib/utils";
 
 const tabs = [
@@ -45,7 +45,7 @@ export function ResponsibilityWorkspace({ responsibilityId }: { responsibilityId
     return null;
   }
 
-  const tone = responsibilityTone[responsibility.color];
+  const tone = getTone(responsibility.color);
   const doneTasks = tasks.filter((task) => task.status === "done").length;
 
   function handleNoteSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -70,7 +70,7 @@ export function ResponsibilityWorkspace({ responsibilityId }: { responsibilityId
   return (
     <div className="space-y-4">
       <header className="relative overflow-visible rounded-xl border border-line bg-panel p-4 sm:p-5">
-        <span className={cn("absolute inset-x-0 top-0 h-1", tone.dot)} />
+        <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: tone.hex }} />
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 flex-1">
             <ResponsibilityHeading responsibilityId={responsibility.id} />
@@ -130,7 +130,7 @@ export function ResponsibilityWorkspace({ responsibilityId }: { responsibilityId
                 <p className="text-3xl font-semibold text-ink">{responsibility.actualHoursThisWeek}h</p>
                 <p className="text-sm text-muted">Actual against {responsibility.plannedHoursThisWeek}h planned</p>
                 <div className="mt-4 h-2 rounded-full bg-line p-0.5">
-                  <div className={cn("h-full rounded-full", tone.dot)} style={{ width: `${Math.min(100, (responsibility.actualHoursThisWeek / responsibility.weeklyGoalHours) * 100)}%` }} />
+                  <div className="h-full rounded-full" style={{ backgroundColor: tone.hex, width: `${Math.min(100, (responsibility.actualHoursThisWeek / responsibility.weeklyGoalHours) * 100)}%` }} />
                 </div>
               </div>
             </Panel>

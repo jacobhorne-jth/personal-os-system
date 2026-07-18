@@ -1,11 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
-import { calendarPalette, responsibilityTone } from "@/lib/theme";
+import { colorHex } from "@/lib/theme";
 import type { ResponsibilityColor } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
+
+const WHEEL_LIGHTNESS = 0.55;
+const NEUTRALS = ["#616161", "#78909c", "#9e9e9e"];
+
+function hslToHex(h: number, s: number, l: number): string {
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const v = l - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
+    return Math.round(v * 255)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
 
 function hexToHsl(hex: string): { h: number; s: number; l: number } {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
@@ -24,22 +39,10 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } {
   return { h, s, l };
 }
 
-const NEUTRAL_SAT = 0.25;
-
-const paletteData = calendarPalette.map((key) => {
-  const toneEntry = responsibilityTone[key];
-  const hsl = hexToHsl(toneEntry.hex);
-  return { key, hex: toneEntry.hex, label: toneEntry.label, ...hsl };
-});
-
-const wheelColors = paletteData.filter((c) => c.s >= NEUTRAL_SAT);
-const neutralColors = paletteData.filter((c) => c.s < NEUTRAL_SAT);
-
 export function ResponsibilityColorPicker({
   value,
   onChange,
-  compact = false,
-  showLabels = false
+  compact = false
 }: {
   value: ResponsibilityColor;
   onChange: (color: ResponsibilityColor) => void;
@@ -49,7 +52,7 @@ export function ResponsibilityColorPicker({
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const selectedTone = responsibilityTone[value];
+  const hex = colorHex(value);
   const open = pos !== null;
 
   // Close on any outside click (the popover is portaled to <body>, so it
@@ -83,6 +86,7 @@ export function ResponsibilityColorPicker({
       <button
         ref={triggerRef}
         type="button"
+        aria-label="Label color"
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -90,14 +94,10 @@ export function ResponsibilityColorPicker({
         }}
         className={cn(
           "flex h-9 items-center gap-2 rounded-full border border-line bg-paper px-3 text-sm text-ink transition hover:bg-line",
-          compact && "h-8 px-2.5 text-xs",
-          showLabels && "min-w-[150px] justify-between"
+          compact && "h-8 px-2.5 text-xs"
         )}
       >
-        <span className="flex min-w-0 items-center gap-2">
-          <span className={cn("size-4 shrink-0 rounded-full", selectedTone.dot)} />
-          <span className={cn("truncate", !showLabels && "sr-only")}>{selectedTone.label}</span>
-        </span>
+        <span className="size-4 shrink-0 rounded-full" style={{ backgroundColor: hex }} />
         <ChevronDown className={cn("size-4 shrink-0 text-muted transition", open && "rotate-180")} />
       </button>
 
@@ -112,13 +112,27 @@ export function ResponsibilityColorPicker({
               event.stopPropagation();
             }}
           >
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-medium text-muted">{responsibilityTone[value].label}</p>
+            <ColorWheel value={hex} onChange={onChange} />
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {NEUTRALS.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-label={`Set color to ${n}`}
+                    onClick={() => onChange(n)}
+                    className={cn(
+                      "size-7 rounded-full border border-black/40 transition hover:scale-110",
+                      n === hex && "ring-2 ring-white/70 ring-offset-2 ring-offset-[#242528]"
+                    )}
+                    style={{ backgroundColor: n }}
+                  />
+                ))}
+              </div>
               <button type="button" onClick={() => setPos(null)} className="text-xs text-muted transition hover:text-ink">
                 Done
               </button>
             </div>
-            <ColorWheel value={value} onChange={onChange} />
           </div>,
           document.body
         )}
@@ -126,129 +140,86 @@ export function ResponsibilityColorPicker({
   );
 }
 
-function ColorWheel({
-  value,
-  onChange
-}: {
-  value: ResponsibilityColor;
-  onChange: (color: ResponsibilityColor) => void;
-}) {
-  const wheelRef = useRef<HTMLDivElement>(null);
+function ColorWheel({ value, onChange }: { value: string; onChange: (hex: string) => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const draggingRef = useRef(false);
-  const [hoverKey, setHoverKey] = useState<ResponsibilityColor | null>(null);
-
   const SIZE = 232;
   const R = SIZE / 2;
-  // Markers sit between 35% and 96% of the radius depending on saturation,
-  // so even low-saturation palette colors stay clear of the center
-  const markerRadius = (s: number) => R * (0.35 + 0.61 * Math.min(s, 1));
 
-  const markers = useMemo(
-    () =>
-      wheelColors.map((c) => {
-        const angle = (c.h * Math.PI) / 180;
-        const r = markerRadius(c.s);
-        return {
-          ...c,
-          x: R + r * Math.cos(angle),
-          y: R + r * Math.sin(angle),
+  // Paint the hue/saturation disc once: hue by angle, saturation by radius,
+  // constant lightness — picking reads back the same formula, so WYSIWYG
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    const scale = Math.min(2, window.devicePixelRatio || 1);
+    const px = SIZE * scale;
+    canvas.width = px;
+    canvas.height = px;
+    const img = ctx.createImageData(px, px);
+    const r0 = px / 2;
+    for (let y = 0; y < px; y++) {
+      for (let x = 0; x < px; x++) {
+        const dx = x - r0;
+        const dy = y - r0;
+        const r = Math.sqrt(dx * dx + dy * dy);
+        if (r > r0) continue;
+        const h = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+        const s = Math.min(1, r / r0);
+        const a = s * Math.min(WHEEL_LIGHTNESS, 1 - WHEEL_LIGHTNESS);
+        const f = (n: number) => {
+          const k = (n + h / 30) % 12;
+          return Math.round((WHEEL_LIGHTNESS - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)))) * 255);
         };
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
-  function nearestFromPoint(clientX: number, clientY: number): ResponsibilityColor | null {
-    const rect = wheelRef.current?.getBoundingClientRect();
-    if (!rect) return null;
-    const px = clientX - rect.left;
-    const py = clientY - rect.top;
-    let best: ResponsibilityColor | null = null;
-    let bestDist = Infinity;
-    for (const m of markers) {
-      const d = (m.x - px) ** 2 + (m.y - py) ** 2;
-      if (d < bestDist) {
-        bestDist = d;
-        best = m.key;
+        const i = (y * px + x) * 4;
+        img.data[i] = f(0);
+        img.data[i + 1] = f(8);
+        img.data[i + 2] = f(4);
+        img.data[i + 3] = r > r0 - scale ? Math.round(255 * (r0 - r)) / scale : 255; // soft edge
       }
     }
-    return best;
+    ctx.putImageData(img, 0, 0);
+  }, []);
+
+  function pick(e: React.PointerEvent) {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const dx = e.clientX - rect.left - R;
+    const dy = e.clientY - rect.top - R;
+    const h = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+    const s = Math.min(1, Math.sqrt(dx * dx + dy * dy) / R);
+    onChange(hslToHex(h, s, WHEEL_LIGHTNESS));
   }
 
-  function handlePointer(e: React.PointerEvent, commit: boolean) {
-    const key = nearestFromPoint(e.clientX, e.clientY);
-    if (!key) return;
-    setHoverKey(key);
-    if (commit) onChange(key);
-  }
+  // Thumb position from the current color's hue/saturation
+  const hsl = hexToHsl(value);
+  const angle = (hsl.h * Math.PI) / 180;
+  const tr = Math.min(1, hsl.s) * (R - 4);
+  const tx = R + tr * Math.cos(angle);
+  const ty = R + tr * Math.sin(angle);
 
   return (
-    <div>
-      <div
-        ref={wheelRef}
-        className="relative mx-auto cursor-pointer rounded-full"
-        style={{
-          width: SIZE,
-          height: SIZE,
-          background:
-            "radial-gradient(circle, #242528 0%, rgba(36,37,40,0.85) 26%, rgba(36,37,40,0) 62%), conic-gradient(from 90deg, hsl(0 80% 55%), hsl(60 80% 55%), hsl(120 70% 45%), hsl(180 70% 45%), hsl(240 75% 60%), hsl(300 75% 55%), hsl(360 80% 55%))",
-        }}
+    <div className="relative mx-auto" style={{ width: SIZE, height: SIZE }}>
+      <canvas
+        ref={canvasRef}
+        className="cursor-crosshair touch-none rounded-full"
+        style={{ width: SIZE, height: SIZE }}
         onPointerDown={(e) => {
           draggingRef.current = true;
-          (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-          handlePointer(e, true);
+          e.currentTarget.setPointerCapture?.(e.pointerId);
+          pick(e);
         }}
         onPointerMove={(e) => {
-          if (draggingRef.current) handlePointer(e, true);
-          else handlePointer(e, false);
+          if (draggingRef.current) pick(e);
         }}
         onPointerUp={() => {
           draggingRef.current = false;
         }}
-        onPointerLeave={() => {
-          if (!draggingRef.current) setHoverKey(null);
-        }}
-      >
-        {(() => {
-          // Single thumb: sits on the selected color, follows the cursor while picking
-          const shown = markers.find((m) => m.key === (hoverKey ?? value));
-          if (!shown) return null;
-          return (
-            <span
-              title={shown.label}
-              className="pointer-events-none absolute z-10 rounded-full border-2 border-white shadow-[0_0_0_1.5px_rgba(0,0,0,0.45),0_1px_4px_rgba(0,0,0,0.4)] transition-[left,top] duration-75"
-              style={{
-                left: shown.x - 10,
-                top: shown.y - 10,
-                width: 20,
-                height: 20,
-                backgroundColor: shown.hex,
-              }}
-            />
-          );
-        })()}
-      </div>
-
-      {/* Neutrals live outside the hue wheel */}
-      <div className="mt-3 flex items-center justify-center gap-3">
-        {neutralColors.map((c) => {
-          const active = c.key === value;
-          return (
-            <button
-              key={c.key}
-              type="button"
-              title={c.label}
-              aria-label={`Set color to ${c.label}`}
-              onClick={() => onChange(c.key)}
-              className={cn(
-                "size-7 rounded-full border border-black/40 transition hover:scale-110",
-                active && "ring-2 ring-white/70 ring-offset-2 ring-offset-[#242528]"
-              )}
-              style={{ backgroundColor: c.hex }}
-            />
-          );
-        })}
-      </div>
+      />
+      <span
+        className="pointer-events-none absolute z-10 rounded-full border-2 border-white shadow-[0_0_0_1.5px_rgba(0,0,0,0.45),0_1px_4px_rgba(0,0,0,0.4)]"
+        style={{ left: tx - 9, top: ty - 9, width: 18, height: 18, backgroundColor: value }}
+      />
     </div>
   );
 }

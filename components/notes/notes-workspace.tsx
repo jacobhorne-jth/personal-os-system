@@ -7,7 +7,7 @@ import { Check, FileText, Folder, FolderPlus, Pencil, Plus, Search, Trash2, X } 
 import { noteLabels } from "@/lib/note-labels";
 import { ResponsibilityColorPicker } from "@/components/responsibilities/color-picker";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import type { ResponsibilityColor } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
@@ -160,7 +160,7 @@ export function NotesWorkspace() {
 
           <div className="mt-3 space-y-1">
             {noteFolders.map((folder) => {
-              const tone = responsibilityTone[folder.color] ?? responsibilityTone.blue;
+              const tone = getTone(folder.color) ?? getTone("blue");
               const count = notes.filter((note) => note.folderId === folder.id).length;
               const isEditing = editingFolderId === folder.id;
               return (

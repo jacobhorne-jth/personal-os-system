@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CalendarPlus, Check, ChevronLeft, ChevronRight, FileText, GitPullRequestArrow, ListChecks, ListTodo, Pencil, X } from "lucide-react";
 import { DateTimeRow } from "@/components/calendar/date-time-picker";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export function ReviewWorkspace() {
@@ -99,11 +99,11 @@ export function ReviewWorkspace() {
             const Icon = row.icon;
             const isApproved = item.decisions?.[row.id] !== false;
             const responsibility = responsibilities.find((entry) => entry.id === row.meta);
-            const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
+            const tone = responsibility ? getTone(responsibility.color) : getTone("blue");
             return (
               <div key={row.id} className={cn("grid gap-3 p-4 transition sm:grid-cols-[1fr_auto]", isApproved && "bg-mint/5")}>
                 <div className="flex items-start gap-3">
-                  <div className={cn("grid size-9 place-items-center rounded-lg border bg-line text-muted", tone.border)}>
+                  <div className="grid size-9 place-items-center rounded-lg border bg-line text-muted" style={{ borderColor: tone.hex }}>
                     <Icon className="size-4" />
                   </div>
                   <div>

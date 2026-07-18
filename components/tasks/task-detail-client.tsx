@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Plus, Trash2, X } from "lucide-react";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { Panel } from "@/components/ui/panel";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 function toDateInput(value?: string) {
@@ -63,7 +63,7 @@ export function TaskDetailClient({ id }: { id: string }) {
   }
 
   const resp = responsibilities.find((r) => r.id === responsibilityId);
-  const respColor = resp ? responsibilityTone[resp.color].hex : "#6b7280";
+  const respColor = resp ? getTone(resp.color).hex : "#6b7280";
 
   function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 
 export function TimeSummary() {
   const responsibilities = useAppStore((state) => state.responsibilities);
@@ -13,13 +13,13 @@ export function TimeSummary() {
           <div key={item.id}>
             <div className="mb-1 flex items-center justify-between text-xs">
               <span className="flex items-center gap-2 text-ink">
-                <span className={`size-1.5 rounded-full ${responsibilityTone[item.color].dot}`} />
+                <span className="size-1.5 rounded-full" style={{ backgroundColor: getTone(item.color).hex }} />
                 {item.name}
               </span>
               <span className="text-muted">{item.actualHoursThisWeek}h / {item.plannedHoursThisWeek}h planned</span>
             </div>
             <div className="h-2 rounded-full bg-line p-0.5">
-              <div className={`h-full rounded-full ${responsibilityTone[item.color].dot}`} style={{ width: `${percent}%` }} />
+              <div className="h-full rounded-full" style={{ backgroundColor: getTone(item.color).hex, width: `${percent}%` }} />
             </div>
           </div>
         );

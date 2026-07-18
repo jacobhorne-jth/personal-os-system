@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export function GlobalSearch() {
@@ -119,7 +119,7 @@ export function GlobalSearch() {
             <div className="divide-y divide-line">
               {results.map((result, idx) => {
                 const responsibility = responsibilities.find((item) => item.id === result.responsibilityId);
-                const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
+                const tone = responsibility ? getTone(responsibility.color) : getTone("blue");
                 return (
                   <button
                     key={`${result.kind}-${result.id}`}
@@ -130,7 +130,7 @@ export function GlobalSearch() {
                       idx === activeIdx ? "bg-line" : "hover:bg-line"
                     )}
                   >
-                    <span className={cn("size-2 rounded-full", tone.dot)} />
+                    <span className="size-2 rounded-full" style={{ backgroundColor: tone.hex }} />
                     <span className="min-w-0 flex-1 truncate text-sm text-ink">{result.title}</span>
                     <span className="rounded-md bg-line px-2 py-1 text-[11px] text-muted">{result.kind}</span>
                   </button>

@@ -7,7 +7,7 @@ import { DailyReview } from "@/components/time/daily-review";
 import { TimerControl } from "@/components/time/timer-control";
 import { useAppStore } from "@/lib/stores/app-store";
 import { createBrowserSupabaseClient, hasSupabaseEnv } from "@/lib/supabase/browser";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -161,7 +161,7 @@ export function ProgressWorkspace() {
             <div className="divide-y divide-line">
               {responsibilities.map((r) => {
                 const count = openTasks.filter((t) => t.responsibilityId === r.id).length;
-                const tone = responsibilityTone[r.color];
+                const tone = getTone(r.color);
                 return (
                   <Link
                     key={r.id}
@@ -205,7 +205,7 @@ export function ProgressWorkspace() {
               <div className="divide-y divide-line">
                 {habits.map((habit) => {
                   const responsibility = responsibilities.find((r) => r.id === habit.responsibilityId);
-                  const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.graphite;
+                  const tone = responsibility ? getTone(responsibility.color) : getTone("graphite");
                   const hitCount = weekDates.filter((date) => {
                     const log = habitLogs.find((l) => l.habitId === habit.id && l.date === date);
                     const value = log?.value ?? 0;
@@ -265,7 +265,7 @@ export function ProgressWorkspace() {
                     return sum + ms / 3_600_000;
                   }, 0);
                 if (hours === 0) return null;
-                const tone = responsibilityTone[r.color];
+                const tone = getTone(r.color);
                 return (
                   <div key={r.id} className="flex items-center gap-2 text-xs">
                     <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: tone.hex }} />
@@ -289,7 +289,7 @@ export function ProgressWorkspace() {
               <div className="divide-y divide-line">
                 {activeGoals.slice(0, 4).map((goal) => {
                   const responsibility = responsibilities.find((r) => r.id === goal.responsibilityId);
-                  const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.graphite;
+                  const tone = responsibility ? getTone(responsibility.color) : getTone("graphite");
                   const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
                   return (
                     <div key={goal.id} className="px-4 py-3">
@@ -337,11 +337,11 @@ export function ProgressWorkspace() {
         </div>
         <div className="divide-y divide-line">
           {responsibilities.filter((r) => !r.archivedAt && (r.plannedHoursThisWeek > 0 || r.actualHoursThisWeek > 0)).map((r) => {
-            const tone = responsibilityTone[r.color];
+            const tone = getTone(r.color);
             return (
               <Link key={r.id} href={`/r/${r.id}`} className="grid gap-3 px-4 py-3.5 transition hover:bg-line sm:grid-cols-[180px_1fr_80px] sm:items-center">
                 <p className="flex items-center gap-2 text-sm font-medium text-ink">
-                  <span className={cn("size-1.5 rounded-full", tone.dot)} />
+                  <span className="size-1.5 rounded-full" style={{ backgroundColor: tone.hex }} />
                   {r.name}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -354,7 +354,7 @@ export function ProgressWorkspace() {
                   <div>
                     <div className="mb-1 text-[11px] text-muted">Actual {r.actualHoursThisWeek}h</div>
                     <div className="h-2 rounded-full bg-line">
-                      <div className={cn("h-full rounded-full", tone.dot)} style={{ width: `${Math.min(100, (r.actualHoursThisWeek / Math.max(1, r.weeklyGoalHours)) * 100)}%` }} />
+                      <div className="h-full rounded-full" style={{ backgroundColor: tone.hex, width: `${Math.min(100, (r.actualHoursThisWeek / Math.max(1, r.weeklyGoalHours)) * 100)}%` }} />
                     </div>
                   </div>
                 </div>

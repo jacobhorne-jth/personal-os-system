@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ListPlus, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export function ListsWorkspace() {
@@ -128,7 +128,7 @@ export function ListsWorkspace() {
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filteredLists.map((list) => {
             const responsibility = responsibilities.find((item) => item.id === list.responsibilityId);
-            const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
+            const tone = responsibility ? getTone(responsibility.color) : getTone("blue");
             const openItems = list.items.filter((item) => !item.done);
             const isEditing = editingList?.id === list.id;
             return (
@@ -166,7 +166,7 @@ export function ListsWorkspace() {
                       <div className="min-w-0">
                         <h2 className="truncate text-base font-medium text-ink">{list.title}</h2>
                         <p className="mt-1 flex items-center gap-2 text-xs text-muted">
-                          <span className={cn("size-2 rounded-full", tone.dot)} />
+                          <span className="size-2 rounded-full" style={{ backgroundColor: tone.hex }} />
                           {responsibility?.name ?? "Unsorted"}
                         </p>
                       </div>

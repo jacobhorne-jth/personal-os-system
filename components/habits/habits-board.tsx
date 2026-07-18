@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Check, Flame, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import type { Habit, HabitType } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
@@ -380,8 +380,8 @@ export function HabitsBoard() {
           <div className="divide-y divide-line">
             {habits.map((habit) => {
               const tone = habit.responsibilityId
-                ? responsibilityTone[responsibilities.find((r) => r.id === habit.responsibilityId)?.color ?? "graphite"]
-                : responsibilityTone.graphite;
+                ? getTone(responsibilities.find((r) => r.id === habit.responsibilityId)?.color ?? "graphite")
+                : getTone("graphite");
               const streak = getStreak(habit, habitLogs);
               const total = habit.type === "weekly" ? weeklyTotal(habit) : null;
               const todayLog = habitLogs.find((l) => l.habitId === habit.id && l.date === today);

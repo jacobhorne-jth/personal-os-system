@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Check, Flag, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import type { Goal } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
@@ -249,7 +249,7 @@ export function GoalsWorkspace() {
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {visibleGoals.map((goal) => {
             const responsibility = responsibilities.find((r) => r.id === goal.responsibilityId);
-            const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.graphite;
+            const tone = responsibility ? getTone(responsibility.color) : getTone("graphite");
             const percent = goal.target > 0 ? Math.min(100, Math.round((goal.current / goal.target) * 100)) : 0;
             const done = goal.status === "done" || percent >= 100;
             const dl = deadlineLabel(goal.deadline);

@@ -1,70 +1,74 @@
 import type { ResponsibilityColor } from "@/lib/types/domain";
 
-type Tone = {
-  chip: string;
-  text: string;
-  border: string;
-  fill: string;
-  dot: string;
-  gradient: string;
+export type Tone = {
   hex: string;
-  eventText: string;
-  label: string;
+  eventText: string; // readable text color on top of hex
 };
 
-const colors: Array<{ key: ResponsibilityColor; label: string; hex: string; darkText?: boolean }> = [
-  { key: "tomato", label: "Tomato", hex: "#d93025" },
-  { key: "coral", label: "Coral", hex: "#ea4335" },
-  { key: "cherry", label: "Cherry", hex: "#c2185b" },
-  { key: "rose", label: "Rose", hex: "#e91e63" },
-  { key: "flamingo", label: "Flamingo", hex: "#f48fb1", darkText: true },
-  { key: "pink", label: "Pink", hex: "#f06292" },
-  { key: "magenta", label: "Magenta", hex: "#d81b60" },
-  { key: "tangerine", label: "Tangerine", hex: "#f4511e" },
-  { key: "pumpkin", label: "Pumpkin", hex: "#ef6c00" },
-  { key: "mango", label: "Mango", hex: "#ff9800", darkText: true },
-  { key: "amber", label: "Amber", hex: "#fbbc04", darkText: true },
-  { key: "banana", label: "Banana", hex: "#f6bf26", darkText: true },
-  { key: "lemon", label: "Lemon", hex: "#fdd663", darkText: true },
-  { key: "lime", label: "Lime", hex: "#c0ca33", darkText: true },
-  { key: "sage", label: "Sage", hex: "#33b679", darkText: true },
-  { key: "mint", label: "Mint", hex: "#34a853" },
-  { key: "basil", label: "Basil", hex: "#0b8043" },
-  { key: "emerald", label: "Emerald", hex: "#00a86b" },
-  { key: "teal", label: "Teal", hex: "#009688" },
-  { key: "cyan", label: "Cyan", hex: "#00acc1" },
-  { key: "peacock", label: "Peacock", hex: "#039be5" },
-  { key: "sky", label: "Sky", hex: "#4fc3f7", darkText: true },
-  { key: "blue", label: "Blue", hex: "#4285f4" },
-  { key: "cobalt", label: "Cobalt", hex: "#1a73e8" },
-  { key: "blueberry", label: "Blueberry", hex: "#3f51b5" },
-  { key: "indigo", label: "Indigo", hex: "#5e35b1" },
-  { key: "periwinkle", label: "Periwinkle", hex: "#9fa8da", darkText: true },
-  { key: "lavender", label: "Lavender", hex: "#7986cb", darkText: true },
-  { key: "lilac", label: "Lilac", hex: "#b39ddb", darkText: true },
-  { key: "violet", label: "Violet", hex: "#a142f4" },
-  { key: "grape", label: "Grape", hex: "#8e24aa" },
-  { key: "orchid", label: "Orchid", hex: "#ba68c8" },
-  { key: "graphite", label: "Graphite", hex: "#616161" },
-  { key: "slate", label: "Slate", hex: "#78909c" },
-  { key: "stone", label: "Stone", hex: "#9e9e9e", darkText: true }
-];
+// Legacy palette: responsibilities created before the free color wheel store
+// these names instead of hex values.
+const legacyHex: Record<string, string> = {
+  tomato: "#d93025",
+  coral: "#ea4335",
+  cherry: "#c2185b",
+  rose: "#e91e63",
+  flamingo: "#f48fb1",
+  pink: "#f06292",
+  magenta: "#d81b60",
+  tangerine: "#f4511e",
+  pumpkin: "#ef6c00",
+  mango: "#ff9800",
+  amber: "#fbbc04",
+  banana: "#f6bf26",
+  lemon: "#fdd663",
+  lime: "#c0ca33",
+  sage: "#33b679",
+  mint: "#34a853",
+  basil: "#0b8043",
+  emerald: "#00a86b",
+  teal: "#009688",
+  cyan: "#00acc1",
+  peacock: "#039be5",
+  sky: "#4fc3f7",
+  blue: "#4285f4",
+  cobalt: "#1a73e8",
+  blueberry: "#3f51b5",
+  indigo: "#5e35b1",
+  periwinkle: "#9fa8da",
+  lavender: "#7986cb",
+  lilac: "#b39ddb",
+  violet: "#a142f4",
+  grape: "#8e24aa",
+  orchid: "#ba68c8",
+  graphite: "#616161",
+  slate: "#78909c",
+  stone: "#9e9e9e"
+};
 
-function tone({ key, label, hex, darkText }: (typeof colors)[number]): Tone {
-  const textColor = darkText ? "text-paper" : "text-white";
-  return {
-    chip: `bg-${key} ${textColor} ring-${key}`,
-    text: `text-${key}`,
-    border: `border-${key}`,
-    fill: `bg-${key}`,
-    dot: `bg-${key}`,
-    gradient: `from-${key} via-${key} to-${key}`,
-    hex,
-    eventText: darkText ? "#202124" : "#ffffff",
-    label
-  };
+const DEFAULT_HEX = "#4285f4"; // blue
+
+export function colorHex(color: ResponsibilityColor | undefined | null): string {
+  if (!color) return DEFAULT_HEX;
+  if (/^#[0-9a-fA-F]{6}$/.test(color)) return color;
+  return legacyHex[color] ?? DEFAULT_HEX;
 }
 
-export const responsibilityTone = Object.fromEntries(colors.map((color) => [color.key, tone(color)])) as Record<ResponsibilityColor, Tone>;
+function relativeLuminance(hex: string): number {
+  const chan = (i: number) => {
+    const v = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * chan(1) + 0.7152 * chan(3) + 0.0722 * chan(5);
+}
 
-export const calendarPalette = colors.map((color) => color.key);
+const toneCache = new Map<string, Tone>();
+
+export function getTone(color: ResponsibilityColor | undefined | null): Tone {
+  const hex = colorHex(color);
+  let tone = toneCache.get(hex);
+  if (!tone) {
+    tone = { hex, eventText: relativeLuminance(hex) > 0.45 ? "#202124" : "#ffffff" };
+    toneCache.set(hex, tone);
+  }
+  return tone;
+}

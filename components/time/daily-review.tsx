@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import { cn, formatTime } from "@/lib/utils";
 
 export function DailyReview() {
@@ -25,14 +25,14 @@ export function DailyReview() {
         )}
         {logs.map((item) => {
           const responsibility = responsibilities.find((entry) => entry.id === item.responsibilityId);
-          const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
+          const tone = responsibility ? getTone(responsibility.color) : getTone("blue");
           return (
             <div key={item.id} className="grid gap-3 px-4 py-3 sm:grid-cols-[100px_1fr_90px] sm:items-center">
               <p className="text-xs text-muted">{formatTime(item.startsAt)} - {formatTime(item.endsAt)}</p>
               <div>
                 <p className="text-sm text-ink">{item.title}</p>
                 <p className="mt-1 flex items-center gap-2 text-xs text-muted">
-                  <span className={cn("size-1.5 rounded-full", tone.dot)} />
+                  <span className="size-1.5 rounded-full" style={{ backgroundColor: tone.hex }} />
                   {responsibility?.name}
                 </p>
               </div>

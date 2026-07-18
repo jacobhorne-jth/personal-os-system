@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Lightbulb, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import type { Idea, IdeaStatus } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
@@ -275,7 +275,7 @@ export function IdeasWorkspace() {
                 )}
                 {colIdeas.map((idea) => {
                   const responsibility = responsibilities.find((r) => r.id === idea.responsibilityId);
-                  const tone = responsibility ? responsibilityTone[responsibility.color] : null;
+                  const tone = responsibility ? getTone(responsibility.color) : null;
                   const statusIdx = STATUS_ORDER.indexOf(idea.status);
 
                   return (

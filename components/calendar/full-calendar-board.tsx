@@ -14,7 +14,7 @@ import { toFullCalendarEvent } from "@/lib/queries/calendar";
 import { describeRecurrence, expandCalendarItems } from "@/lib/recurrence";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import type { CalendarItem, CalendarItemType } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
@@ -105,7 +105,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     )
     .map((item) => {
       const responsibility = responsibilities.find((r) => r.id === item.responsibilityId);
-      const tone = responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
+      const tone = responsibility ? getTone(responsibility.color) : getTone("blue");
       return {
         ...toFullCalendarEvent(item),
         // Recurring instances aren't draggable — edit or delete via the panel
@@ -648,7 +648,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
   function selectedTone(item: CalendarItem) {
     const responsibility = responsibilities.find((entry) => entry.id === item.responsibilityId);
-    return responsibility ? responsibilityTone[responsibility.color] : responsibilityTone.blue;
+    return responsibility ? getTone(responsibility.color) : getTone("blue");
   }
 
   function saveDraftEvent(event: React.FormEvent<HTMLFormElement>) {

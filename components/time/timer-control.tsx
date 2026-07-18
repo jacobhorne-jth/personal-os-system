@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pause, Play, Square } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
-import { responsibilityTone } from "@/lib/theme";
+import { getTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export function TimerControl({ plain = false }: { plain?: boolean }) {
@@ -49,7 +49,7 @@ export function TimerControl({ plain = false }: { plain?: boolean }) {
     const seconds = (totalSeconds % 60).toString().padStart(2, "0");
     return `${minutes}:${seconds}`;
   }, [timer.startedAt, tick]);
-  const tone = activeResponsibility ? responsibilityTone[activeResponsibility.color] : responsibilityTone.mint;
+  const tone = activeResponsibility ? getTone(activeResponsibility.color) : getTone("mint");
 
   useEffect(() => {
     if (!timer.running) {
@@ -62,11 +62,14 @@ export function TimerControl({ plain = false }: { plain?: boolean }) {
 
   return (
     <div className={cn("relative overflow-hidden", plain ? "p-0" : "rounded-lg border border-line bg-panel p-4 shadow-glow")}>
-      {!plain && <span className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${tone.gradient}`} />}
+      {!plain && <span className="absolute inset-x-0 top-0 h-px" style={{ backgroundColor: tone.hex }} />}
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 text-sm text-muted">
-            <span className={`size-2 rounded-full ${timer.running ? tone.dot : "bg-white/20"}`} />
+            <span
+              className={cn("size-2 rounded-full", !timer.running && "bg-white/20")}
+              style={timer.running ? { backgroundColor: tone.hex } : undefined}
+            />
             Timer
           </p>
           <p className="mt-1 text-4xl font-semibold tabular-nums text-ink">{timer.running || timer.startedAt ? elapsedLabel : "00:00"}</p>
