@@ -76,6 +76,16 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const [editingIsSeries, setEditingIsSeries] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CalendarItem | null>(null);
   const [deleteMenuOpen, setDeleteMenuOpen] = useState(false);
+  // Google-style "This event / All events" choice for changes to a recurring
+  // instance: a drag/resize (kind "move") or a save from the editor ("save")
+  const [seriesScopePrompt, setSeriesScopePrompt] = useState<
+    | { kind: "move"; seriesId: string; occurrenceStart: string; newStart: string; newEnd: string }
+    | { kind: "save" }
+    | null
+  >(null);
+  // Start of the instance the expanded editor was opened from (null when
+  // editing a master directly)
+  const [editingOccurrenceStart, setEditingOccurrenceStart] = useState<string | null>(null);
   const [createMode, setCreateMode] = useState(false);
   const { calendarView, setCalendarView, visibleOverlays, hiddenResponsibilities, calendarGotoDate, setCalendarGotoDate } = useUiStore();
   const calendarItems = useAppStore((state) => state.calendarItems);
@@ -114,8 +124,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       const tone = responsibility ? getTone(responsibility.color) : getTone("blue");
       return {
         ...toFullCalendarEvent(item),
-        // Recurring instances aren't draggable — edit or delete via the panel
-        editable: !item.seriesId,
         backgroundColor: tone.hex,
         borderColor: tone.hex,
         textColor: tone.eventText,
@@ -280,6 +288,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     setDraftExpanded(false);
     setEditingEventId(null);
     setEditingIsSeries(false);
+    setEditingOccurrenceStart(null);
     setSelectedItem(null);
     setDeleteMenuOpen(false);
   };
@@ -546,9 +555,64 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     setDeleteMenuOpen(false);
   }
 
+  function localDateKeyOf(iso: string) {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
+  }
+
+  // A recurring instance was dragged or resized: capture the new times, snap
+  // the visual back (state re-derives instances), and ask for the scope.
+  function promptSeriesChange(event: EventDropArg | EventResizeDoneArg) {
+    const instance = visibleItems.find((item) => item.id === event.event.id);
+    const newStart = event.event.start?.toISOString();
+    const droppedEnd = event.event.end?.toISOString();
+    event.revert();
+    if (!instance?.seriesId || !newStart) return;
+    const duration = new Date(instance.endsAt).getTime() - new Date(instance.startsAt).getTime();
+    const newEnd = droppedEnd ?? new Date(new Date(newStart).getTime() + duration).toISOString();
+    setSelectedItem(null);
+    setSeriesScopePrompt({ kind: "move", seriesId: instance.seriesId, occurrenceStart: instance.startsAt, newStart, newEnd });
+  }
+
+  function applySeriesScope(mode: "this" | "all") {
+    const prompt = seriesScopePrompt;
+    setSeriesScopePrompt(null);
+    if (!prompt) return;
+    if (prompt.kind === "save") {
+      commitDraftSave(mode);
+      return;
+    }
+    const master = calendarItems.find((item) => item.id === prompt.seriesId);
+    if (!master) return;
+    if (mode === "this") {
+      // Detach this occurrence: except it from the series and create a
+      // standalone copy at the new time
+      deleteCalendarOccurrence(master.id, localDateKeyOf(prompt.occurrenceStart));
+      addCalendarItem({
+        title: master.title,
+        type: master.type,
+        responsibilityId: master.responsibilityId,
+        startsAt: prompt.newStart,
+        endsAt: prompt.newEnd,
+        location: master.location,
+        notes: master.notes,
+        source: "app"
+      });
+    } else {
+      // Shift the whole series by the same delta, with the new duration
+      const delta = new Date(prompt.newStart).getTime() - new Date(prompt.occurrenceStart).getTime();
+      const duration = new Date(prompt.newEnd).getTime() - new Date(prompt.newStart).getTime();
+      const masterStart = new Date(master.startsAt).getTime() + delta;
+      updateCalendarItem(master.id, {
+        startsAt: new Date(masterStart).toISOString(),
+        endsAt: new Date(masterStart + duration).toISOString()
+      });
+    }
+  }
+
   function handleEventDrop(event: EventDropArg) {
     if (event.event.id.includes("::")) {
-      event.revert(); // recurring instances move via editing the series
+      promptSeriesChange(event);
       return;
     }
     if (event.event.start) {
@@ -558,7 +622,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
   function handleEventResize(event: EventResizeDoneArg) {
     if (event.event.id.includes("::")) {
-      event.revert();
+      promptSeriesChange(event);
       return;
     }
     if (event.event.start) {
@@ -703,31 +767,58 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   function saveDraftEvent(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!draftEvent || !draftEvent.title.trim()) return;
+    // Saving an edit that came from a recurring instance asks for the scope,
+    // unless the recurrence itself changed (that only makes sense series-wide)
+    const master = editingEventId ? calendarItems.find((item) => item.id === editingEventId) : undefined;
+    const recurrenceChanged = Boolean(master) && (draftEvent.recurrence || "") !== (master?.recurrence ?? "");
+    if (editingEventId && editingIsSeries && editingOccurrenceStart && !recurrenceChanged) {
+      setSeriesScopePrompt({ kind: "save" });
+      return;
+    }
+    commitDraftSave("all");
+  }
 
+  function commitDraftSave(mode: "this" | "all") {
+    if (!draftEvent) return;
     if (editingEventId) {
       const master = calendarItems.find((item) => item.id === editingEventId);
-      let startsAt = draftEvent.startsAt;
-      let endsAt = draftEvent.endsAt;
-      if (editingIsSeries && master) {
-        // Editing a series keeps the master's anchor date; only the
-        // time of day (and duration) from the editor applies
-        const editedStart = new Date(draftEvent.startsAt);
-        const editedEnd = new Date(draftEvent.endsAt);
-        const masterStart = new Date(master.startsAt);
-        masterStart.setHours(editedStart.getHours(), editedStart.getMinutes(), 0, 0);
-        startsAt = masterStart.toISOString();
-        endsAt = new Date(masterStart.getTime() + (editedEnd.getTime() - editedStart.getTime())).toISOString();
+      if (mode === "this" && master && editingOccurrenceStart) {
+        // Detach this occurrence with the edited fields as a standalone event
+        deleteCalendarOccurrence(master.id, localDateKeyOf(editingOccurrenceStart));
+        addCalendarItem({
+          title: draftEvent.title.trim(),
+          type: draftEvent.type,
+          responsibilityId: draftEvent.responsibilityId,
+          startsAt: draftEvent.startsAt,
+          endsAt: draftEvent.endsAt,
+          location: draftEvent.location.trim() || undefined,
+          notes: draftEvent.notes.trim() || undefined,
+          source: "app"
+        });
+      } else {
+        let startsAt = draftEvent.startsAt;
+        let endsAt = draftEvent.endsAt;
+        if (editingIsSeries && master) {
+          // Editing a series keeps the master's anchor date; only the
+          // time of day (and duration) from the editor applies
+          const editedStart = new Date(draftEvent.startsAt);
+          const editedEnd = new Date(draftEvent.endsAt);
+          const masterStart = new Date(master.startsAt);
+          masterStart.setHours(editedStart.getHours(), editedStart.getMinutes(), 0, 0);
+          startsAt = masterStart.toISOString();
+          endsAt = new Date(masterStart.getTime() + (editedEnd.getTime() - editedStart.getTime())).toISOString();
+        }
+        updateCalendarItem(editingEventId, {
+          title: draftEvent.title.trim(),
+          type: draftEvent.type,
+          responsibilityId: draftEvent.responsibilityId,
+          startsAt,
+          endsAt,
+          location: draftEvent.location.trim() || undefined,
+          notes: draftEvent.notes.trim() || undefined,
+          recurrence: draftEvent.recurrence || undefined,
+        });
       }
-      updateCalendarItem(editingEventId, {
-        title: draftEvent.title.trim(),
-        type: draftEvent.type,
-        responsibilityId: draftEvent.responsibilityId,
-        startsAt,
-        endsAt,
-        location: draftEvent.location.trim() || undefined,
-        notes: draftEvent.notes.trim() || undefined,
-        recurrence: draftEvent.recurrence || undefined,
-      });
     } else {
       addCalendarItem({
         title: draftEvent.title.trim(),
@@ -745,6 +836,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     setDraftExpanded(false);
     setEditingEventId(null);
     setEditingIsSeries(false);
+    setEditingOccurrenceStart(null);
     calendarRef.current?.getApi().unselect();
   }
 
@@ -762,6 +854,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     });
     setEditingEventId(master?.id ?? item.id);
     setEditingIsSeries(Boolean(item.seriesId || master?.recurrence));
+    setEditingOccurrenceStart(item.seriesId ? item.startsAt : null);
     setSelectedItem(null);
     setDeleteMenuOpen(false);
     setDraftCardPos(null);
@@ -1141,6 +1234,47 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                   <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-5 text-[#e8eaed]">{selectedItem.notes}</p>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {seriesScopePrompt && (
+        <div
+          data-popup-card
+          className="absolute inset-0 z-50 grid place-items-center bg-black/50"
+          onPointerDown={(e) => {
+            if (e.target === e.currentTarget) setSeriesScopePrompt(null);
+          }}
+        >
+          <div className="w-[320px] rounded-2xl border border-[#3c4043] bg-[#202124] p-5 shadow-[0_24px_72px_rgba(0,0,0,0.6)]">
+            <h3 className="text-base font-medium text-[#e8eaed]">
+              {seriesScopePrompt.kind === "move" ? "Move recurring event" : "Save recurring event"}
+            </h3>
+            <div className="mt-4 space-y-1">
+              <button
+                type="button"
+                onClick={() => applySeriesScope("this")}
+                className="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]"
+              >
+                This event
+              </button>
+              <button
+                type="button"
+                onClick={() => applySeriesScope("all")}
+                className="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]"
+              >
+                All events in the series
+              </button>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSeriesScopePrompt(null)}
+                className="rounded-full px-4 py-1.5 text-sm text-[#8ab4f8] transition hover:bg-[#303134]"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
