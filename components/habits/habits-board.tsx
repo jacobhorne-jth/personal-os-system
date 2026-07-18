@@ -333,8 +333,12 @@ export function HabitsBoard() {
     } else if (habit.type === "limit") {
       // increment up to target+3 (shows overages), then wrap to 0
       next = current >= habit.target + 3 ? 0 : current + 1;
+    } else if (habit.target === 1) {
+      next = current === 1 ? 0 : 1;
     } else {
-      next = current >= habit.target ? 0 : current + 1;
+      // Counting habits (pushups, glasses of water): the target is a floor,
+      // not a cap — keep counting past it. Reset via right-click → 0.
+      next = Math.min(999, current + 1);
     }
     logHabit(habit.id, date, next);
   }
@@ -351,7 +355,7 @@ export function HabitsBoard() {
   };
 
   const typeHints: Record<HabitType, string> = {
-    daily: "Do it N times every day. Click to count up, right-click to type an exact number.",
+    daily: "Do it N or more times every day — counting keeps going past the target. Click to count up, right-click to type an exact number (0 resets).",
     weekly: "Do it N times this week. Each cell marks one occurrence.",
     avoid: "Don't do it. Each cell marks a failure (red) or clean day (green).",
     limit: "Stay at or under N per day. Click to log one, right-click to type a count — red when over the cap.",
@@ -418,11 +422,16 @@ export function HabitsBoard() {
                   <ProgressRing progress={progress} color={ringColor}>
                     {failed || exceeded ? (
                       <X className="size-4 text-red-400" />
+                    ) : (habit.type === "daily" || habit.type === "weekly") && target > 1 ? (
+                      // Counting habits keep showing the number past the target
+                      <span className="text-[10px] font-semibold" style={{ color: complete ? ringColor : undefined }}>
+                        <span className={cn(!complete && "text-ink")}>{current}/{target}</span>
+                      </span>
                     ) : complete ? (
                       <Check className="size-4" style={{ color: ringColor }} />
                     ) : (
                       <span className="text-[11px] font-semibold text-ink">
-                        {habit.type === "avoid" ? <Check className="size-4 opacity-40" /> : target === 1 ? "" : `${current}/${target}`}
+                        {habit.type === "avoid" ? <Check className="size-4 opacity-40" /> : ""}
                       </span>
                     )}
                   </ProgressRing>
