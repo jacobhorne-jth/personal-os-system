@@ -8,6 +8,7 @@ import { GymProgressCharts } from "@/components/gym/progress-charts";
 import { SplitEditor } from "@/components/gym/split-editor";
 import type { GymExercise } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
+import { localDateKey } from "@/lib/dates";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -17,7 +18,7 @@ function todayDayIndex(): number {
 }
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return localDateKey();
 }
 
 // ─── Weight unit helpers ──────────────────────────────────────────────────────

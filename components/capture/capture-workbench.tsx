@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Clipboard, FileUp, Image, Loader2, Mic, MicOff, Timer, Type, WandSparkles, X } from "lucide-react";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { cn } from "@/lib/utils";
+import { localDateKey } from "@/lib/dates";
 
 type Mode = "type" | "voice" | "paste" | "upload" | "time_log";
 
@@ -134,7 +135,7 @@ export function CaptureWorkbench() {
             weekday: "long", year: "numeric", month: "long", day: "numeric",
             hour: "numeric", minute: "2-digit", timeZoneName: "short",
           }),
-          todayIso: new Date().toISOString().slice(0, 10),
+          todayIso: localDateKey(),
         }),
       });
 

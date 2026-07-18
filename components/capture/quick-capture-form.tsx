@@ -7,6 +7,7 @@ import { nextOccurrence } from "@/lib/recurrence";
 import { parseInput, buildDueAt } from "@/lib/task-parser";
 import type { CaptureExtraction } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
+import { localDateKey } from "@/lib/dates";
 
 type QuickCaptureFormProps = {
   intent?: "task" | "review";
@@ -291,7 +292,7 @@ export function QuickCaptureForm({
             <input
               type="date"
               value={parsed?.dueDate
-                ? parsed.dueDate.toISOString().slice(0, 10)
+                ? localDateKey(parsed.dueDate)
                 : ""}
               onChange={() => {}}
               readOnly

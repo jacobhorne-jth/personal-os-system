@@ -9,6 +9,7 @@ import { aiReviewItems, calendarItems, lists, responsibilities, tasks } from "@/
 import { nextOccurrence } from "@/lib/recurrence";
 import type { ActiveGymSession, CalendarItem, CaptureExtraction, FileAsset, FoodEntry, FoodMeal, Goal, GymDay, GymExercise, GymSession, GymSessionExercise, GymSet, Habit, HabitLog, HabitType, Idea, IdeaStatus, Note, NoteFolder, Responsibility, ResponsibilityColor, SavedFood, SavedList, Task } from "@/lib/types/domain";
 import type { Database, Json } from "@/lib/types/database";
+import { localDateKey } from "@/lib/dates";
 
 // ─── Supabase client singleton ────────────────────────────────────────────────
 
@@ -1275,7 +1276,7 @@ export const useAppStore = create<AppState>()(
 
         set({
           activeGymSession: {
-            date: new Date().toISOString().slice(0, 10),
+            date: localDateKey(),
             dayLabel: day.label,
             startedAt: new Date().toISOString(),
             exercises,

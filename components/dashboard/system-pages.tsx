@@ -9,6 +9,7 @@ import { useAppStore } from "@/lib/stores/app-store";
 import { createBrowserSupabaseClient, hasSupabaseEnv } from "@/lib/supabase/browser";
 import { getTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { localDateKey } from "@/lib/dates";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -21,7 +22,7 @@ function getThisWeekDates(): string[] {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    return d.toISOString().slice(0, 10);
+    return localDateKey(d);
   });
 }
 
@@ -56,7 +57,7 @@ export function ProgressWorkspace() {
 
   const weekDates = getThisWeekDates();
   const { start: weekStart, end: weekEnd } = getWeekBounds();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
 
   // Tasks
   const openTasks = tasks.filter((t) => t.status !== "done");

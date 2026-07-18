@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
 import type { FoodMeal } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
+import { localDateKey } from "@/lib/dates";
 
 const MEALS: { id: FoodMeal; label: string }[] = [
   { id: "breakfast", label: "Breakfast" },
@@ -21,7 +22,7 @@ type AddState = {
 };
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return localDateKey();
 }
 
 function formatDate(dateStr: string) {
@@ -29,7 +30,7 @@ function formatDate(dateStr: string) {
   if (dateStr === today) return "Today";
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  if (dateStr === yesterday.toISOString().slice(0, 10)) return "Yesterday";
+  if (dateStr === localDateKey(yesterday)) return "Yesterday";
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
@@ -105,7 +106,7 @@ export function FoodWorkspace() {
   const viewDate = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + dateOffset);
-    return d.toISOString().slice(0, 10);
+    return localDateKey(d);
   }, [dateOffset]);
 
   const dayEntries = useMemo(
