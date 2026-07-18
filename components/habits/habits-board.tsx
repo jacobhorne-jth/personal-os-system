@@ -34,8 +34,12 @@ function getWeekDates(offsetWeeks: number): string[] {
   return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
 }
 
+function findLog(logs: HabitLogs, habitId: string, date: string) {
+  return logs.find((l) => l.habitId === habitId && l.date === date);
+}
+
 function logValue(logs: HabitLogs, habitId: string, date: string): number {
-  return logs.find((l) => l.habitId === habitId && l.date === date)?.value ?? 0;
+  return findLog(logs, habitId, date)?.value ?? 0;
 }
 
 // Whether a day counts toward the streak (no log on avoid/limit days is clean)
@@ -50,9 +54,17 @@ function getStreak(habit: Habit, allLogs: HabitLogs): number {
   const createdDate = effectiveDateKeyOf(new Date(habit.createdAt));
   let streak = 0;
   let dateStr = effectiveDateKey();
+  // Today is pending, not failed: an unchecked today doesn't break the
+  // streak — counting just starts from yesterday until it's done
+  if (!dayCounts(habit, logValue(allLogs, habit.id, dateStr))) {
+    dateStr = addDays(dateStr, -1);
+  }
   for (let i = 0; i < 365; i++) {
-    if (dateStr < createdDate) break;
-    if (!dayCounts(habit, logValue(allLogs, habit.id, dateStr))) break;
+    const log = findLog(allLogs, habit.id, dateStr);
+    // Days before the habit existed only count when explicitly backfilled —
+    // implicit "clean" days (avoid/limit with no log) can't inflate streaks
+    if (dateStr < createdDate && !log) break;
+    if (!dayCounts(habit, log?.value ?? 0)) break;
     streak++;
     dateStr = addDays(dateStr, -1);
   }
@@ -69,10 +81,23 @@ function getStats(habit: Habit, allLogs: HabitLogs) {
   let windowSuccess = 0;
   let totalDone = 0;
   const windowStart = addDays(today, -29);
-  for (let dateStr = createdDate; dateStr <= today; dateStr = addDays(dateStr, 1)) {
-    const value = logValue(allLogs, habit.id, dateStr);
+  // Stats start at creation or the earliest backfilled log, whichever is older
+  const firstLogDate = allLogs
+    .filter((l) => l.habitId === habit.id)
+    .reduce<string | null>((min, l) => (min === null || l.date < min ? l.date : min), null);
+  const startDate = firstLogDate && firstLogDate < createdDate ? firstLogDate : createdDate;
+  for (let dateStr = startDate; dateStr <= today; dateStr = addDays(dateStr, 1)) {
+    const log = findLog(allLogs, habit.id, dateStr);
+    const value = log?.value ?? 0;
+    // Pre-creation days without an explicit log were simply untracked
+    if (dateStr < createdDate && !log) {
+      run = 0;
+      continue;
+    }
     totalDone += habit.type === "avoid" ? 0 : value;
     const ok = dayCounts(habit, value);
+    // Today is pending until done — don't count it as a miss anywhere
+    if (dateStr === today && !ok) continue;
     if (ok) {
       successDays++;
       run++;
@@ -119,8 +144,9 @@ function HistoryHeatmap({ habit, logs, weeks = 13 }: { habit: Habit; logs: Habit
           {Array.from({ length: 7 }, (_, d) => {
             const dateStr = addDays(firstMonday, w * 7 + d);
             if (dateStr > today) return <span key={d} className="size-2.5 rounded-[3px] opacity-0" />;
-            const beforeCreation = dateStr < createdDate;
-            const status = beforeCreation ? "none" : dayStatus(habit, logValue(logs, habit.id, dateStr));
+            const log = findLog(logs, habit.id, dateStr);
+            const beforeCreation = dateStr < createdDate && !log;
+            const status = beforeCreation ? "none" : dayStatus(habit, log?.value ?? 0);
             return (
               <span
                 key={d}
