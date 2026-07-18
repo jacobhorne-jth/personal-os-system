@@ -86,7 +86,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   // Start of the instance the expanded editor was opened from (null when
   // editing a master directly)
   const [editingOccurrenceStart, setEditingOccurrenceStart] = useState<string | null>(null);
-  const [createMode, setCreateMode] = useState(false);
   const { calendarView, setCalendarView, visibleOverlays, hiddenResponsibilities, calendarGotoDate, setCalendarGotoDate } = useUiStore();
   const calendarItems = useAppStore((state) => state.calendarItems);
   const responsibilities = useAppStore((state) => state.responsibilities);
@@ -158,7 +157,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       const itemStart = new Date(item.startsAt);
       api?.scrollToTime(`${`${Math.max(0, itemStart.getHours() - 1)}`.padStart(2, "0")}:00:00`);
       setDraftEvent(null);
-      setCreateMode(false);
       setDeleteMenuOpen(false);
       // Wait for FullCalendar to paint the target week, then anchor the panel
       // beside the event's slot BEFORE showing it — opening earlier would
@@ -268,7 +266,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       router.push(`/calendar?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}&date=${encodeURIComponent(start.toISOString())}`);
       return;
     }
-    setCreateMode(false);
     setSelectedItem(null);
     positionCard(selection.anchor ?? null);
     setDraftEvent({
@@ -550,7 +547,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       setSelectedPanelPos(null);
     }
     setDraftEvent(null);
-    setCreateMode(false);
     setSelectedItem(item);
     setDeleteMenuOpen(false);
   }
@@ -900,10 +896,33 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
           {fullChrome && (
             <button
               onClick={() => {
+                // Open the create card for the next full hour, like Google
                 setSelectedItem(null);
                 setDeleteMenuOpen(false);
-                setDraftEvent(null);
-                setCreateMode(true);
+                const start = new Date();
+                start.setMinutes(0, 0, 0);
+                start.setHours(start.getHours() + 1);
+                const end = new Date(start.getTime() + 60 * 60 * 1000);
+                const dateKey = localDateKeyOf(start.toISOString());
+                const startMin = start.getHours() * 60;
+                const col = shellRef.current?.querySelector<HTMLElement>(`.fc-timegrid-col[data-date='${dateKey}']`);
+                if (col) {
+                  const rect = col.getBoundingClientRect();
+                  positionCard({ colLeft: rect.left, colRight: rect.right, top: rect.top + (startMin / (25 * 60)) * rect.height });
+                  placeBlockRef.current(dateKey, startMin, startMin + 60);
+                } else {
+                  positionCard(null);
+                }
+                setDraftEvent({
+                  startsAt: start.toISOString(),
+                  endsAt: end.toISOString(),
+                  title: "",
+                  location: "",
+                  notes: "",
+                  responsibilityId: responsibilities[0]?.id ?? "school",
+                  type: "app_event",
+                  recurrence: ""
+                });
               }}
               className="gcal-create-button"
             >
@@ -915,11 +934,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
       <div className="gcal-main">
         <div className="gcal-calendar-shell" ref={shellRef}>
-          {createMode && (
-            <div className="absolute left-1/2 top-3 z-20 -translate-x-1/2 rounded-full border border-[#3c4043] bg-[#282a2d] px-4 py-2 text-sm text-[#e8eaed] shadow-lift">
-              Drag across the calendar to create an event
-            </div>
-          )}
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
