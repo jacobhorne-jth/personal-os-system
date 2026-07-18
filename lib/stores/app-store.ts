@@ -534,7 +534,18 @@ export const useAppStore = create<AppState>()(
         let loadedNoteFolders = (dbNoteFolders ?? []).map(dbNoteFolderToDomain);
         const loadedLists = (dbLists ?? []).map(dbListToDomain);
 
-        if (!dbNoteFolders || dbNoteFolders.length === 0) {
+        // Seed starter folders/responsibilities only for a genuinely fresh
+        // account — an empty table alone just means the user deleted them
+        const freshAccount =
+          (dbTasks?.length ?? 0) === 0 &&
+          (dbCalendarItems?.length ?? 0) === 0 &&
+          (dbNotes?.length ?? 0) === 0 &&
+          (dbNoteFolders?.length ?? 0) === 0 &&
+          (dbLists?.length ?? 0) === 0 &&
+          (dbResp?.length ?? 0) === 0 &&
+          !dbAppState?.data;
+
+        if (freshAccount) {
           await db.from("note_folders").insert(
             seedNoteFolders.map((folder, i) => ({
               id: folder.id,
@@ -548,7 +559,7 @@ export const useAppStore = create<AppState>()(
         }
 
         let loadedResp: Responsibility[];
-        if (!dbResp || dbResp.length === 0) {
+        if (freshAccount) {
           // First login: seed responsibilities from mock data
           await db.from("responsibilities").insert(
             responsibilities.map((r, i) => ({
@@ -566,7 +577,7 @@ export const useAppStore = create<AppState>()(
             dbResponsibilityToDomain({ id: r.id, user_id: userId, name: r.name, description: r.description, color: r.color, icon: r.icon, weekly_goal_hours: r.weeklyGoalHours, sort_order: 0, archived_at: null, created_at: new Date().toISOString() }, loadedTasks, loadedItems)
           );
         } else {
-          loadedResp = dbResp.map((r) => dbResponsibilityToDomain(r, loadedTasks, loadedItems));
+          loadedResp = (dbResp ?? []).map((r) => dbResponsibilityToDomain(r, loadedTasks, loadedItems));
         }
 
         set({
