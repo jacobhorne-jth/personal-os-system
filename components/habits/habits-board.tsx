@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Pencil, Plus, Trash2, X } from "lucide-react";
-import { addDays, localDateKey } from "@/lib/dates";
+import { addDays, effectiveDateKey, effectiveDateKeyOf, effectiveNow, localDateKey } from "@/lib/dates";
 import { useAppStore } from "@/lib/stores/app-store";
 import { getTone } from "@/lib/theme";
 import type { Habit, HabitType } from "@/lib/types/domain";
@@ -22,7 +22,7 @@ type HabitLogs = ReturnType<typeof useAppStore.getState>["habitLogs"];
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function mondayOfWeek(offsetWeeks: number): string {
-  const today = new Date();
+  const today = effectiveNow();
   const day = today.getDay();
   const monday = new Date(today);
   monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1) + offsetWeeks * 7);
@@ -47,9 +47,9 @@ function dayCounts(habit: Habit, value: number): boolean {
 
 function getStreak(habit: Habit, allLogs: HabitLogs): number {
   if (habit.type === "weekly") return 0;
-  const createdDate = localDateKey(new Date(habit.createdAt));
+  const createdDate = effectiveDateKeyOf(new Date(habit.createdAt));
   let streak = 0;
-  let dateStr = localDateKey();
+  let dateStr = effectiveDateKey();
   for (let i = 0; i < 365; i++) {
     if (dateStr < createdDate) break;
     if (!dayCounts(habit, logValue(allLogs, habit.id, dateStr))) break;
@@ -60,8 +60,8 @@ function getStreak(habit: Habit, allLogs: HabitLogs): number {
 }
 
 function getStats(habit: Habit, allLogs: HabitLogs) {
-  const today = localDateKey();
-  const createdDate = localDateKey(new Date(habit.createdAt));
+  const today = effectiveDateKey();
+  const createdDate = effectiveDateKeyOf(new Date(habit.createdAt));
   let best = 0;
   let run = 0;
   let successDays = 0;
@@ -109,8 +109,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 // GitHub-style history: the last `weeks` weeks as columns, Mon→Sun rows
 function HistoryHeatmap({ habit, logs, weeks = 13 }: { habit: Habit; logs: HabitLogs; weeks?: number }) {
-  const today = localDateKey();
-  const createdDate = localDateKey(new Date(habit.createdAt));
+  const today = effectiveDateKey();
+  const createdDate = effectiveDateKeyOf(new Date(habit.createdAt));
   const firstMonday = addDays(mondayOfWeek(0), -(weeks - 1) * 7);
   return (
     <div className="flex gap-[3px]">
@@ -238,7 +238,7 @@ export function HabitsBoard() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
-  const today = localDateKey();
+  const today = effectiveDateKey();
 
   const weekLabel = useMemo(() => {
     const fmt = (key: string) => {
@@ -343,7 +343,7 @@ export function HabitsBoard() {
         <div>
           <p className="text-sm text-muted">Habits</p>
           <h1 className="mt-1 text-3xl font-semibold text-ink">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+            {effectiveNow().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
           </h1>
           <p className="mt-2 text-sm text-muted">
             {habits.length > 0 ? `${todayDone} of ${habits.length} on track today` : "Track what you do, what you skip, and what you avoid."}
