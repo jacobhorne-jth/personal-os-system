@@ -28,6 +28,7 @@ type QuickCaptureFormProps = {
   dateClassName?: string;
   descriptionClassName?: string;
   multiline?: boolean;
+  autoFocus?: boolean;
   onComplete?: () => void;
 };
 
@@ -64,6 +65,7 @@ export function QuickCaptureForm({
   dateClassName,
   descriptionClassName,
   multiline = false,
+  autoFocus = false,
   onComplete
 }: QuickCaptureFormProps) {
   const responsibilities = useActiveResponsibilities();
@@ -205,6 +207,7 @@ export function QuickCaptureForm({
           {intent === "review" ? <Send className="mt-0.5 size-4 shrink-0 text-muted" /> : <Plus className="size-4 shrink-0 text-muted" />}
           {multiline ? (
             <textarea
+              autoFocus={autoFocus}
               value={text}
               onChange={(e) => updateText(e.target.value)}
               placeholder={placeholder}
@@ -213,6 +216,7 @@ export function QuickCaptureForm({
           ) : (
             <input
               ref={inputRef}
+              autoFocus={autoFocus}
               value={text}
               onChange={(e) => updateText(e.target.value)}
               onKeyDown={handleKeyDown}

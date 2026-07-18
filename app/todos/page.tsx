@@ -175,6 +175,7 @@ export default function TodosPage() {
             <div className="mb-4 rounded-lg border border-[#3a3a3a] bg-[#252525] p-4">
               <QuickCaptureForm
                 key={view}
+                autoFocus
                 defaultLabel={selectedLabel || undefined}
                 dueAt={view === "today" ? `${today}T17:00:00` : undefined}
                 placeholder="Title"
