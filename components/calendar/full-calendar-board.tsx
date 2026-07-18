@@ -128,13 +128,41 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       const item = visibleItems.find((calendarItem) => calendarItem.id === eventId);
       if (!item) return;
       handledQueryDraft.current = true;
-      calendarRef.current?.getApi().gotoDate(item.startsAt);
+      const api = calendarRef.current?.getApi();
+      api?.gotoDate(item.startsAt);
+      const itemStart = new Date(item.startsAt);
+      api?.scrollToTime(`${`${Math.max(0, itemStart.getHours() - 1)}`.padStart(2, "0")}:00:00`);
       setDraftEvent(null);
       setCreateMode(false);
-      setSelectedItem(item);
       setDeleteMenuOpen(false);
-      // Consume the params so a refresh doesn't replay this panel
-      router.replace("/calendar", { scroll: false });
+      // Wait for FullCalendar to paint the target week, then anchor the panel
+      // beside the event's slot BEFORE showing it — opening earlier would
+      // flash the panel at the fallback corner.
+      setTimeout(() => {
+        const y = itemStart.getFullYear();
+        const m = `${itemStart.getMonth() + 1}`.padStart(2, "0");
+        const d = `${itemStart.getDate()}`.padStart(2, "0");
+        const col = shellRef.current?.querySelector<HTMLElement>(`.fc-timegrid-col[data-date='${y}-${m}-${d}']`);
+        const root = rootRef.current;
+        if (col && root) {
+          const rect = col.getBoundingClientRect();
+          const rootRect = root.getBoundingClientRect();
+          const startMin = itemStart.getHours() * 60 + itemStart.getMinutes();
+          const eventTop = rect.top + (startMin / (25 * 60)) * rect.height;
+          const WIDTH = 400;
+          const GAP = 12;
+          let left = rect.left - rootRect.left - WIDTH - GAP;
+          if (left < 8) left = rect.right - rootRect.left + GAP;
+          left = Math.max(8, Math.min(left, rootRect.width - WIDTH - 8));
+          const top = Math.max(56, Math.min(eventTop - rootRect.top - 8, rootRect.height - 380));
+          setSelectedPanelPos({ left, top });
+        } else {
+          setSelectedPanelPos(null);
+        }
+        setSelectedItem(item);
+        // Consume the params so a refresh doesn't replay this panel
+        router.replace("/calendar", { scroll: false });
+      }, 80);
       return;
     }
     if (!start || !end) return;
