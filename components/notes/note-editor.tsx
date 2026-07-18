@@ -42,6 +42,9 @@ function convertMarkdownShortcut(textarea: HTMLTextAreaElement) {
   };
 }
 
+// noteIds with a mounted editor; consulted by the deferred blank-note cleanup
+const openNoteEditors = new Set<string>();
+
 export function NoteEditor({ noteId }: { noteId: string }) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -69,18 +72,25 @@ export function NoteEditor({ noteId }: { noteId: string }) {
 
   // Discard the note if the user leaves without writing anything —
   // otherwise "New" + back litters the list with untitled empty notes.
+  // Deletion is deferred a tick and skipped if an editor for the same note
+  // mounts again, so StrictMode's mount→cleanup→mount doesn't nuke new notes.
   const emptinessRef = useRef({ empty: true, noteId });
   emptinessRef.current = { empty: !title.trim() && !body.trim(), noteId };
   useEffect(() => {
+    openNoteEditors.add(noteId);
     return () => {
+      openNoteEditors.delete(noteId);
       const { empty, noteId: leavingId } = emptinessRef.current;
-      const stored = useAppStore.getState().notes.find((n) => n.id === leavingId);
-      if (empty && stored && !stored.title.trim() && !stored.body.trim()) {
-        deleteNote(leavingId);
-      }
+      window.setTimeout(() => {
+        if (openNoteEditors.has(leavingId)) return;
+        const stored = useAppStore.getState().notes.find((n) => n.id === leavingId);
+        if (empty && stored && !stored.title.trim() && !stored.body.trim()) {
+          deleteNote(leavingId);
+        }
+      }, 60);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [noteId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

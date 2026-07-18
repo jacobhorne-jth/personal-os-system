@@ -43,10 +43,11 @@ export function ListsWorkspace() {
 
   function createList(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!newListTitle.trim() || !newListResponsibilityId) {
+    if (!newListTitle.trim()) {
       return;
     }
-    addList({ title: newListTitle.trim(), responsibilityId: newListResponsibilityId });
+    // No label yet is fine — the list just goes unsorted
+    addList({ title: newListTitle.trim(), responsibilityId: newListResponsibilityId || "" });
     setNewListTitle("");
   }
 

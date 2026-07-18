@@ -63,7 +63,7 @@ export function GoalsWorkspace() {
   }
 
   function saveEdit() {
-    if (!editing?.title.trim() || !editing.target || !editing.unit.trim()) return;
+    if (!editing?.title.trim() || !editing.target) return;
     const input = {
       title: editing.title.trim(),
       responsibilityId: editing.responsibilityId || undefined,
@@ -189,7 +189,7 @@ export function GoalsWorkspace() {
             <div className="flex items-center gap-2">
               <button
                 onClick={saveEdit}
-                disabled={!editing.title.trim() || !editing.target || !editing.unit.trim()}
+                disabled={!editing.title.trim() || !editing.target}
                 className="flex-1 rounded-lg bg-blue py-2 text-xs font-medium text-white disabled:opacity-40"
               >
                 {editing.id === "new" ? "Create goal" : "Save changes"}
