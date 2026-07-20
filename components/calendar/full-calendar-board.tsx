@@ -12,7 +12,7 @@ import { LabelSelect } from "@/components/calendar/label-select";
 import { RecurrencePicker } from "@/components/calendar/recurrence-picker";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toFullCalendarEvent } from "@/lib/queries/calendar";
-import { describeRecurrence, expandCalendarItems } from "@/lib/recurrence";
+import { describeRecurrence, expandCalendarItems, parseRecurrence } from "@/lib/recurrence";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { getTone } from "@/lib/theme";
@@ -76,6 +76,8 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const [editingIsSeries, setEditingIsSeries] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CalendarItem | null>(null);
   const [deleteMenuOpen, setDeleteMenuOpen] = useState(false);
+  // Selected radio in the Google-style "Delete recurring event" dialog
+  const [deleteScope, setDeleteScope] = useState<"this" | "following" | "all">("this");
   // Google-style "This event / All events" choice for changes to a recurring
   // instance: a drag/resize (kind "move") or a save from the editor ("save")
   const [seriesScopePrompt, setSeriesScopePrompt] = useState<
@@ -632,15 +634,31 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     calendarRef.current?.getApi().changeView(nextView);
   }
 
-  function deleteSelectedEvent(mode: "this" | "all" = "this") {
+  function deleteSelectedEvent(mode: "this" | "following" | "all" = "this") {
     if (!selectedItem) return;
     if (selectedItem.seriesId) {
+      const master = calendarItems.find((item) => item.id === selectedItem.seriesId);
       if (mode === "all") {
         deleteCalendarItem(selectedItem.seriesId);
+      } else if (mode === "following" && master) {
+        // Truncate the series so this occurrence and everything after it is
+        // gone: end the recurrence the day before this occurrence. If this is
+        // the first occurrence, nothing is left, so delete the master.
+        const occDate = new Date(selectedItem.startsAt);
+        const dayBefore = new Date(occDate);
+        dayBefore.setDate(dayBefore.getDate() - 1);
+        if (dayBefore < new Date(master.startsAt)) {
+          deleteCalendarItem(master.id);
+        } else {
+          const rule = parseRecurrence(master.recurrence);
+          if (rule) {
+            const truncated = { ...rule, until: localDateKeyOf(dayBefore.toISOString()) };
+            delete truncated.count; // an explicit end date supersedes a count
+            updateCalendarItem(master.id, { recurrence: JSON.stringify(truncated) });
+          }
+        }
       } else {
-        const d = new Date(selectedItem.startsAt);
-        const dateKey = `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
-        deleteCalendarOccurrence(selectedItem.seriesId, dateKey);
+        deleteCalendarOccurrence(selectedItem.seriesId, localDateKeyOf(selectedItem.startsAt));
       }
     } else {
       deleteCalendarItem(selectedItem.id);
@@ -1180,10 +1198,11 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             <button
               type="button"
               onClick={() => {
-                // Single events delete immediately; recurring events still need
-                // the this-vs-series scope choice
+                // Single events delete immediately; recurring events open the
+                // Google-style This / This and following / All dialog
                 if (selectedItem.seriesId) {
-                  setDeleteMenuOpen((value) => !value);
+                  setDeleteScope("this");
+                  setDeleteMenuOpen(true);
                 } else {
                   deleteSelectedEvent();
                 }
@@ -1198,18 +1217,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             </button>
           </div>
 
-          {deleteMenuOpen && selectedItem.seriesId && (
-            <div className="mx-3 mb-2 rounded-xl border border-[#3c4043] bg-[#282a2d] p-1.5">
-              <button type="button" onClick={() => deleteSelectedEvent("this")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                <Trash2 className="size-4 text-[#9aa0a6]" />
-                Delete this event
-              </button>
-              <button type="button" onClick={() => deleteSelectedEvent("all")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]">
-                <Trash2 className="size-4 text-[#9aa0a6]" />
-                Delete all events in series
-              </button>
-            </div>
-          )}
 
           <div className="px-4 pb-4">
             <div className="grid grid-cols-[28px_1fr] gap-x-3 gap-y-2">
@@ -1288,6 +1295,54 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                 className="rounded-full px-4 py-1.5 text-sm text-[#8ab4f8] transition hover:bg-[#303134]"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteMenuOpen && selectedItem?.seriesId && (
+        <div
+          data-popup-card
+          className="absolute inset-0 z-50 grid place-items-center bg-black/50"
+          onPointerDown={(e) => {
+            if (e.target === e.currentTarget) setDeleteMenuOpen(false);
+          }}
+        >
+          <div className="w-[360px] rounded-2xl border border-[#3c4043] bg-[#2a2a2c] p-6 shadow-[0_24px_72px_rgba(0,0,0,0.6)]">
+            <h3 className="text-xl text-[#e8eaed]">Delete recurring event</h3>
+            <div className="mt-5 space-y-1">
+              {([
+                ["this", "This event"],
+                ["following", "This and following events"],
+                ["all", "All events"],
+              ] as const).map(([value, label]) => (
+                <label key={value} className="flex cursor-pointer items-center gap-3 rounded-lg px-1 py-2.5">
+                  <input
+                    type="radio"
+                    name="delete-scope"
+                    checked={deleteScope === value}
+                    onChange={() => setDeleteScope(value)}
+                    className="size-5 accent-[#8ab4f8]"
+                  />
+                  <span className="text-[15px] text-[#e8eaed]">{label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteMenuOpen(false)}
+                className="rounded-full px-5 py-2 text-sm font-medium text-[#8ab4f8] transition hover:bg-[#3c4043]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteSelectedEvent(deleteScope)}
+                className="rounded-full bg-[#8ab4f8] px-6 py-2 text-sm font-medium text-[#202124] transition hover:brightness-110"
+              >
+                OK
               </button>
             </div>
           </div>
