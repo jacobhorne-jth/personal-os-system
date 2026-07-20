@@ -131,7 +131,7 @@ export function ProgressWorkspace() {
       </header>
 
       {/* Key metrics */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard value={openTasks.length} label="open tasks" />
         <StatCard
           value={habitRate !== null ? `${habitRate}%` : "—"}
