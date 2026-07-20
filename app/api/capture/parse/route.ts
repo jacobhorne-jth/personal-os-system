@@ -1,14 +1,21 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 export async function POST(req: Request) {
   const { text, source, responsibilities, currentDate, todayIso, imageBase64, imageMimeType } = await req.json();
 
   if (!text?.trim() && !imageBase64) {
     return NextResponse.json({ error: "No text or image provided" }, { status: 400 });
   }
+
+  // Instantiate lazily inside the handler — creating the client at module
+  // scope runs during Next.js's build-time page-data collection, which fails
+  // when OPENAI_API_KEY isn't present in the build environment.
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "AI capture is not configured (missing OPENAI_API_KEY)" }, { status: 503 });
+  }
+  const openai = new OpenAI({ apiKey });
 
   const respList = (responsibilities ?? [])
     .map((r: { id: string; name: string; description: string }) =>
