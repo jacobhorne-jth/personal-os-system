@@ -173,7 +173,7 @@ function ActiveExerciseRow({
               </button>
               <button
                 onClick={() => removeSetFromActive(exerciseIdx, si)}
-                className="rounded p-1 text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
+                className="rounded p-1 text-muted hover:text-red-400 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition"
               >
                 <X className="size-3" />
               </button>

@@ -297,7 +297,7 @@ export function IdeasWorkspace() {
                       )}
 
                       {/* Hover actions */}
-                      <div className="absolute right-2 top-2 flex gap-0.5 opacity-0 transition group-hover:opacity-100">
+                      <div className="absolute right-2 top-2 flex gap-0.5 opacity-100 lg:opacity-0 transition lg:group-hover:opacity-100">
                         <button
                           onClick={() => moveIdea(idea, -1)}
                           disabled={statusIdx === 0}

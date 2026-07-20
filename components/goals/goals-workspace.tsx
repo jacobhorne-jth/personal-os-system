@@ -270,7 +270,7 @@ export function GoalsWorkspace() {
                       <p className="mt-0.5 text-[11px]" style={{ color: tone.hex }}>{responsibility.name}</p>
                     )}
                   </div>
-                  <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                  <div className="flex shrink-0 items-center gap-1 opacity-100 lg:opacity-0 transition lg:group-hover:opacity-100">
                     <button
                       onClick={() => startEdit(goal)}
                       className="grid size-7 place-items-center rounded-md text-muted hover:bg-line hover:text-ink"

@@ -631,7 +631,7 @@ export function HabitsBoard() {
                     <div className="flex min-w-0 items-center gap-2 pr-2">
                       <button
                         onClick={() => startEdit(habit)}
-                        className="shrink-0 rounded p-1 text-muted opacity-0 transition group-hover:opacity-100 hover:bg-line hover:text-ink"
+                        className="shrink-0 rounded p-1 text-muted opacity-100 lg:opacity-0 transition lg:group-hover:opacity-100 hover:bg-line hover:text-ink"
                       >
                         <Pencil className="size-3" />
                       </button>

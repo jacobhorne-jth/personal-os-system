@@ -322,7 +322,7 @@ export default function TodosPage() {
                             </div>
                           </Link>
                           {/* Hover actions */}
-                          <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
+                          <div className="flex shrink-0 items-center gap-0.5 opacity-100 lg:opacity-0 transition lg:group-hover:opacity-100">
                             {rescheduling === task.id ? (
                               <input
                                 autoFocus

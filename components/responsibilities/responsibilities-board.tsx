@@ -200,7 +200,7 @@ export function ResponsibilitiesBoard() {
                     {item.upcomingCount} upcoming
                   </span>
                 </p>
-                <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="flex shrink-0 items-center gap-1 opacity-100 lg:opacity-0 transition-opacity lg:group-hover:opacity-100">
                   <button
                     onClick={() => startEdit(item)}
                     className="rounded-md p-1.5 text-muted hover:bg-line hover:text-ink"

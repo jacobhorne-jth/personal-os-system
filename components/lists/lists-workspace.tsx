@@ -174,7 +174,7 @@ export function ListsWorkspace() {
                       <div className="flex shrink-0 items-center gap-1">
                         <button
                           onClick={() => { setDeleteConfirm(null); setEditingList({ id: list.id, title: list.title, responsibilityId: list.responsibilityId }); }}
-                          className="grid size-7 place-items-center rounded text-muted opacity-0 transition hover:bg-line hover:text-ink group-hover/list:opacity-100"
+                          className="grid size-7 place-items-center rounded text-muted opacity-100 lg:opacity-0 transition hover:bg-line hover:text-ink lg:group-hover/list:opacity-100"
                           title="Edit list"
                         >
                           <Pencil className="size-3.5" />
@@ -185,7 +185,7 @@ export function ListsWorkspace() {
                             "grid h-7 place-items-center rounded px-1.5 transition",
                             deleteConfirm === list.id
                               ? "bg-red-500/10 text-xs text-red-400"
-                              : "size-7 text-muted opacity-0 hover:bg-line hover:text-red-400 group-hover/list:opacity-100"
+                              : "size-7 text-muted opacity-100 lg:opacity-0 hover:bg-line hover:text-red-400 lg:group-hover/list:opacity-100"
                           )}
                           title="Delete list"
                         >
@@ -210,7 +210,7 @@ export function ListsWorkspace() {
                       <span className={cn("min-w-0 flex-1 leading-5", item.done && "text-muted line-through")}>{item.title}</span>
                       <button
                         onClick={() => deleteListItem(list.id, item.id)}
-                        className="grid size-5 shrink-0 place-items-center rounded text-muted opacity-0 transition hover:text-red-400 group-hover/item:opacity-100"
+                        className="grid size-5 shrink-0 place-items-center rounded text-muted opacity-100 lg:opacity-0 transition hover:text-red-400 lg:group-hover/item:opacity-100"
                         aria-label={`Delete ${item.title}`}
                       >
                         <Trash2 className="size-3" />

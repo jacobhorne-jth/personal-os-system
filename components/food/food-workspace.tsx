@@ -257,7 +257,7 @@ export function FoodWorkspace() {
                     <span className="min-w-[52px] text-right text-xs font-medium text-mint">{entry.protein}g</span>
                     <button
                       onClick={() => deleteFoodEntry(entry.id)}
-                      className="grid size-6 place-items-center rounded text-muted opacity-0 transition hover:text-red-400 group-hover:opacity-100"
+                      className="grid size-6 place-items-center rounded text-muted opacity-100 lg:opacity-0 transition hover:text-red-400 lg:group-hover:opacity-100"
                     >
                       <Trash2 className="size-3" />
                     </button>
@@ -284,7 +284,7 @@ export function FoodWorkspace() {
                         <button
                           onClick={() => deleteSavedFood(food.id)}
                           title="Remove from library"
-                          className="grid size-7 shrink-0 place-items-center text-muted opacity-0 transition hover:text-red-400 group-hover/lib:opacity-100"
+                          className="grid size-7 shrink-0 place-items-center text-muted opacity-100 lg:opacity-0 transition hover:text-red-400 lg:group-hover/lib:opacity-100"
                         >
                           <Trash2 className="size-3" />
                         </button>
