@@ -8,6 +8,7 @@ import { parseInput, buildDueAt } from "@/lib/task-parser";
 import type { CaptureExtraction } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 import { localDateKey } from "@/lib/dates";
+import { DueDatePicker } from "@/components/capture/due-date-picker";
 
 type QuickCaptureFormProps = {
   intent?: "task" | "review";
@@ -46,6 +47,11 @@ const chipIcons = {
   label: AtSign,
 } as const;
 
+function dateFromKey(key: string): Date {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function QuickCaptureForm({
   intent = "task",
   defaultResponsibilityId,
@@ -54,7 +60,7 @@ export function QuickCaptureForm({
   hideResponsibilitySelect = false,
   dueAt,
   source = "typed",
-  placeholder = intent === "review" ? "Capture anything messy" : "Add a task — try 'dentist tmrw at 2pm' or 'gym every mon'",
+  placeholder = intent === "review" ? "Capture anything messy" : "Add a task",
   submitLabel = intent === "review" ? "Send to review" : "Add",
   value,
   onValueChange,
@@ -74,6 +80,8 @@ export function QuickCaptureForm({
   const [internalText, setInternalText] = useState("");
   const [description, setDescription] = useState("");
   const [label, setLabel] = useState(defaultLabel ?? "");
+  // undefined = follow detection/default; string = manually chosen date; null = manually cleared
+  const [manualDate, setManualDate] = useState<string | null | undefined>(undefined);
   const [responsibilityId, setResponsibilityId] = useState(defaultResponsibilityId ?? responsibilities[0]?.id ?? "");
 
   const text = value ?? internalText;
@@ -178,9 +186,15 @@ export function QuickCaptureForm({
       });
     } else {
       const title = parsed?.chips.length ? (parsed.cleanTitle || trimmed) : trimmed;
-      const dueAtValue = parsed?.dueDate
-        ? buildDueAt(parsed.dueDate, parsed.dueTime)
-        : (dueAt ?? (parsed?.recurrence ? nextOccurrence(parsed.recurrence) : undefined));
+      let dueAtValue: string | undefined;
+      if (manualDate !== undefined) {
+        // Manual pick (or explicit clear) wins over detection
+        dueAtValue = manualDate ? buildDueAt(dateFromKey(manualDate), parsed?.dueTime) : undefined;
+      } else if (parsed?.dueDate) {
+        dueAtValue = buildDueAt(parsed.dueDate, parsed.dueTime);
+      } else {
+        dueAtValue = dueAt ?? (parsed?.recurrence ? nextOccurrence(parsed.recurrence) : undefined);
+      }
 
       addTask({
         title,
@@ -195,10 +209,18 @@ export function QuickCaptureForm({
 
     updateText("");
     setDescription("");
+    setManualDate(undefined);
     onComplete?.();
   }
 
   const hasChips = intent === "task" && (parsed?.chips.length ?? 0) > 0;
+
+  // The date shown in the picker: a manual pick wins, else the detected date,
+  // else the form's default due date (e.g. today on the home rail)
+  const detectedOrDefault = parsed?.dueDate
+    ? localDateKey(parsed.dueDate)
+    : (dueAt ? localDateKey(new Date(dueAt)) : null);
+  const effectiveDueDate = manualDate !== undefined ? manualDate : detectedOrDefault;
 
   return (
     <form onSubmit={handleSubmit} className={cn("grid gap-2", className)}>
@@ -288,26 +310,15 @@ export function QuickCaptureForm({
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Description optional"
+            placeholder="Description (optional)"
             rows={2}
             className={cn("min-h-16 resize-none rounded-lg border border-line bg-paper p-3 text-sm leading-5 text-ink outline-none placeholder:text-muted focus:border-blue", descriptionClassName)}
           />
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
-            <input
-              type="date"
-              value={parsed?.dueDate
-                ? localDateKey(parsed.dueDate)
-                : ""}
-              onChange={() => {}}
-              readOnly
-              placeholder="Date from text"
-              className={cn(
-                "h-9 rounded-md border px-2 text-xs outline-none",
-                parsed?.dueDate
-                  ? "border-blue/30 bg-blue/5 text-blue"
-                  : "border-line bg-paper text-muted",
-                dateClassName
-              )}
+            <DueDatePicker
+              value={effectiveDueDate}
+              onChange={(next) => setManualDate(next)}
+              className={dateClassName}
             />
             <select
               value={parsed?.labelHint ?? label}
