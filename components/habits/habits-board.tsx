@@ -589,6 +589,9 @@ export function HabitsBoard() {
             </div>
           </div>
 
+          {/* Grid scrolls horizontally on narrow screens so columns stay tappable */}
+          <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="min-w-[544px]">
           {/* Day header */}
           <div className="grid border-b border-line bg-line px-4 py-2" style={{ gridTemplateColumns: "1fr repeat(7, 44px) 72px" }}>
             <div />
@@ -767,6 +770,8 @@ export function HabitsBoard() {
                 </div>
               );
             })}
+          </div>
+          </div>
           </div>
         </div>
       )}

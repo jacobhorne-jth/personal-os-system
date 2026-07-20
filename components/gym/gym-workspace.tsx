@@ -362,10 +362,10 @@ export function GymWorkspace() {
         </div>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-4">
           {/* Day tabs */}
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {gymDays.map((d) => {
               const isToday = d.dayIndex === today;
               const isSelected = d.dayIndex === selectedDay;

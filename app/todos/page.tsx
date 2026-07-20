@@ -161,7 +161,42 @@ export default function TodosPage() {
 
       {/* Main content */}
       <main className="flex min-w-0 flex-1 flex-col bg-[#1f1f1f]">
-        <div className="mx-auto w-full max-w-2xl px-6 py-7">
+        {/* Mobile view switcher — the sidebar's filters, as a scrollable row */}
+        <div className="sticky top-0 z-10 border-b border-[#282828] bg-[#1f1f1f]/95 backdrop-blur lg:hidden">
+          <div className="flex gap-2 overflow-x-auto px-4 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {([
+              ["today", "Today", overdueTasks.length],
+              ["upcoming", "Upcoming", 0],
+              ["all", "All", 0],
+            ] as const).map(([v, labelText, badge]) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition",
+                  view === v ? "border-blue bg-blue/15 text-blue" : "border-[#3a3a3a] text-[#999]"
+                )}
+              >
+                {labelText}
+                {badge > 0 && <span className="text-xs tabular-nums text-[#cf4444]">{badge}</span>}
+              </button>
+            ))}
+            {responsibilities.filter((r) => !r.archivedAt).map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setView(`label:${r.name}`)}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition",
+                  view === `label:${r.name}` ? "border-blue bg-blue/15 text-blue" : "border-[#3a3a3a] text-[#999]"
+                )}
+              >
+                <span className="size-2.5 rounded-full" style={{ backgroundColor: taskLabelColor(r.name, responsibilities) }} />
+                {r.name}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 sm:py-7">
           <div className="mb-6 flex items-center gap-3">
             {selectedLabel && (
               <span className="size-3 rounded-full" style={{ backgroundColor: taskLabelColor(selectedLabel, responsibilities) }} />

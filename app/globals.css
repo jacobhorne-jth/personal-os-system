@@ -214,6 +214,74 @@ select:focus-visible {
   padding: 0 var(--gcal-shell-inset);
 }
 
+/* Compact calendar header for phones — the desktop bar is far too wide */
+@media (max-width: 1023px) {
+  .gcal-topbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    min-height: 52px;
+  }
+  .gcal-title {
+    flex: 1 1 auto;
+    min-width: 3ch;
+    justify-self: unset;
+    text-align: left;
+    margin-left: 6px;
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .gcal-nav-controls {
+    flex: none;
+  }
+  .gcal-actions {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  /* Two view tabs (Day / Month) — keep them compact so the title has room */
+  .gcal-view-tabs button {
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .gcal-nav-controls {
+    gap: 0;
+  }
+  .gcal-today-button {
+    min-width: 0;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+  .gcal-icon-button {
+    width: 34px;
+    height: 34px;
+  }
+  .gcal-icon-button svg {
+    width: 18px;
+    height: 18px;
+  }
+  .gcal-actions {
+    gap: 6px;
+  }
+  .gcal-view-tabs {
+    height: 34px;
+  }
+  .gcal-view-tabs button {
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  /* Header create button is replaced by a floating + FAB on phones */
+  .gcal-create-button {
+    display: none;
+  }
+  .gcal-calendar-shell {
+    margin: 0 8px 8px;
+    border-radius: 20px;
+  }
+}
+
 .gcal-right-rail {
   display: flex;
   align-items: center;
@@ -584,7 +652,8 @@ select:focus-visible {
   font-size: 12px;
 }
 
-@media (max-width: 1180px) {
+/* Tablet range only — phones are handled by the max-width:1023px block above */
+@media (min-width: 1024px) and (max-width: 1180px) {
   .gcal-actions {
     gap: 6px;
   }

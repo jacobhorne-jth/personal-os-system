@@ -6,7 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type EventResizeDoneArg } from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { DatesSetArg, EventClickArg, EventDropArg, EventContentArg } from "@fullcalendar/core";
-import { AlignLeft, ChevronLeft, ChevronRight, Clock, FileText, MapPin, Pencil, RefreshCw, Tags, Trash2, X } from "lucide-react";
+import { AlignLeft, CalendarDays, ChevronLeft, ChevronRight, Clock, FileText, LayoutGrid, MapPin, Pencil, Plus, RefreshCw, Tags, Trash2, X } from "lucide-react";
 import { DateTimeRow } from "@/components/calendar/date-time-picker";
 import { LabelSelect } from "@/components/calendar/label-select";
 import { RecurrencePicker } from "@/components/calendar/recurrence-picker";
@@ -15,6 +15,7 @@ import { toFullCalendarEvent } from "@/lib/queries/calendar";
 import { describeRecurrence, expandCalendarItems, parseRecurrence } from "@/lib/recurrence";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
+import { useIsMobile } from "@/lib/use-is-mobile";
 import { getTone } from "@/lib/theme";
 import type { CalendarItem, CalendarItemType } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
@@ -97,9 +98,18 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const deleteCalendarItem = useAppStore((state) => state.deleteCalendarItem);
   const deleteCalendarOccurrence = useAppStore((state) => state.deleteCalendarOccurrence);
   const moveCalendarItem = useAppStore((state) => state.moveCalendarItem);
-  const effectiveView = !fullChrome && calendarView === "month" ? "week" : calendarView;
+  const isMobile = useIsMobile();
+  // Week view is unusably cramped on a phone: fall back to day. Home keeps a
+  // single day; the full calendar offers Day / Month.
+  const effectiveView = isMobile && calendarView === "week"
+    ? "day"
+    : !fullChrome && calendarView === "month"
+      ? "week"
+      : calendarView;
   const initialView = effectiveView === "month" ? "dayGridMonth" : effectiveView === "week" ? "timeGridWeek" : "timeGridDay";
-  const availableViews = fullChrome ? (["day", "week", "month"] as const) : (["day", "week"] as const);
+  const availableViews = isMobile
+    ? (fullChrome ? (["day", "month"] as const) : (["day"] as const))
+    : (fullChrome ? (["day", "week", "month"] as const) : (["day", "week"] as const));
 
   // Recurring masters expand into concrete instances for the visible range
   const [viewRange, setViewRange] = useState<{ start: Date; end: Date }>(() => {
@@ -241,6 +251,15 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     setCalendarView("week");
     setCalendarGotoDate(null);
   }, [calendarGotoDate, setCalendarGotoDate, setCalendarView]);
+
+  // Keep FullCalendar's view in sync with the effective view — needed because
+  // useIsMobile resolves after first paint (week → day on phones)
+  useEffect(() => {
+    const api = calendarRef.current?.getApi();
+    if (!api) return;
+    const target = effectiveView === "month" ? "dayGridMonth" : effectiveView === "week" ? "timeGridWeek" : "timeGridDay";
+    if (api.view.type !== target) api.changeView(target);
+  }, [effectiveView]);
 
   // Place the card beside the selection like Google Calendar: prefer the
   // left of the day column, flip to the right when there's no room.
@@ -634,6 +653,36 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     calendarRef.current?.getApi().changeView(nextView);
   }
 
+  // Open the create card for the next full hour, like Google's + / Create
+  function openCreateDraft() {
+    setSelectedItem(null);
+    setDeleteMenuOpen(false);
+    const start = new Date();
+    start.setMinutes(0, 0, 0);
+    start.setHours(start.getHours() + 1);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const dateKey = localDateKeyOf(start.toISOString());
+    const startMin = start.getHours() * 60;
+    const col = shellRef.current?.querySelector<HTMLElement>(`.fc-timegrid-col[data-date='${dateKey}']`);
+    if (col) {
+      const rect = col.getBoundingClientRect();
+      positionCard({ colLeft: rect.left, colRight: rect.right, top: rect.top + (startMin / (25 * 60)) * rect.height });
+      placeBlockRef.current(dateKey, startMin, startMin + 60);
+    } else {
+      positionCard(null);
+    }
+    setDraftEvent({
+      startsAt: start.toISOString(),
+      endsAt: end.toISOString(),
+      title: "",
+      location: "",
+      notes: "",
+      responsibilityId: responsibilities[0]?.id ?? "school",
+      type: "app_event",
+      recurrence: ""
+    });
+  }
+
   function deleteSelectedEvent(mode: "this" | "following" | "all" = "this") {
     if (!selectedItem) return;
     if (selectedItem.seriesId) {
@@ -904,46 +953,27 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
         <h2 className="gcal-title">{calendarTitle}</h2>
 
         <div className="gcal-actions">
-          <div className="gcal-view-tabs" style={{ gridTemplateColumns: `repeat(${availableViews.length}, minmax(74px, 1fr))` }} aria-label="Calendar view">
-            {availableViews.map((view) => (
-              <button key={view} onClick={() => changeView(view)} className={cn(effectiveView === view && "active")}>
-                {view}
-              </button>
-            ))}
-          </div>
-          {fullChrome && (
+          {isMobile ? (
+            // A single compact toggle instead of the segmented control
             <button
-              onClick={() => {
-                // Open the create card for the next full hour, like Google
-                setSelectedItem(null);
-                setDeleteMenuOpen(false);
-                const start = new Date();
-                start.setMinutes(0, 0, 0);
-                start.setHours(start.getHours() + 1);
-                const end = new Date(start.getTime() + 60 * 60 * 1000);
-                const dateKey = localDateKeyOf(start.toISOString());
-                const startMin = start.getHours() * 60;
-                const col = shellRef.current?.querySelector<HTMLElement>(`.fc-timegrid-col[data-date='${dateKey}']`);
-                if (col) {
-                  const rect = col.getBoundingClientRect();
-                  positionCard({ colLeft: rect.left, colRight: rect.right, top: rect.top + (startMin / (25 * 60)) * rect.height });
-                  placeBlockRef.current(dateKey, startMin, startMin + 60);
-                } else {
-                  positionCard(null);
-                }
-                setDraftEvent({
-                  startsAt: start.toISOString(),
-                  endsAt: end.toISOString(),
-                  title: "",
-                  location: "",
-                  notes: "",
-                  responsibilityId: responsibilities[0]?.id ?? "school",
-                  type: "app_event",
-                  recurrence: ""
-                });
-              }}
-              className="gcal-create-button"
+              type="button"
+              onClick={() => changeView(effectiveView === "month" ? "day" : "month")}
+              className="gcal-icon-button"
+              aria-label={effectiveView === "month" ? "Switch to day view" : "Switch to month view"}
             >
+              {effectiveView === "month" ? <CalendarDays className="size-5" /> : <LayoutGrid className="size-5" />}
+            </button>
+          ) : (
+            <div className="gcal-view-tabs" style={{ gridTemplateColumns: `repeat(${availableViews.length}, minmax(74px, 1fr))` }} aria-label="Calendar view">
+              {availableViews.map((view) => (
+                <button key={view} onClick={() => changeView(view)} className={cn(effectiveView === view && "active")}>
+                  {view}
+                </button>
+              ))}
+            </div>
+          )}
+          {fullChrome && (
+            <button onClick={openCreateDraft} className="gcal-create-button">
               Create event
             </button>
           )}
@@ -983,6 +1013,18 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             eventResize={handleEventResize}
             datesSet={handleDatesSet}
           />
+
+          {/* Mobile create FAB — the header + is hidden on phones for space */}
+          {fullChrome && isMobile && (
+            <button
+              type="button"
+              onClick={openCreateDraft}
+              aria-label="Create event"
+              className="absolute bottom-24 right-4 z-20 grid size-14 place-items-center rounded-2xl bg-[#4285f4] text-white shadow-[0_8px_24px_rgba(0,0,0,0.45)] transition active:scale-95"
+            >
+              <Plus className="size-6" />
+            </button>
+          )}
         </div>
       </div>
 

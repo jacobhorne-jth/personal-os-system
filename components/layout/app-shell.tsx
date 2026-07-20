@@ -14,12 +14,14 @@ import {
   Flag,
   Home,
   Inbox,
+  LayoutGrid,
   Lightbulb,
   ListChecks,
   PlusCircle,
   Repeat2,
   Settings,
-  Tags
+  Tags,
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlobalSearch } from "@/components/layout/global-search";
@@ -41,11 +43,19 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings }
 ];
 
+// Bottom-nav primary tabs on mobile; everything else lives in the "More" sheet
+const mobilePrimary = ["/home", "/calendar", "/tasks", "/inbox"];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarLockedClosed, setSidebarLockedClosed] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const isPublicRoute = pathname.startsWith("/login");
+
+  // Close the mobile "More" sheet whenever the route changes
+  const primaryItems = navItems.filter((i) => mobilePrimary.includes(i.href));
+  const moreItems = navItems.filter((i) => !mobilePrimary.includes(i.href));
   const isHomeSurface = pathname.startsWith("/home");
   const isCalendarSurface = pathname.startsWith("/calendar");
 
@@ -154,9 +164,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-18px_48px_rgba(0,0,0,0.32)] backdrop-blur-2xl lg:hidden">
         <div className="grid grid-cols-5 items-end">
-          {navItems.slice(0, 5).map((item) => {
+          {primaryItems.map((item) => {
             const Icon = item.icon;
-            const active = pathname.startsWith(item.href);
+            const active = item.href === "/home" ? pathname === "/home" : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
@@ -166,20 +176,81 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   active && "text-ink"
                 )}
               >
-                <span
-                  className={cn(
-                    "grid size-8 place-items-center rounded-xl",
-                    active && "bg-blue text-white shadow-lift"
-                  )}
-                >
+                <span className={cn("grid size-8 place-items-center rounded-xl", active && "bg-blue text-white shadow-lift")}>
                   <Icon className="size-4" />
                 </span>
                 {item.label}
               </Link>
             );
           })}
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className={cn(
+              "flex h-14 flex-col items-center justify-center gap-1 text-[11px] text-muted transition",
+              moreItems.some((i) => pathname.startsWith(i.href)) && "text-ink"
+            )}
+          >
+            <span
+              className={cn(
+                "grid size-8 place-items-center rounded-xl",
+                moreItems.some((i) => pathname.startsWith(i.href)) && "bg-blue text-white shadow-lift"
+              )}
+            >
+              <LayoutGrid className="size-4" />
+            </span>
+            More
+          </button>
         </div>
       </nav>
+
+      {/* Mobile "More" sheet: search, all remaining pages, and Capture */}
+      {moreOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMoreOpen(false)} />
+          <div className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] shadow-[0_-18px_48px_rgba(0,0,0,0.4)]">
+            <div className="sticky top-0 flex items-center justify-between gap-3 border-b border-line bg-paper/95 px-4 py-3 backdrop-blur">
+              <span className="text-sm font-semibold text-ink">Menu</span>
+              <button type="button" onClick={() => setMoreOpen(false)} className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-line hover:text-ink">
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="px-4 pt-3" onClick={() => setMoreOpen(false)}>
+              <GlobalSearch />
+            </div>
+            <div className="grid grid-cols-3 gap-2 p-4">
+              {moreItems.map((item) => {
+                const Icon = item.icon;
+                const active = pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMoreOpen(false)}
+                    className={cn(
+                      "flex flex-col items-center gap-2 rounded-xl border border-line bg-panel px-2 py-4 text-xs font-medium transition",
+                      active ? "border-blue/40 bg-blue/10 text-blue" : "text-muted hover:text-ink"
+                    )}
+                  >
+                    <Icon className="size-5" />
+                    <span className="text-center leading-tight">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="px-4 pb-5">
+              <Link
+                href="/capture"
+                onClick={() => setMoreOpen(false)}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-blue text-sm font-medium text-white transition hover:brightness-110"
+              >
+                <PlusCircle className="size-4" />
+                Capture
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
