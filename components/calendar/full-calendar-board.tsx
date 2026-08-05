@@ -270,11 +270,21 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
     let scroller: HTMLElement | null = null;
     let snapTimer: number | null = null;
+    let snapTarget: number | null = null;
+    let snapReleaseTimer: number | null = null;
 
     function getEdgeBuffer(target: HTMLElement) {
       const board = target.closest<HTMLElement>(".gcal-board");
       const raw = board ? getComputedStyle(board).getPropertyValue("--gcal-edge-buffer") : "";
       return Number.parseFloat(raw) || 0;
+    }
+
+    function clearSnap() {
+      snapTarget = null;
+      if (snapReleaseTimer) {
+        window.clearTimeout(snapReleaseTimer);
+        snapReleaseTimer = null;
+      }
     }
 
     function snapToDayEdge() {
@@ -289,20 +299,38 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             ? bottomSnap
             : null;
       if (target === null || Math.abs(scroller.scrollTop - target) < 1) return;
+      snapTarget = target;
       scroller.scrollTo({ top: target, behavior: "smooth" });
+      snapReleaseTimer = window.setTimeout(clearSnap, 450);
     }
 
     function onScroll() {
+      if (snapTarget !== null && scroller) {
+        if (Math.abs(scroller.scrollTop - snapTarget) < 1) clearSnap();
+        return;
+      }
       if (snapTimer) window.clearTimeout(snapTimer);
       snapTimer = window.setTimeout(snapToDayEdge, 120);
+    }
+
+    function onUserScrollStart() {
+      clearSnap();
+      if (snapTimer) {
+        window.clearTimeout(snapTimer);
+        snapTimer = null;
+      }
     }
 
     function attach() {
       const nextScroller = shellEl.querySelector<HTMLElement>(".fc-scroller-liquid-absolute");
       if (!nextScroller || nextScroller === scroller) return;
       scroller?.removeEventListener("scroll", onScroll);
+      scroller?.removeEventListener("wheel", onUserScrollStart);
+      scroller?.removeEventListener("touchstart", onUserScrollStart);
       scroller = nextScroller;
       scroller.addEventListener("scroll", onScroll, { passive: true });
+      scroller.addEventListener("wheel", onUserScrollStart, { passive: true });
+      scroller.addEventListener("touchstart", onUserScrollStart, { passive: true });
     }
 
     attach();
@@ -312,7 +340,10 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     return () => {
       observer.disconnect();
       scroller?.removeEventListener("scroll", onScroll);
+      scroller?.removeEventListener("wheel", onUserScrollStart);
+      scroller?.removeEventListener("touchstart", onUserScrollStart);
       if (snapTimer) window.clearTimeout(snapTimer);
+      clearSnap();
     };
   }, [effectiveView]);
 
