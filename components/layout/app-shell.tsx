@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             setSidebarLockedClosed(true);
           }}
           className={cn(
-            "mx-2 mb-5 flex h-11 items-center overflow-hidden rounded-lg bg-blue text-white",
+            "mx-2 mb-5 flex h-12 items-center overflow-hidden rounded-xl bg-blue text-white shadow-lift",
             sidebarOpen ? "gap-3 px-3" : "justify-center px-0"
           )}
         >
@@ -111,9 +111,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   setSidebarLockedClosed(true);
                 }}
                 className={cn(
-                  "relative flex h-10 items-center overflow-hidden rounded-lg text-sm text-muted transition duration-200 hover:bg-line hover:text-ink",
+                  "relative flex h-11 items-center overflow-hidden rounded-xl text-sm text-muted transition duration-200 hover:bg-panel hover:text-ink",
                   sidebarOpen ? "gap-3 px-3" : "justify-center px-0",
-                  active && "bg-line text-ink"
+                  active && "bg-panel text-ink shadow-glow"
                 )}
               >
                 <Icon className="size-4 shrink-0" />
@@ -133,7 +133,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             setSidebarLockedClosed(true);
           }}
           className={cn(
-            "mx-2 mt-4 flex h-10 items-center overflow-hidden rounded-lg bg-blue text-sm font-medium text-white transition hover:brightness-110",
+            "mx-2 mt-4 flex h-11 items-center overflow-hidden rounded-xl bg-blue text-sm font-medium text-white shadow-lift transition hover:brightness-110",
             sidebarOpen ? "justify-center gap-2 px-3" : "justify-center px-0"
           )}
         >
@@ -148,14 +148,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ? "ml-0 h-screen max-w-none overflow-hidden bg-paper lg:ml-[56px]"
             : isCalendarSurface
               ? "h-screen max-w-none overflow-hidden bg-paper lg:ml-[56px]"
-              : "mx-auto min-h-dvh w-full max-w-[1700px] px-4 pb-24 pt-4 sm:px-6 lg:pb-4 lg:pl-[96px] lg:pr-8"
+            : "mx-auto min-h-dvh w-full max-w-[1700px] px-4 pb-24 pt-4 sm:px-6 lg:pb-6 lg:pl-[96px] lg:pr-8 lg:pt-5"
         )}
       >
         {!pathname.startsWith("/home") && !isCalendarSurface && !pathname.startsWith("/todos") && (
           <div className="sticky top-0 z-20 mb-4 hidden items-center justify-between gap-3 border-b border-line bg-paper/95 py-3 backdrop-blur lg:flex">
             <GlobalSearch />
             <div className="flex items-center gap-2">
-              <Link href="/capture" className="rounded-full bg-blue px-4 py-2 text-sm font-medium text-white transition hover:brightness-110">
+              <Link href="/capture" className="rounded-full bg-blue px-5 py-2.5 text-sm font-medium text-white shadow-lift transition hover:brightness-110">
                 Capture
               </Link>
             </div>
@@ -166,7 +166,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <ThemeToggle className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] left-4 z-30 lg:hidden" />
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-18px_48px_rgba(0,0,0,0.32)] backdrop-blur-2xl lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-18px_48px_rgba(15,23,42,0.18)] backdrop-blur-2xl lg:hidden">
         <div className="grid grid-cols-4 items-end">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
@@ -176,11 +176,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex h-14 flex-col items-center justify-center gap-1 text-[11px] text-muted transition",
+                  "flex h-16 flex-col items-center justify-center gap-1 text-[11px] text-muted transition",
                   active && "text-ink"
                 )}
               >
-                <span className={cn("grid size-8 place-items-center rounded-xl", active && "bg-blue text-white shadow-lift")}>
+                <span className={cn("grid size-9 place-items-center rounded-2xl", active && "bg-blue text-white shadow-lift")}>
                   <Icon className="size-4" />
                 </span>
                 {item.label}

@@ -76,9 +76,9 @@ export function ListsWorkspace() {
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+    <div className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
       <aside className="space-y-3">
-        <form onSubmit={createList} className="rounded-lg border border-line bg-[#242528] p-4">
+        <form onSubmit={createList} className="rounded-xl border border-line bg-panel p-5 shadow-glow">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-ink">
             <ListPlus className="size-4 text-blue" />
             New list
@@ -87,12 +87,12 @@ export function ListsWorkspace() {
             value={newListTitle}
             onChange={(event) => setNewListTitle(event.target.value)}
             placeholder="Groceries, club ideas, packing..."
-            className="mb-2 h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-blue"
+            className="mb-2 h-11 w-full rounded-xl border border-line bg-paper px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-blue"
           />
           <select
             value={newListResponsibilityId}
             onChange={(event) => setNewListResponsibilityId(event.target.value)}
-            className="mb-3 h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none focus:border-blue"
+            className="mb-3 h-11 w-full rounded-xl border border-line bg-paper px-3 text-sm text-ink outline-none focus:border-blue"
           >
             {activeResponsibilities.map((item) => (
               <option key={item.id} value={item.id}>
@@ -102,14 +102,14 @@ export function ListsWorkspace() {
           </select>
           <button
             disabled={!newListTitle.trim()}
-            className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-blue px-4 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue px-4 text-sm font-medium text-white shadow-lift transition hover:brightness-110 disabled:opacity-50"
           >
             <Plus className="size-4" />
             Create list
           </button>
         </form>
 
-        <label className="flex h-10 items-center gap-2 rounded-lg border border-line bg-[#242528] px-3 text-sm text-muted">
+        <label className="flex h-11 items-center gap-2 rounded-xl border border-line bg-panel px-3 text-sm text-muted shadow-glow">
           <Search className="size-4" />
           <input
             value={query}
@@ -122,19 +122,19 @@ export function ListsWorkspace() {
 
       <main className="min-w-0">
         {lists.length === 0 && (
-          <div className="grid h-64 place-items-center rounded-lg border border-dashed border-line text-sm text-muted">
+          <div className="grid h-72 place-items-center rounded-xl border border-dashed border-line bg-panel text-sm text-muted shadow-glow">
             No lists yet — create one on the left.
           </div>
         )}
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredLists.map((list) => {
             const responsibility = responsibilities.find((item) => item.id === list.responsibilityId);
             const tone = responsibility ? getTone(responsibility.color) : getTone("blue");
             const openItems = list.items.filter((item) => !item.done);
             const isEditing = editingList?.id === list.id;
             return (
-              <section key={list.id} className="group/list flex min-h-[260px] flex-col rounded-lg border border-line bg-[#242528]">
-                <div className="border-b border-line p-4">
+              <section key={list.id} className="group/list flex min-h-[300px] flex-col rounded-xl border border-line bg-panel shadow-glow">
+                <div className="border-b border-line p-5">
                   {isEditing ? (
                     <div className="space-y-2">
                       <input
@@ -142,19 +142,19 @@ export function ListsWorkspace() {
                         value={editingList?.title ?? ""}
                         onChange={(e) => setEditingList((s) => s && { ...s, title: e.target.value })}
                         onKeyDown={(e) => { if (e.key === "Enter") saveListEdit(); if (e.key === "Escape") setEditingList(null); }}
-                        className="h-9 w-full rounded-lg border border-line bg-paper px-2.5 text-sm text-ink outline-none focus:border-blue"
+                        className="h-10 w-full rounded-xl border border-line bg-paper px-3 text-sm text-ink outline-none focus:border-blue"
                       />
                       <select
                         value={editingList?.responsibilityId ?? ""}
                         onChange={(e) => setEditingList((s) => s && { ...s, responsibilityId: e.target.value })}
-                        className="h-9 w-full rounded-lg border border-line bg-paper px-2 text-sm text-ink outline-none focus:border-blue"
+                        className="h-10 w-full rounded-xl border border-line bg-paper px-3 text-sm text-ink outline-none focus:border-blue"
                       >
                         {activeResponsibilities.map((item) => (
                           <option key={item.id} value={item.id}>{item.name}</option>
                         ))}
                       </select>
                       <div className="flex items-center gap-2">
-                        <button onClick={saveListEdit} className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-blue text-xs font-medium text-white">
+                        <button onClick={saveListEdit} className="flex h-10 flex-1 items-center justify-center gap-1 rounded-xl bg-blue text-xs font-medium text-white">
                           <Check className="size-3.5" /> Save
                         </button>
                         <button onClick={() => setEditingList(null)} className="grid size-8 place-items-center rounded-lg border border-line text-muted hover:text-ink">
@@ -200,7 +200,7 @@ export function ListsWorkspace() {
                 </div>
                 <div className="flex-1 divide-y divide-line">
                   {list.items.map((item) => (
-                    <div key={item.id} className="group/item flex items-start gap-3 px-4 py-3 text-sm text-ink transition hover:bg-line">
+                    <div key={item.id} className="group/item flex min-h-12 items-start gap-3 px-5 py-3 text-sm text-ink transition hover:bg-paper">
                       <input
                         type="checkbox"
                         checked={item.done}
@@ -230,13 +230,13 @@ export function ListsWorkspace() {
                       }
                     }}
                     placeholder="Add item"
-                    className="min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-blue"
+                    className="min-w-0 flex-1 rounded-xl border border-line bg-paper px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-blue"
                   />
                   <button
                     type="button"
                     onClick={() => createListItem(list.id)}
                     disabled={!draftItems[list.id]?.trim()}
-                    className="grid size-10 place-items-center rounded-lg bg-paper text-muted transition hover:bg-line hover:text-ink disabled:opacity-40"
+                    className="grid size-11 place-items-center rounded-xl bg-paper text-muted transition hover:bg-line hover:text-ink disabled:opacity-40"
                     aria-label={`Add item to ${list.title}`}
                   >
                     <Plus className="size-4" />

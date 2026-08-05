@@ -6,17 +6,17 @@
   color-scheme: light;
   background: rgb(var(--color-paper));
   --radius: 10px;
-  --color-ink: 23 25 35;
-  --color-paper: 247 248 252;
+  --color-ink: 24 29 43;
+  --color-paper: 246 248 252;
   --color-panel: 255 255 255;
-  --color-line: 229 231 235;
-  --color-muted: 107 114 128;
+  --color-line: 224 229 238;
+  --color-muted: 99 110 129;
   --color-subtle: 154 160 166;
-  --color-hover: 243 244 246;
+  --color-hover: 238 243 250;
   --color-calendar: 255 255 255;
   --color-calendar-grid: 226 232 240;
-  --shadow-glow: 0 1px 2px rgba(17, 24, 39, 0.06), 0 14px 40px rgba(17, 24, 39, 0.06);
-  --shadow-lift: 0 14px 30px rgba(66, 133, 244, 0.22);
+  --shadow-glow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 18px 44px rgba(15, 23, 42, 0.06);
+  --shadow-lift: 0 16px 34px rgba(66, 133, 244, 0.22);
 }
 
 :root[data-theme="dark"] {
@@ -24,15 +24,15 @@
   background: rgb(var(--color-paper));
   --color-ink: 232 234 237;
   --color-paper: 31 31 31;
-  --color-panel: 42 43 47;
-  --color-line: 60 64 67;
-  --color-muted: 189 193 198;
+  --color-panel: 40 41 46;
+  --color-line: 65 70 79;
+  --color-muted: 189 193 201;
   --color-subtle: 154 160 166;
-  --color-hover: 48 49 52;
+  --color-hover: 53 55 61;
   --color-calendar: 19 19 20;
   --color-calendar-grid: 51 53 55;
-  --shadow-glow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  --shadow-lift: 0 8px 18px rgba(0, 0, 0, 0.34);
+  --shadow-glow: 0 1px 2px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --shadow-lift: 0 12px 26px rgba(0, 0, 0, 0.34);
 }
 
 html {
@@ -51,6 +51,7 @@ body {
   background: rgb(var(--color-paper));
   color: rgb(var(--color-ink));
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  line-height: 1.5;
   overscroll-behavior: none;
 }
 
@@ -64,6 +65,38 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+button:not(:disabled),
+a[href] {
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+button:not(:disabled):active,
+a[href]:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+::selection {
+  background: rgba(66, 133, 244, 0.22);
 }
 
 button:focus-visible,

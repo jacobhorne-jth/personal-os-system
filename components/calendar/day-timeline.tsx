@@ -77,9 +77,9 @@ export function DayTimeline({ filteredResponsibilityId, date }: { filteredRespon
   }, [startHour]);
 
   return (
-    <div ref={scrollRef} className="relative max-h-[660px] overflow-y-auto rounded-lg border border-line bg-[#111112]">
+    <div ref={scrollRef} className="relative max-h-[660px] overflow-y-auto rounded-xl border border-line bg-panel shadow-glow">
       <div className="grid grid-cols-[58px_1fr]" style={{ height: contentHeight }}>
-        <div className="border-r border-line bg-[#1b1b1b]">
+        <div className="border-r border-line bg-paper">
           {hours.map((hour) => (
             <div key={hour} className="h-14 pr-2 pt-1 text-right text-[10px] font-medium text-muted">
               {hourLabel(hour)}

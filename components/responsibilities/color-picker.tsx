@@ -92,7 +92,7 @@ export function ResponsibilityColorPicker({
           toggle();
         }}
         className={cn(
-          "flex h-9 items-center gap-2 rounded-full border border-line bg-paper px-3 text-sm text-ink transition hover:bg-line",
+          "flex h-9 items-center gap-2 rounded-full border border-line bg-paper px-3 text-sm text-ink transition hover:bg-panel",
           compact && "h-8 px-2.5 text-xs"
         )}
       >
@@ -104,7 +104,7 @@ export function ResponsibilityColorPicker({
         createPortal(
           <div
             ref={popoverRef}
-            className="fixed z-[200] w-[280px] rounded-xl border border-line bg-[#242528] p-3 shadow-lift"
+            className="fixed z-[200] w-[280px] rounded-xl border border-line bg-panel p-3 shadow-lift"
             style={{ top: pos.top, left: pos.left }}
             onClick={(event) => {
               event.preventDefault();
@@ -122,7 +122,7 @@ export function ResponsibilityColorPicker({
                     onClick={() => onChange(n)}
                     className={cn(
                       "size-7 rounded-full border border-black/40 transition hover:scale-110",
-                      n === hex && "ring-2 ring-white/70 ring-offset-2 ring-offset-[#242528]"
+                      n === hex && "ring-2 ring-blue/70 ring-offset-2 ring-offset-panel"
                     )}
                     style={{ backgroundColor: n }}
                   />

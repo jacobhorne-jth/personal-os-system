@@ -100,8 +100,8 @@ export function GlobalSearch() {
   }
 
   return (
-    <div className="relative w-full max-w-xl">
-      <div className="flex h-10 items-center gap-2 rounded-lg bg-line px-3 text-sm text-muted transition focus-within:ring-1 focus-within:ring-blue">
+    <div className="relative w-full max-w-2xl">
+      <div className="flex h-11 items-center gap-2 rounded-xl border border-line bg-panel px-3.5 text-sm text-muted shadow-glow transition focus-within:border-blue/50 focus-within:ring-2 focus-within:ring-blue/15">
         <Search className="size-4" />
         <input
           ref={inputRef}
@@ -111,10 +111,10 @@ export function GlobalSearch() {
           placeholder="Search tasks, events, notes, lists, goals…"
           className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-muted"
         />
-        <kbd className="hidden rounded border border-line bg-paper px-1.5 py-0.5 text-[10px] text-muted sm:block">⌘K</kbd>
+        <kbd className="hidden rounded-md border border-line bg-paper px-1.5 py-0.5 text-[10px] text-muted sm:block">⌘K</kbd>
       </div>
       {query.trim() && (
-        <div className="absolute left-0 right-0 top-12 z-30 overflow-hidden rounded-lg border border-line bg-panel shadow-lift">
+        <div className="absolute left-0 right-0 top-[52px] z-30 overflow-hidden rounded-xl border border-line bg-panel shadow-lift">
           {results.length ? (
             <div className="divide-y divide-line">
               {results.map((result, idx) => {
@@ -126,13 +126,13 @@ export function GlobalSearch() {
                     onClick={() => openResult(idx)}
                     onMouseEnter={() => setActiveIdx(idx)}
                     className={cn(
-                      "flex w-full items-center gap-3 px-3 py-2.5 text-left transition",
-                      idx === activeIdx ? "bg-line" : "hover:bg-line"
+                      "flex w-full items-center gap-3 px-3.5 py-3 text-left transition",
+                      idx === activeIdx ? "bg-paper" : "hover:bg-paper"
                     )}
                   >
                     <span className="size-2 rounded-full" style={{ backgroundColor: tone.hex }} />
                     <span className="min-w-0 flex-1 truncate text-sm text-ink">{result.title}</span>
-                    <span className="rounded-md bg-line px-2 py-1 text-[11px] text-muted">{result.kind}</span>
+                    <span className="rounded-md bg-paper px-2 py-1 text-[11px] text-muted">{result.kind}</span>
                   </button>
                 );
               })}

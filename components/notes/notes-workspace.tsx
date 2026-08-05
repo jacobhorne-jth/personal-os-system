@@ -102,7 +102,7 @@ export function NotesWorkspace() {
   }
 
   return (
-    <main className="grid min-h-[calc(100dvh-96px)] min-w-0 overflow-hidden rounded-lg border border-line bg-[#242528] lg:grid-cols-[280px_minmax(0,1fr)]">
+    <main className="grid min-h-[calc(100dvh-96px)] min-w-0 overflow-hidden rounded-xl border border-line bg-panel shadow-glow lg:grid-cols-[300px_minmax(0,1fr)]">
       <aside className="border-b border-line bg-panel lg:border-b-0 lg:border-r">
         <div className="border-b border-line px-4 py-3">
           <div className="flex items-center justify-between gap-2">
@@ -111,13 +111,13 @@ export function NotesWorkspace() {
               type="button"
               onClick={createFolder}
               disabled={!newFolderName.trim()}
-              className="grid size-8 place-items-center rounded-md text-muted transition hover:bg-line hover:text-ink disabled:opacity-40"
+              className="grid size-9 place-items-center rounded-lg text-muted transition hover:bg-paper hover:text-ink disabled:opacity-40"
               aria-label="Create folder"
             >
               <FolderPlus className="size-4" />
             </button>
           </div>
-          <div className="mt-3 flex h-9 items-center gap-2 rounded-md border border-line bg-paper px-2">
+          <div className="mt-3 flex h-10 items-center gap-2 rounded-lg border border-line bg-paper px-3">
             <FolderPlus className="size-4 text-muted" />
             <input
               value={newFolderName}
@@ -137,8 +137,8 @@ export function NotesWorkspace() {
             type="button"
             onClick={() => setFolderFilter("all")}
             className={cn(
-              "flex h-10 w-full items-center gap-3 rounded-md px-2 text-left text-sm transition",
-              folderFilter === "all" ? "bg-line text-ink" : "text-muted hover:bg-line hover:text-ink"
+              "flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm transition",
+              folderFilter === "all" ? "bg-paper text-ink shadow-glow" : "text-muted hover:bg-paper hover:text-ink"
             )}
           >
             <FileText className="size-4" />
@@ -149,8 +149,8 @@ export function NotesWorkspace() {
             type="button"
             onClick={() => setFolderFilter("unfiled")}
             className={cn(
-              "mt-1 flex h-10 w-full items-center gap-3 rounded-md px-2 text-left text-sm transition",
-              folderFilter === "unfiled" ? "bg-line text-ink" : "text-muted hover:bg-line hover:text-ink"
+              "mt-1 flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm transition",
+              folderFilter === "unfiled" ? "bg-paper text-ink shadow-glow" : "text-muted hover:bg-paper hover:text-ink"
             )}
           >
             <Folder className="size-4" />
@@ -167,8 +167,8 @@ export function NotesWorkspace() {
                 <div
                   key={folder.id}
                   className={cn(
-                    "group flex min-h-10 items-center gap-2 rounded-md px-2 transition",
-                    folderFilter === folder.id ? "bg-line text-ink" : "text-muted hover:bg-line hover:text-ink"
+                    "group flex min-h-11 items-center gap-2 rounded-lg px-3 transition",
+                    folderFilter === folder.id ? "bg-paper text-ink shadow-glow" : "text-muted hover:bg-paper hover:text-ink"
                   )}
                 >
                   {isEditing ? (
@@ -234,7 +234,7 @@ export function NotesWorkspace() {
               <h2 className="truncate text-base font-medium text-ink">{heading}</h2>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label className="flex h-10 min-w-0 items-center gap-2 rounded-lg border border-line bg-paper px-3 text-sm text-muted sm:w-[320px]">
+            <label className="flex h-11 min-w-0 items-center gap-2 rounded-xl border border-line bg-paper px-3 text-sm text-muted sm:w-[340px]">
               <Search className="size-4" />
               <input
                 value={query}
@@ -246,7 +246,7 @@ export function NotesWorkspace() {
             <select
               value={labelFilter}
               onChange={(event) => setLabelFilter(event.target.value)}
-              className="h-10 rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none focus:border-blue sm:w-[180px]"
+              className="h-11 rounded-xl border border-line bg-paper px-3 text-sm text-ink outline-none focus:border-blue sm:w-[190px]"
               aria-label="Filter by label"
             >
               <option value="all">All labels</option>
@@ -259,7 +259,7 @@ export function NotesWorkspace() {
             <button
               type="button"
               onClick={createBlankNote}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue px-4 text-sm font-medium text-white transition hover:brightness-110"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue px-5 text-sm font-medium text-white shadow-lift transition hover:brightness-110"
             >
               <Plus className="size-4" />
               New
@@ -280,7 +280,7 @@ export function NotesWorkspace() {
             const primaryLabel = note.labels?.[0] ?? "No label";
             const folder = noteFolders.find((item) => item.id === note.folderId);
             return (
-              <Link key={note.id} href={`/notes/${note.id}`} className="grid grid-cols-[auto_minmax(0,1fr)_150px_150px_110px] items-center gap-3 px-4 py-2 transition hover:bg-line max-md:grid-cols-[auto_minmax(0,1fr)_84px]">
+              <Link key={note.id} href={`/notes/${note.id}`} className="grid min-h-12 grid-cols-[auto_minmax(0,1fr)_150px_150px_110px] items-center gap-3 px-4 py-2 transition hover:bg-paper max-md:grid-cols-[auto_minmax(0,1fr)_84px]">
                 <FileText className="size-4 text-[#8ab4f8]" />
                 <p className={cn("truncate text-sm font-medium", note.title ? "text-ink" : "text-muted")}>
                   {note.title || "Untitled"}

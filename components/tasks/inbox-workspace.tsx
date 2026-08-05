@@ -30,7 +30,7 @@ export function InboxWorkspace() {
 
   return (
     <div className="space-y-4">
-      <header className="rounded-lg border border-line bg-panel p-5">
+      <header className="rounded-xl border border-line bg-panel p-5 shadow-glow">
         <p className="text-sm text-muted">Inbox</p>
         <h1 className="mt-1 text-3xl font-semibold text-ink">
           {pendingReviews.length > 0 ? "Review captures" : "Fast capture"}
@@ -59,12 +59,12 @@ export function InboxWorkspace() {
               const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
               const color = taskLabelColor(label, responsibilities);
               return (
-                <div key={task.id} className="grid gap-3 px-4 py-3 transition hover:bg-line lg:grid-cols-[1fr_auto]">
+                <div key={task.id} className="grid gap-3 px-5 py-4 transition hover:bg-paper lg:grid-cols-[1fr_auto]">
                   <div className="flex min-w-0 items-start gap-3">
                     <button
                       onClick={() => toggleTask(task.id)}
                       title="Mark complete"
-                      className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border-[1.5px]"
+                      className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-[1.5px]"
                       style={{ borderColor: color }}
                     />
                     <div className="min-w-0 flex-1">
@@ -95,7 +95,7 @@ export function InboxWorkspace() {
                         });
                       }}
                       aria-label="Assign responsibility"
-                      className="h-9 rounded-md border border-line bg-paper px-2 text-xs text-ink outline-none focus:border-blue"
+                      className="h-10 rounded-lg border border-line bg-paper px-3 text-xs text-ink outline-none focus:border-blue"
                     >
                       <option value="">Assign...</option>
                       {responsibilities.map((responsibility) => (
@@ -109,7 +109,7 @@ export function InboxWorkspace() {
                       value={toDateInput(task.dueAt)}
                       onChange={(event) => updateTask(task.id, { dueAt: fromDateInput(event.target.value) })}
                       aria-label="Set due date"
-                      className="h-9 rounded-md border border-line bg-paper px-2 text-xs text-ink outline-none focus:border-blue"
+                      className="h-10 rounded-lg border border-line bg-paper px-3 text-xs text-ink outline-none focus:border-blue"
                     />
                     <div className="flex justify-end gap-1">
                       <Link href={`/task/${task.id}`} title="Open task" className="grid size-9 place-items-center rounded-md text-muted hover:bg-paper hover:text-ink">

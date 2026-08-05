@@ -16,7 +16,7 @@ export function ResponsibilityStrip() {
         <Link
           href={`/r/${item.id}`}
           key={item.id}
-          className="group relative min-w-[190px] overflow-hidden rounded-lg border border-line bg-[#303134] p-3 transition duration-200 hover:-translate-y-0.5 hover:border-muted hover:bg-[#4a4d52]"
+          className="group relative min-w-[210px] overflow-hidden rounded-xl border border-line bg-panel p-4 shadow-glow transition duration-200 hover:-translate-y-0.5 hover:border-blue/30 hover:bg-panel"
         >
           <span className="absolute inset-x-0 top-0 h-px" style={{ backgroundColor: getTone(item.color).hex }} />
           <ColorBadge color={item.color}>{item.name}</ColorBadge>

@@ -177,7 +177,7 @@ export function ResponsibilitiesBoard() {
               onDragOver={(e) => e.preventDefault()}
               onDragEnd={endDrag}
               className={cn(
-                "group relative z-0 cursor-grab overflow-hidden rounded-lg border border-line bg-panel p-3.5 shadow-glow transition duration-200 hover:z-20 hover:-translate-y-0.5 hover:border-muted hover:bg-[#303134] active:cursor-grabbing",
+                "group relative z-0 cursor-grab overflow-hidden rounded-xl border border-line bg-panel p-4 shadow-glow transition duration-200 hover:z-20 hover:-translate-y-0.5 hover:border-blue/30 active:cursor-grabbing",
                 dragId === item.id && "opacity-40"
               )}
             >

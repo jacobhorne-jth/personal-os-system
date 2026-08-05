@@ -177,12 +177,12 @@ export function NoteEditor({ noteId }: { noteId: string }) {
   }
 
   return (
-    <div className="min-h-[calc(100dvh-96px)] bg-[#242528] px-6 py-4 sm:px-10 lg:px-14">
+    <div className="min-h-[calc(100dvh-96px)] rounded-xl border border-line bg-panel px-6 py-5 shadow-glow sm:px-10 lg:px-14">
       <div className="mb-6 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => router.push("/notes")}
-          className="inline-flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted transition hover:bg-line hover:text-ink"
+          className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-muted transition hover:bg-paper hover:text-ink"
         >
           <ArrowLeft className="size-4" />
           Notes
@@ -190,7 +190,7 @@ export function NoteEditor({ noteId }: { noteId: string }) {
         <button
           type="button"
           onClick={removeNote}
-          className="grid size-8 place-items-center rounded-md text-muted transition hover:bg-line hover:text-coral"
+          className="grid size-10 place-items-center rounded-lg text-muted transition hover:bg-paper hover:text-coral"
           aria-label="Delete note"
         >
           <Trash2 className="size-4" />
@@ -210,7 +210,7 @@ export function NoteEditor({ noteId }: { noteId: string }) {
           <select
             value={folderId}
             onChange={(event) => setFolderId(event.target.value)}
-            className="h-9 rounded-md border border-line bg-paper px-3 text-sm text-ink outline-none transition focus:border-blue"
+            className="h-10 rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none transition focus:border-blue"
             aria-label="Note folder"
           >
             <option value="none">Unfiled</option>

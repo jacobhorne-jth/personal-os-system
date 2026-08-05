@@ -171,7 +171,7 @@ export function CaptureWorkbench() {
   return (
     <div>
       {/* Mode tabs */}
-      <div className="border-b border-line bg-line p-3">
+      <div className="border-b border-line bg-panel p-3">
         <div className="grid grid-cols-5 gap-2">
           {modes.map(({ id: modeId, label, icon: Icon }) => (
             <button
@@ -181,7 +181,7 @@ export function CaptureWorkbench() {
                 "flex h-16 flex-col items-center justify-center gap-1 rounded-lg border text-[11px] transition sm:text-xs",
                 mode === modeId
                   ? "border-blue bg-blue text-white shadow-lift"
-                  : "border-line bg-line text-muted hover:bg-[#4a4d52]"
+                  : "border-line bg-paper text-muted hover:bg-panel hover:text-ink"
               )}
             >
               <Icon className="size-4" />
@@ -310,14 +310,14 @@ export function CaptureWorkbench() {
             </p>
           </div>
 
-          <div className="rounded-lg border border-line bg-line p-3">
+          <div className="rounded-xl border border-line bg-paper p-3">
             <p className="mb-2 text-xs font-medium text-muted">Try an example</p>
             <div className="space-y-1.5">
               {examples.map((ex) => (
                 <button
                   key={ex.label}
                   onClick={() => { setText(ex.text); setMode("type"); setPastedImage(null); }}
-                  className="flex w-full flex-col gap-0.5 rounded-md bg-paper px-2.5 py-2 text-left transition hover:bg-[#303134]"
+                  className="flex w-full flex-col gap-0.5 rounded-lg bg-panel px-3 py-2.5 text-left transition hover:bg-paper"
                 >
                   <span className="text-[10px] font-medium text-blue">{ex.label}</span>
                   <span className="line-clamp-2 text-xs leading-4 text-muted">{ex.text}</span>
