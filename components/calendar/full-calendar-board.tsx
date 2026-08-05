@@ -271,7 +271,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     let scroller: HTMLElement | null = null;
     let snapTimer: number | null = null;
     let snapTarget: number | null = null;
-    let snapReleaseTimer: number | null = null;
+    let snapFrame: number | null = null;
 
     function getEdgeBuffer(target: HTMLElement) {
       const board = target.closest<HTMLElement>(".gcal-board");
@@ -281,10 +281,36 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
     function clearSnap() {
       snapTarget = null;
-      if (snapReleaseTimer) {
-        window.clearTimeout(snapReleaseTimer);
-        snapReleaseTimer = null;
+      if (snapFrame) {
+        window.cancelAnimationFrame(snapFrame);
+        snapFrame = null;
       }
+    }
+
+    function animateSnap(target: number) {
+      if (!scroller) return;
+      const start = scroller.scrollTop;
+      const distance = target - start;
+      const duration = 180;
+      const startTime = performance.now();
+      snapTarget = target;
+
+      function step(now: number) {
+        if (!scroller || snapTarget !== target) return;
+        const progress = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        scroller.scrollTop = start + distance * eased;
+        if (progress < 1) {
+          snapFrame = window.requestAnimationFrame(step);
+          return;
+        }
+        scroller.scrollTop = target;
+        snapFrame = null;
+        snapTarget = null;
+      }
+
+      if (snapFrame) window.cancelAnimationFrame(snapFrame);
+      snapFrame = window.requestAnimationFrame(step);
     }
 
     function snapToDayEdge() {
@@ -299,9 +325,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             ? bottomSnap
             : null;
       if (target === null || Math.abs(scroller.scrollTop - target) < 1) return;
-      snapTarget = target;
-      scroller.scrollTo({ top: target, behavior: "smooth" });
-      snapReleaseTimer = window.setTimeout(clearSnap, 450);
+      animateSnap(target);
     }
 
     function onScroll() {
