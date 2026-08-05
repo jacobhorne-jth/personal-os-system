@@ -272,6 +272,8 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     let snapTimer: number | null = null;
     let snapTarget: number | null = null;
     let snapFrame: number | null = null;
+    let wheelIdleTimer: number | null = null;
+    let wheelActive = false;
 
     function getEdgeBuffer(target: HTMLElement) {
       const board = target.closest<HTMLElement>(".gcal-board");
@@ -285,6 +287,14 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
         window.cancelAnimationFrame(snapFrame);
         snapFrame = null;
       }
+    }
+
+    function scheduleSnap(delay = 80) {
+      if (snapTimer) window.clearTimeout(snapTimer);
+      snapTimer = window.setTimeout(() => {
+        snapTimer = null;
+        snapToDayEdge();
+      }, delay);
     }
 
     function animateSnap(target: number) {
@@ -330,16 +340,30 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
     function onScroll() {
       if (snapTarget !== null) return;
-      if (snapTimer) window.clearTimeout(snapTimer);
-      snapTimer = window.setTimeout(snapToDayEdge, 35);
+      if (wheelActive) return;
+      scheduleSnap(80);
     }
 
     function onWheel(e: WheelEvent) {
-      if (!scroller || snapTarget === null) return;
-      const movingAway =
-        (snapTarget > scroller.scrollTop && e.deltaY < 0) ||
-        (snapTarget < scroller.scrollTop && e.deltaY > 0);
-      if (movingAway) clearSnap();
+      if (!scroller) return;
+      if (snapTarget !== null) {
+        const movingAway =
+          (snapTarget > scroller.scrollTop && e.deltaY < 0) ||
+          (snapTarget < scroller.scrollTop && e.deltaY > 0);
+        if (movingAway) clearSnap();
+        return;
+      }
+      wheelActive = true;
+      if (snapTimer) {
+        window.clearTimeout(snapTimer);
+        snapTimer = null;
+      }
+      if (wheelIdleTimer) window.clearTimeout(wheelIdleTimer);
+      wheelIdleTimer = window.setTimeout(() => {
+        wheelActive = false;
+        wheelIdleTimer = null;
+        scheduleSnap(20);
+      }, 90);
     }
 
     function onTouchStart() {
@@ -348,8 +372,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
     function onTouchEnd() {
       if (snapTarget !== null) return;
-      if (snapTimer) window.clearTimeout(snapTimer);
-      snapTimer = window.setTimeout(snapToDayEdge, 35);
+      scheduleSnap(80);
     }
 
     function attach() {
@@ -377,6 +400,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       scroller?.removeEventListener("touchstart", onTouchStart);
       scroller?.removeEventListener("touchend", onTouchEnd);
       if (snapTimer) window.clearTimeout(snapTimer);
+      if (wheelIdleTimer) window.clearTimeout(wheelIdleTimer);
       clearSnap();
     };
   }, [effectiveView]);
