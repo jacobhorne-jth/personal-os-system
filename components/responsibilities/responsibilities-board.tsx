@@ -95,11 +95,7 @@ export function ResponsibilitiesBoard() {
     <div className="space-y-4">
       <header className="flex items-start justify-between rounded-xl border border-line bg-panel p-5 shadow-glow">
         <div>
-          <p className="text-sm text-muted">Responsibilities</p>
-          <h1 className="mt-1 text-3xl font-semibold text-ink">Your operating areas</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-            Add, rename, and color-code your labels. All tasks and events update immediately.
-          </p>
+          <h1 className="text-3xl font-semibold text-ink">Labels</h1>
         </div>
         <button
           onClick={startNew}
