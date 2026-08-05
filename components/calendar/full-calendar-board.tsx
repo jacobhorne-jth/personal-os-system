@@ -272,8 +272,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     let snapTimer: number | null = null;
     let snapTarget: number | null = null;
     let snapFrame: number | null = null;
-    let wheelIdleTimer: number | null = null;
-    let wheelActive = false;
+    let blockedEdge: "top" | "bottom" | null = null;
 
     function getEdgeBuffer(target: HTMLElement) {
       const board = target.closest<HTMLElement>(".gcal-board");
@@ -289,7 +288,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       }
     }
 
-    function scheduleSnap(delay = 80) {
+    function scheduleSnap(delay = 0) {
       if (snapTimer) window.clearTimeout(snapTimer);
       snapTimer = window.setTimeout(() => {
         snapTimer = null;
@@ -301,7 +300,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       if (!scroller) return;
       const start = scroller.scrollTop;
       const distance = target - start;
-      const duration = 140;
+      const duration = 110;
       const startTime = performance.now();
       snapTarget = target;
 
@@ -340,30 +339,50 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
     function onScroll() {
       if (snapTarget !== null) return;
-      if (wheelActive) return;
-      scheduleSnap(80);
+      scheduleSnap();
     }
 
     function onWheel(e: WheelEvent) {
       if (!scroller) return;
-      if (snapTarget !== null) {
-        const movingAway =
-          (snapTarget > scroller.scrollTop && e.deltaY < 0) ||
-          (snapTarget < scroller.scrollTop && e.deltaY > 0);
-        if (movingAway) clearSnap();
+      const buffer = getEdgeBuffer(scroller);
+      if (buffer <= 0) return;
+      const bottomSnap = Math.max(buffer, scroller.scrollHeight - scroller.clientHeight - buffer);
+      const edgeTolerance = 2;
+      const movingUp = e.deltaY < 0;
+      const movingDown = e.deltaY > 0;
+      const nearTop = scroller.scrollTop <= buffer + edgeTolerance;
+      const nearBottom = scroller.scrollTop >= bottomSnap - edgeTolerance;
+      const movingPastTop = nearTop && movingUp;
+      const movingPastBottom = nearBottom && movingDown;
+
+      if (movingPastTop || movingPastBottom) {
+        const edge = movingPastTop ? "top" : "bottom";
+        if (blockedEdge === edge) {
+          e.preventDefault();
+          scheduleSnap();
+          return;
+        }
+        blockedEdge = edge;
+        if (scroller.scrollTop < buffer - edgeTolerance || scroller.scrollTop > bottomSnap + edgeTolerance) {
+          e.preventDefault();
+          scheduleSnap();
+        }
         return;
       }
-      wheelActive = true;
-      if (snapTimer) {
-        window.clearTimeout(snapTimer);
-        snapTimer = null;
+
+      if ((blockedEdge === "top" && movingDown) || (blockedEdge === "bottom" && movingUp)) {
+        blockedEdge = null;
       }
-      if (wheelIdleTimer) window.clearTimeout(wheelIdleTimer);
-      wheelIdleTimer = window.setTimeout(() => {
-        wheelActive = false;
-        wheelIdleTimer = null;
-        scheduleSnap(20);
-      }, 90);
+
+      if (scroller.scrollTop < buffer - edgeTolerance || scroller.scrollTop > bottomSnap + edgeTolerance) {
+        e.preventDefault();
+        scheduleSnap();
+        return;
+      }
+
+      if (snapTarget !== null) {
+        clearSnap();
+      }
     }
 
     function onTouchStart() {
@@ -372,7 +391,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
     function onTouchEnd() {
       if (snapTarget !== null) return;
-      scheduleSnap(80);
+      scheduleSnap();
     }
 
     function attach() {
@@ -384,7 +403,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       scroller?.removeEventListener("touchend", onTouchEnd);
       scroller = nextScroller;
       scroller.addEventListener("scroll", onScroll, { passive: true });
-      scroller.addEventListener("wheel", onWheel, { passive: true });
+      scroller.addEventListener("wheel", onWheel, { passive: false });
       scroller.addEventListener("touchstart", onTouchStart, { passive: true });
       scroller.addEventListener("touchend", onTouchEnd, { passive: true });
     }
@@ -400,7 +419,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       scroller?.removeEventListener("touchstart", onTouchStart);
       scroller?.removeEventListener("touchend", onTouchEnd);
       if (snapTimer) window.clearTimeout(snapTimer);
-      if (wheelIdleTimer) window.clearTimeout(wheelIdleTimer);
+      blockedEdge = null;
       clearSnap();
     };
   }, [effectiveView]);
