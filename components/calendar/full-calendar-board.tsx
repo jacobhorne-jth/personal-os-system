@@ -262,6 +262,60 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     if (api.view.type !== target) api.changeView(target);
   }, [effectiveView]);
 
+  useEffect(() => {
+    if (effectiveView === "month") return;
+    const shell = shellRef.current;
+    if (!shell) return;
+    const shellEl = shell;
+
+    let scroller: HTMLElement | null = null;
+    let snapTimer: number | null = null;
+
+    function getEdgeBuffer(target: HTMLElement) {
+      const board = target.closest<HTMLElement>(".gcal-board");
+      const raw = board ? getComputedStyle(board).getPropertyValue("--gcal-edge-buffer") : "";
+      return Number.parseFloat(raw) || 0;
+    }
+
+    function snapToDayEdge() {
+      if (!scroller) return;
+      const buffer = getEdgeBuffer(scroller);
+      if (buffer <= 0) return;
+      const bottomSnap = Math.max(buffer, scroller.scrollHeight - scroller.clientHeight - buffer);
+      const target =
+        scroller.scrollTop < buffer
+          ? buffer
+          : scroller.scrollTop > bottomSnap
+            ? bottomSnap
+            : null;
+      if (target === null || Math.abs(scroller.scrollTop - target) < 1) return;
+      scroller.scrollTo({ top: target, behavior: "smooth" });
+    }
+
+    function onScroll() {
+      if (snapTimer) window.clearTimeout(snapTimer);
+      snapTimer = window.setTimeout(snapToDayEdge, 120);
+    }
+
+    function attach() {
+      const nextScroller = shellEl.querySelector<HTMLElement>(".fc-scroller-liquid-absolute");
+      if (!nextScroller || nextScroller === scroller) return;
+      scroller?.removeEventListener("scroll", onScroll);
+      scroller = nextScroller;
+      scroller.addEventListener("scroll", onScroll, { passive: true });
+    }
+
+    attach();
+    const observer = new MutationObserver(attach);
+    observer.observe(shellEl, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      scroller?.removeEventListener("scroll", onScroll);
+      if (snapTimer) window.clearTimeout(snapTimer);
+    };
+  }, [effectiveView]);
+
   // Place the card beside the selection like Google Calendar: prefer the
   // left of the day column, flip to the right when there's no room.
   function positionCard(anchor: SelectAnchor | null) {
@@ -368,7 +422,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     const shell = shellRef.current;
     if (!shell) return;
 
-    const TOTAL_MINUTES = 25 * 60; // slotMinTime 00:00 → slotMaxTime 25:00
+    const TOTAL_MINUTES = 24 * 60; // slotMinTime 00:00 → slotMaxTime 24:00
     const SNAP = 15;
 
     let colEl: HTMLElement | null = null;
@@ -997,7 +1051,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             eventResizableFromStart
             allDaySlot={false}
             slotMinTime="00:00:00"
-            slotMaxTime="25:00:00"
+            slotMaxTime="24:00:00"
             scrollTime="07:00:00"
             scrollTimeReset={false}
             initialDate={initialDate}
