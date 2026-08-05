@@ -246,11 +246,12 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     if (!calendarGotoDate) return;
     const api = calendarRef.current?.getApi();
     if (!api) return;
-    api.changeView("timeGridWeek");
+    const nextView = isMobile ? "day" : "week";
+    api.changeView(nextView === "day" ? "timeGridDay" : "timeGridWeek");
     api.gotoDate(calendarGotoDate);
-    setCalendarView("week");
+    setCalendarView(nextView);
     setCalendarGotoDate(null);
-  }, [calendarGotoDate, setCalendarGotoDate, setCalendarView]);
+  }, [calendarGotoDate, isMobile, setCalendarGotoDate, setCalendarView]);
 
   // Keep FullCalendar's view in sync with the effective view — needed because
   // useIsMobile resolves after first paint (week → day on phones)
@@ -1020,7 +1021,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
               type="button"
               onClick={openCreateDraft}
               aria-label="Create event"
-              className="absolute bottom-24 right-4 z-20 grid size-14 place-items-center rounded-2xl bg-[#4285f4] text-white shadow-[0_8px_24px_rgba(0,0,0,0.45)] transition active:scale-95"
+              className="absolute bottom-24 right-4 z-20 grid size-14 place-items-center rounded-2xl bg-blue text-white shadow-lift transition active:scale-95"
             >
               <Plus className="size-6" />
             </button>
@@ -1031,14 +1032,14 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       {draftEvent && !draftExpanded && (
         <div
           data-popup-card
-          className="absolute z-30 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#3c4043] bg-[#282a2d] shadow-lift"
+          className="absolute z-30 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-panel shadow-lift"
           style={draftCardPos ? { left: draftCardPos.left, top: draftCardPos.top } : { left: 12, top: 56 }}
         >
           <form onSubmit={saveDraftEvent}>
             <button
               type="button"
               onClick={() => closeDraftRef.current()}
-              className="absolute right-3 top-3 grid size-8 place-items-center rounded-full text-[#9aa0a6] transition hover:bg-[#3c4043] hover:text-[#e8eaed]"
+              className="absolute right-3 top-3 grid size-8 place-items-center rounded-full text-muted transition hover:bg-paper hover:text-ink"
               aria-label="Close"
             >
               <X className="size-4" />
@@ -1049,7 +1050,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                 value={draftEvent.title}
                 onChange={(e) => setDraftEvent({ ...draftEvent, title: e.target.value })}
                 placeholder="Add title"
-                className="h-10 w-[calc(100%-2.5rem)] border-b border-[#5f6368] bg-transparent text-lg text-[#e8eaed] outline-none placeholder:text-[#5f6368] focus:border-[#4285f4]"
+                className="h-10 w-[calc(100%-2.5rem)] border-b border-line bg-transparent text-lg text-ink outline-none placeholder:text-muted focus:border-blue"
               />
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {creatableTypes.map((item) => (
@@ -1060,8 +1061,8 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                     className={cn(
                       "rounded-full px-3 py-1 text-xs transition",
                       draftEvent.type === item.type
-                        ? "bg-[#4285f4]/20 text-[#4285f4]"
-                        : "border border-[#3c4043] text-[#9aa0a6] hover:text-[#e8eaed]"
+                        ? "bg-blue/20 text-blue"
+                        : "border border-line text-muted hover:text-ink"
                     )}
                   >
                     {item.label}
@@ -1071,7 +1072,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             </div>
             <div className="space-y-0.5 px-2 pb-3">
               <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-                <Clock className="size-5 shrink-0 text-[#9aa0a6]" />
+                <Clock className="size-5 shrink-0 text-muted" />
                 <DateTimeRow
                   startsAt={draftEvent.startsAt}
                   endsAt={draftEvent.endsAt}
@@ -1079,24 +1080,24 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                 />
               </div>
               <div className="flex items-center gap-3 rounded-lg px-3 py-1">
-                <RefreshCw className="size-5 shrink-0 text-[#9aa0a6]" />
+                <RefreshCw className="size-5 shrink-0 text-muted" />
                 <RecurrencePicker
                   value={draftEvent.recurrence}
                   startsAt={draftEvent.startsAt}
                   onChange={(recurrence) => setDraftEvent({ ...draftEvent, recurrence })}
                 />
               </div>
-              <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#303134] focus-within:bg-[#303134]">
-                <MapPin className="size-5 shrink-0 text-[#9aa0a6]" />
+              <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-paper focus-within:bg-paper">
+                <MapPin className="size-5 shrink-0 text-muted" />
                 <input
                   value={draftEvent.location}
                   onChange={(e) => setDraftEvent({ ...draftEvent, location: e.target.value })}
                   placeholder="Add location"
-                  className="h-9 w-full bg-transparent text-sm text-[#e8eaed] outline-none placeholder:text-[#9aa0a6]"
+                  className="h-9 w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted"
                 />
               </div>
-              <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#303134]">
-                <Tags className="size-5 shrink-0 text-[#9aa0a6]" />
+              <div className="flex items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-paper">
+                <Tags className="size-5 shrink-0 text-muted" />
                 <LabelSelect
                   value={draftEvent.responsibilityId}
                   options={activeResponsibilities}
@@ -1105,17 +1106,17 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                 />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 border-t border-[#3c4043] px-5 py-3">
+            <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">
               <button
                 type="button"
                 onClick={() => setDraftExpanded(true)}
-                className="rounded-full px-4 py-2 text-sm text-[#9aa0a6] transition hover:bg-[#3c4043] hover:text-[#e8eaed]"
+                className="rounded-full px-4 py-2 text-sm text-muted transition hover:bg-paper hover:text-ink"
               >
                 More options
               </button>
               <button
                 disabled={!draftEvent.title.trim()}
-                className="rounded-full bg-[#4285f4] px-6 py-2 text-sm font-medium text-white transition hover:bg-[#5094f5] disabled:opacity-40"
+                className="rounded-full bg-blue px-6 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-40"
               >
                 Save
               </button>
@@ -1125,14 +1126,14 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       )}
 
       {draftEvent && draftExpanded && (
-        <div data-popup-card className="absolute inset-0 z-40 flex flex-col bg-[#1f1f1f]">
+        <div data-popup-card className="absolute inset-0 z-40 flex flex-col bg-paper">
           <form onSubmit={saveDraftEvent} className="flex min-h-0 flex-1 flex-col">
             {/* Header: X on the left, Save on the right, like Google Calendar */}
-            <div className="flex h-16 shrink-0 items-center gap-4 border-b border-[#3c4043] px-4 sm:px-6">
+            <div className="flex h-16 shrink-0 items-center gap-4 border-b border-line px-4 sm:px-6">
               <button
                 type="button"
                 onClick={() => closeDraftRef.current()}
-                className="grid size-10 place-items-center rounded-full text-[#bdc1c6] transition hover:bg-[#303134]"
+                className="grid size-10 place-items-center rounded-full text-muted transition hover:bg-panel"
                 aria-label="Close"
               >
                 <X className="size-5" />
@@ -1142,11 +1143,11 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                 value={draftEvent.title}
                 onChange={(e) => setDraftEvent({ ...draftEvent, title: e.target.value })}
                 placeholder="Add title"
-                className="h-11 min-w-0 flex-1 border-b border-[#5f6368] bg-transparent text-2xl text-[#e8eaed] outline-none placeholder:text-[#5f6368] focus:border-[#4285f4]"
+                className="h-11 min-w-0 flex-1 border-b border-line bg-transparent text-2xl text-ink outline-none placeholder:text-muted focus:border-blue"
               />
               <button
                 disabled={!draftEvent.title.trim()}
-                className="rounded-full bg-[#4285f4] px-8 py-2.5 text-sm font-medium text-white transition hover:bg-[#5094f5] disabled:opacity-40"
+                className="rounded-full bg-blue px-8 py-2.5 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-40"
               >
                 Save
               </button>
@@ -1155,7 +1156,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             <div className="min-h-0 flex-1 overflow-y-auto">
               <div className="mx-auto max-w-3xl space-y-1 px-4 py-6 sm:px-6">
                 <div className="flex flex-wrap items-center gap-3 rounded-lg px-3 py-2">
-                  <Clock className="size-5 shrink-0 text-[#9aa0a6]" />
+                  <Clock className="size-5 shrink-0 text-muted" />
                   <DateTimeRow
                     startsAt={draftEvent.startsAt}
                     endsAt={draftEvent.endsAt}
@@ -1163,7 +1164,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                   />
                 </div>
                 <div className="flex items-center gap-3 rounded-lg px-3 py-1">
-                  <RefreshCw className="size-5 shrink-0 text-[#9aa0a6]" />
+                  <RefreshCw className="size-5 shrink-0 text-muted" />
                   <RecurrencePicker
                     value={draftEvent.recurrence}
                     startsAt={draftEvent.startsAt}
@@ -1181,8 +1182,8 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                         className={cn(
                           "rounded-full px-4 py-1.5 text-sm transition",
                           draftEvent.type === item.type
-                            ? "bg-[#4285f4]/20 text-[#4285f4]"
-                            : "border border-[#3c4043] text-[#9aa0a6] hover:text-[#e8eaed]"
+                            ? "bg-blue/20 text-blue"
+                            : "border border-line text-muted hover:text-ink"
                         )}
                       >
                         {item.label}
@@ -1191,34 +1192,34 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                   </div>
                 </div>
 
-                <div className="my-3 h-px bg-[#3c4043]" />
+                <div className="my-3 h-px bg-line" />
 
                 <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-                  <MapPin className="size-5 shrink-0 text-[#9aa0a6]" />
+                  <MapPin className="size-5 shrink-0 text-muted" />
                   <input
                     value={draftEvent.location}
                     onChange={(e) => setDraftEvent({ ...draftEvent, location: e.target.value })}
                     placeholder="Add location"
-                    className="h-11 w-full rounded-md bg-[#303134] px-3 text-sm text-[#e8eaed] outline-none placeholder:text-[#9aa0a6] focus:ring-1 focus:ring-[#8ab4f8]"
+                    className="h-11 w-full rounded-md bg-panel px-3 text-sm text-ink outline-none placeholder:text-muted focus:ring-1 focus:ring-blue"
                   />
                 </div>
                 <div className="flex items-start gap-3 rounded-lg px-3 py-2">
-                  <AlignLeft className="mt-3 size-5 shrink-0 text-[#9aa0a6]" />
+                  <AlignLeft className="mt-3 size-5 shrink-0 text-muted" />
                   <textarea
                     value={draftEvent.notes}
                     onChange={(e) => setDraftEvent({ ...draftEvent, notes: e.target.value })}
                     placeholder="Add description"
                     rows={6}
-                    className="w-full resize-none rounded-md bg-[#303134] p-3 text-sm leading-6 text-[#e8eaed] outline-none placeholder:text-[#9aa0a6] focus:ring-1 focus:ring-[#8ab4f8]"
+                    className="w-full resize-none rounded-md bg-panel p-3 text-sm leading-6 text-ink outline-none placeholder:text-muted focus:ring-1 focus:ring-blue"
                   />
                 </div>
                 <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-                  <Tags className="size-5 shrink-0 text-[#9aa0a6]" />
+                  <Tags className="size-5 shrink-0 text-muted" />
                   <LabelSelect
                     value={draftEvent.responsibilityId}
                     options={activeResponsibilities}
                     onChange={(responsibilityId) => setDraftEvent({ ...draftEvent, responsibilityId })}
-                    className="h-10 w-56 rounded-md bg-[#303134] px-3"
+                    className="h-10 w-56 rounded-md bg-panel px-3"
                   />
                 </div>
               </div>
@@ -1230,11 +1231,11 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       {selectedItem && (
         <div
           data-popup-card
-          className="absolute z-30 w-[min(400px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#3c4043] bg-[#202124] shadow-[0_24px_72px_rgba(0,0,0,0.55)]"
+          className="absolute z-30 w-[min(400px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-panel shadow-glow"
           style={selectedPanelPos ? { left: selectedPanelPos.left, top: selectedPanelPos.top } : { left: 24, top: 64 }}
         >
-          <div className="flex h-10 items-center justify-end gap-0.5 px-2.5 pt-1.5 text-[#bdc1c6]">
-            <button type="button" onClick={() => openEditInExpanded(selectedItem)} className="grid size-8 place-items-center rounded-full transition hover:bg-[#303134]" title="Edit">
+          <div className="flex h-10 items-center justify-end gap-0.5 px-2.5 pt-1.5 text-muted">
+            <button type="button" onClick={() => openEditInExpanded(selectedItem)} className="grid size-8 place-items-center rounded-full transition hover:bg-paper" title="Edit">
               <Pencil className="size-3.5" />
             </button>
             <button
@@ -1249,12 +1250,12 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                   deleteSelectedEvent();
                 }
               }}
-              className="grid size-8 place-items-center rounded-full transition hover:bg-[#303134]"
+              className="grid size-8 place-items-center rounded-full transition hover:bg-paper"
               title="Delete"
             >
               <Trash2 className="size-3.5" />
             </button>
-            <button type="button" onClick={() => { setSelectedItem(null); setDeleteMenuOpen(false); }} className="grid size-8 place-items-center rounded-full transition hover:bg-[#303134]" title="Close">
+            <button type="button" onClick={() => { setSelectedItem(null); setDeleteMenuOpen(false); }} className="grid size-8 place-items-center rounded-full transition hover:bg-paper" title="Close">
               <X className="size-4" />
             </button>
           </div>
@@ -1264,22 +1265,22 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             <div className="grid grid-cols-[28px_1fr] gap-x-3 gap-y-2">
               <span className="mt-1 size-3.5 rounded" style={{ backgroundColor: selectedTone(selectedItem).hex }} />
               <div>
-                <h3 className="text-lg font-semibold leading-snug text-[#e8eaed]">{selectedItem.title || "Untitled"}</h3>
-                <p className="mt-0.5 text-sm text-[#bdc1c6]">{formatDraftTime(selectedItem)}</p>
+                <h3 className="text-lg font-semibold leading-snug text-ink">{selectedItem.title || "Untitled"}</h3>
+                <p className="mt-0.5 text-sm text-muted">{formatDraftTime(selectedItem)}</p>
                 {selectedItem.recurrence && (
-                  <p className="mt-0.5 text-xs text-[#9aa0a6]">{describeRecurrence(selectedItem.recurrence, new Date(selectedItem.startsAt))}</p>
+                  <p className="mt-0.5 text-xs text-muted">{describeRecurrence(selectedItem.recurrence, new Date(selectedItem.startsAt))}</p>
                 )}
               </div>
 
               {selectedItem.location && (
                 <>
-                  <MapPin className="mt-0.5 size-4 justify-self-center text-[#9aa0a6]" />
-                  <p className="text-sm leading-5 text-[#e8eaed]">{selectedItem.location}</p>
+                  <MapPin className="mt-0.5 size-4 justify-self-center text-muted" />
+                  <p className="text-sm leading-5 text-ink">{selectedItem.location}</p>
                 </>
               )}
 
-              <Tags className="mt-0.5 size-4 justify-self-center text-[#9aa0a6]" />
-              <p className="flex items-center gap-2 text-sm leading-5 text-[#e8eaed]">
+              <Tags className="mt-0.5 size-4 justify-self-center text-muted" />
+              <p className="flex items-center gap-2 text-sm leading-5 text-ink">
                 {(() => {
                   const resp = responsibilities.find((item) => item.id === selectedItem.responsibilityId);
                   return (
@@ -1293,8 +1294,8 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
 
               {selectedItem.notes && (
                 <>
-                  <FileText className="mt-0.5 size-4 justify-self-center text-[#9aa0a6]" />
-                  <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-5 text-[#e8eaed]">{selectedItem.notes}</p>
+                  <FileText className="mt-0.5 size-4 justify-self-center text-muted" />
+                  <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-5 text-ink">{selectedItem.notes}</p>
                 </>
               )}
             </div>
@@ -1310,22 +1311,22 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             if (e.target === e.currentTarget) setSeriesScopePrompt(null);
           }}
         >
-          <div className="w-[320px] rounded-2xl border border-[#3c4043] bg-[#202124] p-5 shadow-[0_24px_72px_rgba(0,0,0,0.6)]">
-            <h3 className="text-base font-medium text-[#e8eaed]">
+          <div className="w-[320px] rounded-2xl border border-line bg-panel p-5 shadow-glow">
+            <h3 className="text-base font-medium text-ink">
               {seriesScopePrompt.kind === "move" ? "Move recurring event" : "Save recurring event"}
             </h3>
             <div className="mt-4 space-y-1">
               <button
                 type="button"
                 onClick={() => applySeriesScope("this")}
-                className="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]"
+                className="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-ink transition hover:bg-paper"
               >
                 This event
               </button>
               <button
                 type="button"
                 onClick={() => applySeriesScope("all")}
-                className="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]"
+                className="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-ink transition hover:bg-paper"
               >
                 All events in the series
               </button>
@@ -1334,7 +1335,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
               <button
                 type="button"
                 onClick={() => setSeriesScopePrompt(null)}
-                className="rounded-full px-4 py-1.5 text-sm text-[#8ab4f8] transition hover:bg-[#303134]"
+                className="rounded-full px-4 py-1.5 text-sm text-blue transition hover:bg-paper"
               >
                 Cancel
               </button>
@@ -1351,8 +1352,8 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
             if (e.target === e.currentTarget) setDeleteMenuOpen(false);
           }}
         >
-          <div className="w-[360px] rounded-2xl border border-[#3c4043] bg-[#2a2a2c] p-6 shadow-[0_24px_72px_rgba(0,0,0,0.6)]">
-            <h3 className="text-xl text-[#e8eaed]">Delete recurring event</h3>
+          <div className="w-[360px] rounded-2xl border border-line bg-panel p-6 shadow-glow">
+            <h3 className="text-xl text-ink">Delete recurring event</h3>
             <div className="mt-5 space-y-1">
               {([
                 ["this", "This event"],
@@ -1365,9 +1366,9 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                     name="delete-scope"
                     checked={deleteScope === value}
                     onChange={() => setDeleteScope(value)}
-                    className="size-5 accent-[#8ab4f8]"
+                    className="size-5 accent-blue"
                   />
-                  <span className="text-[15px] text-[#e8eaed]">{label}</span>
+                  <span className="text-[15px] text-ink">{label}</span>
                 </label>
               ))}
             </div>
@@ -1375,14 +1376,14 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
               <button
                 type="button"
                 onClick={() => setDeleteMenuOpen(false)}
-                className="rounded-full px-5 py-2 text-sm font-medium text-[#8ab4f8] transition hover:bg-[#3c4043]"
+                className="rounded-full px-5 py-2 text-sm font-medium text-blue transition hover:bg-paper"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => deleteSelectedEvent(deleteScope)}
-                className="rounded-full bg-[#8ab4f8] px-6 py-2 text-sm font-medium text-[#202124] transition hover:brightness-110"
+                className="rounded-full bg-blue px-6 py-2 text-sm font-medium text-white transition hover:brightness-110"
               >
                 OK
               </button>

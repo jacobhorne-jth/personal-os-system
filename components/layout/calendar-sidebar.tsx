@@ -91,21 +91,21 @@ export function CalendarSidebar() {
   }, [calendarItems, hiddenResponsibilities, responsibilities, today, weekEnd, weekStart]);
 
   return (
-    <aside className="hidden min-h-0 w-[360px] shrink-0 flex-col border-l border-[#303134] bg-[#1f1f1f] [--panel-inset:18px] py-4 xl:flex">
+    <aside className="hidden min-h-0 w-[360px] shrink-0 flex-col border-l border-line bg-panel [--panel-inset:18px] py-4 xl:flex">
       <div className="mb-5 px-[var(--panel-inset)]">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-medium text-[#e8eaed]">{displayMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
+          <span className="text-sm font-medium text-ink">{displayMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
           <div className="flex gap-0">
             <button
               onClick={() => setMonthOffset((o) => o - 1)}
-              className="grid size-8 place-items-center rounded-full text-[#9aa0a6] transition hover:bg-[#3c4043]"
+              className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-paper"
               aria-label="Previous month"
             >
               <ChevronLeft className="size-4" />
             </button>
             <button
               onClick={() => setMonthOffset((o) => o + 1)}
-              className="grid size-8 place-items-center rounded-full text-[#9aa0a6] transition hover:bg-[#3c4043]"
+              className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-paper"
               aria-label="Next month"
             >
               <ChevronRight className="size-4" />
@@ -115,7 +115,7 @@ export function CalendarSidebar() {
 
         <div className="grid grid-cols-7 gap-y-0.5">
           {DAYS.map((d, i) => (
-            <div key={i} className="flex h-8 items-center justify-center text-[11px] font-medium text-[#9aa0a6]">
+            <div key={i} className="flex h-8 items-center justify-center text-[11px] font-medium text-muted">
               {d}
             </div>
           ))}
@@ -127,8 +127,8 @@ export function CalendarSidebar() {
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full text-xs transition mx-auto",
                   d.isToday ? "bg-[#4285f4] font-medium text-white" : "",
-                  !d.isToday && d.inMonth ? "text-[#e8eaed] hover:bg-[#3c4043]" : "",
-                  !d.isToday && !d.inMonth ? "text-[#5f6368] hover:bg-[#3c4043]" : ""
+                  !d.isToday && d.inMonth ? "text-ink hover:bg-paper" : "",
+                  !d.isToday && !d.inMonth ? "text-muted/50 hover:bg-paper" : ""
                 )}
               >
                 {d.day}
@@ -138,10 +138,10 @@ export function CalendarSidebar() {
         </div>
       </div>
 
-      <div className="mx-[var(--panel-inset)] mb-4 h-px bg-[#3c4043]" />
+      <div className="mx-[var(--panel-inset)] mb-4 h-px bg-line" />
 
       <div className="flex-1 overflow-y-auto px-[var(--panel-inset)]">
-        <p className="mb-2 text-xs font-medium text-[#9aa0a6]">Responsibilities</p>
+        <p className="mb-2 text-xs font-medium text-muted">Responsibilities</p>
         {responsibilities.filter((resp) => !resp.archivedAt).map((item) => {
           const tone = getTone(item.color);
           const hidden = hiddenResponsibilities.includes(item.id);
@@ -149,7 +149,7 @@ export function CalendarSidebar() {
             <button
               key={item.id}
               onClick={() => toggleResponsibility(item.id)}
-              className="-mx-3 flex w-[calc(100%+24px)] items-center gap-3 rounded-full px-3 py-1.5 text-left text-sm transition hover:bg-[#3c4043]"
+              className="-mx-3 flex w-[calc(100%+24px)] items-center gap-3 rounded-full px-3 py-1.5 text-left text-sm transition hover:bg-paper"
             >
               <span
                 className="grid size-4 shrink-0 place-items-center rounded-sm transition"
@@ -161,22 +161,22 @@ export function CalendarSidebar() {
                   </svg>
                 )}
               </span>
-              <span className={cn("flex-1 truncate text-sm", hidden ? "text-[#5f6368]" : "text-[#e8eaed]")}>
+              <span className={cn("flex-1 truncate text-sm", hidden ? "text-muted/50" : "text-ink")}>
                 {item.name}
               </span>
             </button>
           );
         })}
 
-        <div className="my-5 h-px bg-[#3c4043]" />
+        <div className="my-5 h-px bg-line" />
 
         <section>
-          <div className="mb-3 flex h-11 items-center justify-between rounded-full bg-[#282a2d] px-4">
-            <h2 className="text-base font-semibold text-[#e8eaed]">Time Insights</h2>
-            <ChevronDown className="size-5 rotate-180 text-[#e8eaed]" />
+          <div className="mb-3 flex h-11 items-center justify-between rounded-full bg-paper px-4">
+            <h2 className="text-base font-semibold text-ink">Time Insights</h2>
+            <ChevronDown className="size-5 rotate-180 text-ink" />
           </div>
-          <p className="px-4 text-sm font-semibold tracking-[0.12em] text-[#e8eaed]">{weekRangeLabel(today)}</p>
-          <div className="mx-4 mt-4 flex h-4 overflow-hidden rounded-full bg-[#3c4043]">
+          <p className="px-4 text-sm font-semibold tracking-[0.12em] text-ink">{weekRangeLabel(today)}</p>
+          <div className="mx-4 mt-4 flex h-4 overflow-hidden rounded-full bg-line">
             {weeklyInsights.totalMinutes > 0 ? (
               weeklyInsights.segments.map((segment) => (
                 <div
@@ -195,11 +195,11 @@ export function CalendarSidebar() {
           <div className="mt-4 space-y-2 px-4">
             {weeklyInsights.segments.slice(0, 6).map((segment) => (
               <div key={segment.id} className="flex items-center justify-between gap-3 text-sm">
-                <span className="flex min-w-0 items-center gap-2 text-[#e8eaed]">
+                <span className="flex min-w-0 items-center gap-2 text-ink">
                   <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: segment.color }} />
                   <span className="truncate">{segment.name}</span>
                 </span>
-                <span className="shrink-0 text-[#9aa0a6]">{formatHours(segment.minutes)}</span>
+                <span className="shrink-0 text-muted">{formatHours(segment.minutes)}</span>
               </div>
             ))}
           </div>

@@ -54,7 +54,7 @@ export function LabelSelect({
         type="button"
         onClick={toggle}
         className={cn(
-          "flex h-9 items-center gap-2.5 rounded-md px-2 text-sm text-[#e8eaed] transition hover:bg-[#3c4043]",
+          "flex h-9 items-center gap-2.5 rounded-md px-2 text-sm text-ink transition hover:bg-paper",
           className
         )}
       >
@@ -63,7 +63,7 @@ export function LabelSelect({
           style={{ backgroundColor: selected ? getTone(selected.color).hex : "#5f6368" }}
         />
         <span className="min-w-0 truncate">{selected?.name ?? "No label"}</span>
-        <ChevronDown className="size-4 shrink-0 text-[#9aa0a6]" />
+        <ChevronDown className="size-4 shrink-0 text-muted" />
       </button>
 
       {menuPos &&
@@ -71,7 +71,7 @@ export function LabelSelect({
           <div
             ref={menuRef}
             data-popup-card
-            className="fixed z-[300] max-h-[320px] w-[224px] overflow-y-auto rounded-xl border border-[#3c4043] bg-[#202124] py-2 shadow-[0_12px_36px_rgba(0,0,0,0.55)]"
+            className="fixed z-[300] max-h-[320px] w-[224px] overflow-y-auto rounded-xl border border-line bg-panel py-2 shadow-glow"
             style={{ top: menuPos.top, left: menuPos.left }}
           >
             {options.map((item) => (
@@ -82,11 +82,11 @@ export function LabelSelect({
                   onChange(item.id);
                   setMenuPos(null);
                 }}
-                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]"
+                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-ink transition hover:bg-paper"
               >
                 <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: getTone(item.color).hex }} />
                 <span className="min-w-0 flex-1 truncate">{item.name}</span>
-                {item.id === value && <Check className="size-4 shrink-0 text-[#8ab4f8]" />}
+                {item.id === value && <Check className="size-4 shrink-0 text-blue" />}
               </button>
             ))}
           </div>,

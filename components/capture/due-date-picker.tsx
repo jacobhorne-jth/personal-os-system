@@ -127,7 +127,7 @@ export function DueDatePicker({
           <div
             ref={popRef}
             data-popup-card
-            className="fixed z-[320] w-[280px] rounded-xl border border-[#3c4043] bg-[#202124] p-2 shadow-[0_16px_48px_rgba(0,0,0,0.55)]"
+            className="fixed z-[320] w-[280px] rounded-xl border border-line bg-panel p-2 shadow-glow"
             style={pos.drop === "down" ? { left: pos.left, top: pos.top } : { left: pos.left, bottom: window.innerHeight - pos.top }}
           >
             {/* Quick presets */}
@@ -137,46 +137,46 @@ export function DueDatePicker({
                   key={p.label}
                   type="button"
                   onClick={() => pick(p.date)}
-                  className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]"
+                  className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition hover:bg-paper"
                 >
-                  <CalendarDays className="size-4 shrink-0 text-[#9aa0a6]" />
+                  <CalendarDays className="size-4 shrink-0 text-muted" />
                   <span className="flex-1">{p.label}</span>
-                  <span className="text-xs text-[#9aa0a6]">{p.hint}</span>
-                  {value === p.date && <Check className="size-4 text-[#8ab4f8]" />}
+                  <span className="text-xs text-muted">{p.hint}</span>
+                  {value === p.date && <Check className="size-4 text-blue" />}
                 </button>
               ))}
               {value && (
                 <button
                   type="button"
                   onClick={() => pick(null)}
-                  className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]"
+                  className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition hover:bg-paper"
                 >
-                  <CalendarX className="size-4 shrink-0 text-[#9aa0a6]" />
+                  <CalendarX className="size-4 shrink-0 text-muted" />
                   <span className="flex-1">No date</span>
                 </button>
               )}
             </div>
 
-            <div className="my-2 border-t border-[#3c4043]" />
+            <div className="my-2 border-t border-line" />
 
             {/* Month calendar */}
             <div className="px-1 pb-1">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium text-[#e8eaed]">
+                <span className="text-sm font-medium text-ink">
                   {MONTHS[month.getMonth()]} {month.getFullYear()}
                 </span>
                 <div className="flex gap-1">
-                  <button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="grid size-6 place-items-center rounded text-[#9aa0a6] transition hover:bg-[#303134] hover:text-[#e8eaed]">
+                  <button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="grid size-6 place-items-center rounded text-muted transition hover:bg-paper hover:text-ink">
                     <ChevronLeft className="size-4" />
                   </button>
-                  <button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="grid size-6 place-items-center rounded text-[#9aa0a6] transition hover:bg-[#303134] hover:text-[#e8eaed]">
+                  <button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="grid size-6 place-items-center rounded text-muted transition hover:bg-paper hover:text-ink">
                     <ChevronRight className="size-4" />
                   </button>
                 </div>
               </div>
               <div className="grid grid-cols-7 gap-0.5 text-center">
                 {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-                  <span key={i} className="py-1 text-[10px] font-medium text-[#9aa0a6]">{d}</span>
+                  <span key={i} className="py-1 text-[10px] font-medium text-muted">{d}</span>
                 ))}
                 {cells.map((key, i) =>
                   key === null ? (
@@ -189,10 +189,10 @@ export function DueDatePicker({
                       className={cn(
                         "grid size-8 place-items-center rounded-full text-xs transition",
                         key === value
-                          ? "bg-[#8ab4f8] font-semibold text-[#202124]"
+                          ? "bg-blue font-semibold text-white"
                           : key === today
-                          ? "text-[#8ab4f8] hover:bg-[#303134]"
-                          : "text-[#e8eaed] hover:bg-[#303134]"
+                          ? "text-blue hover:bg-paper"
+                          : "text-ink hover:bg-paper"
                       )}
                     >
                       {keyToDate(key).getDate()}

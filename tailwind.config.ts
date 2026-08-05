@@ -11,11 +11,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#e8eaed",
-        paper: "#202124",
-        panel: "#2a2b2f",
-        line: "#3c4043",
-        muted: "#bdc1c6",
+        ink: "rgb(var(--color-ink) / <alpha-value>)",
+        paper: "rgb(var(--color-paper) / <alpha-value>)",
+        panel: "rgb(var(--color-panel) / <alpha-value>)",
+        line: "rgb(var(--color-line) / <alpha-value>)",
+        muted: "rgb(var(--color-muted) / <alpha-value>)",
         blue: "#4285f4",
         mint: "#34a853",
         coral: "#ea4335",
@@ -53,8 +53,8 @@ const config: Config = {
         stone: "#9e9e9e"
       },
       boxShadow: {
-        glow: "0 1px 2px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08)",
-        lift: "0 8px 18px rgba(0,0,0,0.34)"
+        glow: "var(--shadow-glow)",
+        lift: "var(--shadow-lift)"
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"]

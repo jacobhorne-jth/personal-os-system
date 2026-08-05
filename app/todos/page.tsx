@@ -80,11 +80,11 @@ export default function TodosPage() {
   return (
     <div className="-mx-4 -mt-4 flex min-h-dvh sm:-mx-6 lg:-ml-[24px] lg:-mr-8 lg:-mt-4">
       {/* Todoist-style left sidebar */}
-      <aside className="hidden w-[240px] shrink-0 flex-col border-r border-[#282828] bg-[#1a1a1a] py-3 lg:flex">
+      <aside className="hidden w-[240px] shrink-0 flex-col border-r border-line bg-panel py-3 lg:flex">
         <div className="mb-2 px-3">
           <button
             onClick={() => setAddingTask(true)}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[#dd4b39] transition hover:bg-[#242424]"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-blue transition hover:bg-paper"
           >
             <Plus className="size-4" />
             Add task
@@ -96,10 +96,10 @@ export default function TodosPage() {
             onClick={() => setView("today")}
             className={cn(
               "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition",
-              view === "today" ? "bg-[#2c2c2c] font-medium text-white" : "text-[#999] hover:bg-[#232323] hover:text-white"
+              view === "today" ? "bg-paper font-medium text-ink" : "text-muted hover:bg-paper hover:text-ink"
             )}
           >
-            <CalendarDays className="size-4 shrink-0 text-[#dd4b39]" />
+            <CalendarDays className="size-4 shrink-0 text-blue" />
             <span className="flex-1 text-left">Today</span>
             {overdueTasks.length > 0 && (
               <span className="flex items-center gap-0.5 text-xs tabular-nums text-[#cf4444]">
@@ -107,35 +107,35 @@ export default function TodosPage() {
                 {overdueTasks.length}
               </span>
             )}
-            {todayTasks.length > 0 && <span className="text-xs tabular-nums text-[#666]">{todayTasks.length}</span>}
+            {todayTasks.length > 0 && <span className="text-xs tabular-nums text-muted">{todayTasks.length}</span>}
           </button>
           <button
             onClick={() => setView("upcoming")}
             className={cn(
               "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition",
-              view === "upcoming" ? "bg-[#2c2c2c] font-medium text-white" : "text-[#999] hover:bg-[#232323] hover:text-white"
+              view === "upcoming" ? "bg-paper font-medium text-ink" : "text-muted hover:bg-paper hover:text-ink"
             )}
           >
             <CalendarRange className="size-4 shrink-0 text-[#7b68ee]" />
             <span className="flex-1 text-left">Upcoming</span>
-            {upcomingTasks.length > 0 && <span className="text-xs tabular-nums text-[#666]">{upcomingTasks.length}</span>}
+            {upcomingTasks.length > 0 && <span className="text-xs tabular-nums text-muted">{upcomingTasks.length}</span>}
           </button>
           <button
             onClick={() => setView("all")}
             className={cn(
               "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition",
-              view === "all" ? "bg-[#2c2c2c] font-medium text-white" : "text-[#999] hover:bg-[#232323] hover:text-white"
+              view === "all" ? "bg-paper font-medium text-ink" : "text-muted hover:bg-paper hover:text-ink"
             )}
           >
-            <Plus className="size-4 shrink-0 text-[#999]" />
+            <Plus className="size-4 shrink-0 text-muted" />
             <span className="flex-1 text-left">All</span>
-            {open.length > 0 && <span className="text-xs tabular-nums text-[#666]">{open.length}</span>}
+            {open.length > 0 && <span className="text-xs tabular-nums text-muted">{open.length}</span>}
           </button>
         </nav>
 
-        <div className="my-3 mx-4 h-px bg-[#2c2c2c]" />
+        <div className="my-3 mx-4 h-px bg-line" />
 
-        <p className="mb-1 px-5 text-[11px] font-semibold uppercase tracking-widest text-[#444]">Labels</p>
+        <p className="mb-1 px-5 text-[11px] font-semibold uppercase tracking-widest text-muted">Labels</p>
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-2">
           {responsibilities.filter((r) => !r.archivedAt).map((r) => {
             const label = r.name;
@@ -147,12 +147,12 @@ export default function TodosPage() {
                 onClick={() => setView(`label:${label}`)}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition",
-                  view === `label:${label}` ? "bg-[#2c2c2c] font-medium text-white" : "text-[#999] hover:bg-[#232323] hover:text-white"
+                  view === `label:${label}` ? "bg-paper font-medium text-ink" : "text-muted hover:bg-paper hover:text-ink"
                 )}
               >
                 <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
                 <span className="flex-1 truncate text-left">{label}</span>
-                {count > 0 && <span className="text-xs tabular-nums text-[#555]">{count}</span>}
+                {count > 0 && <span className="text-xs tabular-nums text-muted">{count}</span>}
               </button>
             );
           })}
@@ -160,9 +160,9 @@ export default function TodosPage() {
       </aside>
 
       {/* Main content */}
-      <main className="flex min-w-0 flex-1 flex-col bg-[#1f1f1f]">
+      <main className="flex min-w-0 flex-1 flex-col bg-paper">
         {/* Mobile view switcher — the sidebar's filters, as a scrollable row */}
-        <div className="sticky top-0 z-10 border-b border-[#282828] bg-[#1f1f1f]/95 backdrop-blur lg:hidden">
+        <div className="sticky top-0 z-10 border-b border-line bg-paper/95 backdrop-blur lg:hidden">
           <div className="flex gap-2 overflow-x-auto px-4 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {([
               ["today", "Today", overdueTasks.length],
@@ -174,7 +174,7 @@ export default function TodosPage() {
                 onClick={() => setView(v)}
                 className={cn(
                   "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition",
-                  view === v ? "border-blue bg-blue/15 text-blue" : "border-[#3a3a3a] text-[#999]"
+                  view === v ? "border-blue bg-blue/15 text-blue" : "border-line text-muted"
                 )}
               >
                 {labelText}
@@ -187,7 +187,7 @@ export default function TodosPage() {
                 onClick={() => setView(`label:${r.name}`)}
                 className={cn(
                   "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition",
-                  view === `label:${r.name}` ? "border-blue bg-blue/15 text-blue" : "border-[#3a3a3a] text-[#999]"
+                  view === `label:${r.name}` ? "border-blue bg-blue/15 text-blue" : "border-line text-muted"
                 )}
               >
                 <span className="size-2.5 rounded-full" style={{ backgroundColor: taskLabelColor(r.name, responsibilities) }} />
@@ -201,13 +201,13 @@ export default function TodosPage() {
             {selectedLabel && (
               <span className="size-3 rounded-full" style={{ backgroundColor: taskLabelColor(selectedLabel, responsibilities) }} />
             )}
-            <h1 className="text-xl font-semibold text-white">{viewLabel}</h1>
-            <span className="text-sm text-[#555]">{viewTasks.length}</span>
+            <h1 className="text-xl font-semibold text-ink">{viewLabel}</h1>
+            <span className="text-sm text-muted">{viewTasks.length}</span>
           </div>
 
           {/* Add task form */}
           {addingTask ? (
-            <div className="mb-4 rounded-lg border border-[#3a3a3a] bg-[#252525] p-4">
+            <div className="mb-4 rounded-lg border border-line bg-panel p-4 shadow-glow">
               <QuickCaptureForm
                 key={view}
                 autoFocus
@@ -215,10 +215,10 @@ export default function TodosPage() {
                 dueAt={view === "today" ? `${today}T17:00:00` : undefined}
                 placeholder="Title"
                 onComplete={() => setAddingTask(false)}
-                inputClassName="border-[#3a3a3a] bg-[#333] [&_input]:text-white [&_input::placeholder]:text-[#555]"
-                selectClassName="border-[#3a3a3a] bg-[#333] text-[#999]"
-                dateClassName="border-[#3a3a3a] bg-[#333] text-[#999]"
-                descriptionClassName="border-[#3a3a3a] bg-[#333] text-white placeholder:text-[#555]"
+                inputClassName="border-line bg-paper [&_input]:text-ink [&_input::placeholder]:text-muted"
+                selectClassName="border-line bg-paper text-muted"
+                dateClassName="border-line bg-paper text-muted"
+                descriptionClassName="border-line bg-paper text-ink placeholder:text-muted"
               />
               <div className="mt-3 flex items-center justify-end">
                 <button
@@ -226,7 +226,7 @@ export default function TodosPage() {
                   onClick={() => {
                     setAddingTask(false);
                   }}
-                  className="rounded-md px-3 py-1.5 text-sm text-[#777] transition hover:bg-[#333] hover:text-white"
+                  className="rounded-md px-3 py-1.5 text-sm text-muted transition hover:bg-paper hover:text-ink"
                 >
                   Cancel
                 </button>
@@ -235,9 +235,9 @@ export default function TodosPage() {
           ) : (
             <button
               onClick={() => setAddingTask(true)}
-              className="mb-4 flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-sm text-[#555] transition hover:text-[#999] group"
+              className="group mb-4 flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-sm text-muted transition hover:text-ink"
             >
-              <span className="grid size-5 place-items-center rounded-full border-[1.5px] border-[#3a3a3a] text-[#555] transition group-hover:border-[#555] group-hover:text-[#999]">
+              <span className="grid size-5 place-items-center rounded-full border-[1.5px] border-line text-muted transition group-hover:border-muted group-hover:text-ink">
                 <Plus className="size-3" />
               </span>
               Add task
@@ -247,7 +247,7 @@ export default function TodosPage() {
           {/* Task list */}
           {viewTasks.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-sm text-[#444]">
+              <p className="text-sm text-muted">
                 {view === "today" ? "Nothing due today." : view === "upcoming" ? "Nothing upcoming." : "No tasks in this view."}
               </p>
             </div>
@@ -272,9 +272,9 @@ export default function TodosPage() {
                       </p>
                     )}
                     {showTodayHeader && (
-                      <p className="px-2 pb-1 pt-3 text-xs font-semibold text-[#999]">Today</p>
+                      <p className="px-2 pb-1 pt-3 text-xs font-semibold text-muted">Today</p>
                     )}
-                    <div className="group flex items-start gap-3 rounded-md px-2 py-2.5 transition hover:bg-[#282828]">
+                    <div className="group flex items-start gap-3 rounded-md px-2 py-2.5 transition hover:bg-panel">
                       <button
                         onClick={() => toggleTask(task.id)}
                         aria-label="Complete task"
@@ -288,34 +288,34 @@ export default function TodosPage() {
                             value={editing?.title ?? ""}
                             onChange={(e) => setEditing((s) => s && { ...s, title: e.target.value })}
                             onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditing(null); }}
-                            className="h-8 min-w-0 flex-1 rounded-md border border-[#3a3a3a] bg-[#242424] px-2.5 text-sm text-white outline-none focus:border-[#4285f4]"
+                            className="h-8 min-w-0 flex-1 rounded-md border border-line bg-panel px-2.5 text-sm text-ink outline-none focus:border-blue"
                           />
-                          <button onClick={saveEdit} className="grid size-7 place-items-center rounded text-[#4285f4] hover:bg-[#333]"><Check className="size-4" /></button>
-                          <button onClick={() => setEditing(null)} className="grid size-7 place-items-center rounded text-[#999] hover:bg-[#333]"><X className="size-4" /></button>
+                          <button onClick={saveEdit} className="grid size-7 place-items-center rounded text-blue hover:bg-panel"><Check className="size-4" /></button>
+                          <button onClick={() => setEditing(null)} className="grid size-7 place-items-center rounded text-muted hover:bg-panel"><X className="size-4" /></button>
                         </div>
                       ) : (
                         <>
                           <Link href={`/task/${task.id}`} className="min-w-0 flex-1">
-                            <p className="text-sm text-[#ddd]">{task.title}</p>
+                            <p className="text-sm text-ink">{task.title}</p>
                             {task.description && (
-                              <p className="mt-0.5 line-clamp-1 text-xs text-[#666]">{task.description}</p>
+                              <p className="mt-0.5 line-clamp-1 text-xs text-muted">{task.description}</p>
                             )}
                             <div className="mt-1 flex items-center gap-2.5">
                               {task.dueAt && (
                                 <span className={cn("flex items-center gap-1 text-xs",
-                                  isOverdue ? "text-[#cf4444]" : isToday ? "text-[#cc9a2a]" : "text-[#666]"
+                                  isOverdue ? "text-[#cf4444]" : isToday ? "text-[#cc9a2a]" : "text-muted"
                                 )}>
                                   <CalendarDays className="size-3" />
                                   {formatDue(task.dueAt, today)}
                                 </span>
                               )}
                               {task.recurrence && (
-                                <span className="flex items-center gap-1 text-xs text-[#666]">
+                                <span className="flex items-center gap-1 text-xs text-muted">
                                   <RefreshCw className="size-3" />
                                   {task.recurrence}
                                 </span>
                               )}
-                              <span className="flex items-center gap-1 text-xs text-[#666]">
+                              <span className="flex items-center gap-1 text-xs text-muted">
                                 <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
                                 {label}
                               </span>
@@ -330,13 +330,13 @@ export default function TodosPage() {
                                 defaultValue={task.dueAt?.slice(0, 10) ?? today}
                                 onChange={(e) => reschedule(task.id, e.target.value)}
                                 onBlur={() => setRescheduling(null)}
-                                className="h-7 rounded-md border border-[#3a3a3a] bg-[#242424] px-1.5 text-xs text-white outline-none"
+                                className="h-7 rounded-md border border-line bg-panel px-1.5 text-xs text-ink outline-none"
                               />
                             ) : (
                               <button
                                 onClick={() => { setRescheduling(task.id); setDeleteConfirm(null); }}
                                 title="Reschedule"
-                                className="grid size-7 place-items-center rounded text-[#777] hover:bg-[#333] hover:text-white"
+                                className="grid size-7 place-items-center rounded text-muted hover:bg-panel hover:text-ink"
                               >
                                 <CalendarRange className="size-3.5" />
                               </button>
@@ -344,7 +344,7 @@ export default function TodosPage() {
                             <button
                               onClick={() => { setEditing({ id: task.id, title: task.title }); setDeleteConfirm(null); setRescheduling(null); }}
                               title="Edit"
-                              className="grid size-7 place-items-center rounded text-[#777] hover:bg-[#333] hover:text-white"
+                              className="grid size-7 place-items-center rounded text-muted hover:bg-panel hover:text-ink"
                             >
                               <Pencil className="size-3.5" />
                             </button>
@@ -353,7 +353,7 @@ export default function TodosPage() {
                               title="Delete"
                               className={cn(
                                 "grid h-7 place-items-center rounded transition",
-                                deleteConfirm === task.id ? "bg-[#cf4444]/15 px-1.5 text-xs text-[#cf4444]" : "size-7 text-[#777] hover:bg-[#333] hover:text-[#cf4444]"
+                                deleteConfirm === task.id ? "bg-[#cf4444]/15 px-1.5 text-xs text-[#cf4444]" : "size-7 text-muted hover:bg-panel hover:text-[#cf4444]"
                               )}
                             >
                               {deleteConfirm === task.id ? "Confirm" : <Trash2 className="size-3.5" />}

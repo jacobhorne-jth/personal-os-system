@@ -3,14 +3,41 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
-  background: #1f1f1f;
+  color-scheme: light;
+  background: rgb(var(--color-paper));
   --radius: 10px;
+  --color-ink: 23 25 35;
+  --color-paper: 247 248 252;
+  --color-panel: 255 255 255;
+  --color-line: 229 231 235;
+  --color-muted: 107 114 128;
+  --color-subtle: 154 160 166;
+  --color-hover: 243 244 246;
+  --color-calendar: 255 255 255;
+  --color-calendar-grid: 226 232 240;
+  --shadow-glow: 0 1px 2px rgba(17, 24, 39, 0.06), 0 14px 40px rgba(17, 24, 39, 0.06);
+  --shadow-lift: 0 14px 30px rgba(66, 133, 244, 0.22);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  background: rgb(var(--color-paper));
+  --color-ink: 232 234 237;
+  --color-paper: 31 31 31;
+  --color-panel: 42 43 47;
+  --color-line: 60 64 67;
+  --color-muted: 189 193 198;
+  --color-subtle: 154 160 166;
+  --color-hover: 48 49 52;
+  --color-calendar: 19 19 20;
+  --color-calendar-grid: 51 53 55;
+  --shadow-glow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --shadow-lift: 0 8px 18px rgba(0, 0, 0, 0.34);
 }
 
 html {
   min-height: 100%;
-  background: #1f1f1f;
+  background: rgb(var(--color-paper));
   overscroll-behavior: none;
 }
 
@@ -21,8 +48,8 @@ html {
 body {
   margin: 0;
   min-height: 100%;
-  background: #1f1f1f;
-  color: #e8eaed;
+  background: rgb(var(--color-paper));
+  color: rgb(var(--color-ink));
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   overscroll-behavior: none;
 }
@@ -57,13 +84,13 @@ select:focus-visible {
 }
 
 .calendar-board .fc {
-  --fc-page-bg-color: #131314;
-  --fc-neutral-bg-color: #131314;
-  --fc-border-color: #333537;
+  --fc-page-bg-color: rgb(var(--color-calendar));
+  --fc-neutral-bg-color: rgb(var(--color-calendar));
+  --fc-border-color: rgb(var(--color-calendar-grid));
   --fc-today-bg-color: transparent;
   --fc-now-indicator-color: #ff5f57;
   --fc-small-font-size: 11px;
-  color: #e8eaed;
+  color: rgb(var(--color-ink));
   font-size: 13px;
   font-family: "Google Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
@@ -73,8 +100,8 @@ select:focus-visible {
   --gcal-axis-width: 70px;
   height: 100%;
   min-height: 0;
-  background: #1f1f1f;
-  color: #e8eaed;
+  background: rgb(var(--color-paper));
+  color: rgb(var(--color-ink));
 }
 
 .gcal-topbar {
@@ -96,7 +123,7 @@ select:focus-visible {
 }
 
 .gcal-title {
-  color: #e8eaed;
+  color: rgb(var(--color-ink));
   font-size: 34px;
   font-weight: 400;
   line-height: 1.1;
@@ -117,9 +144,9 @@ select:focus-visible {
 .gcal-view-tabs,
 .gcal-create-button {
   height: 48px;
-  border: 1px solid #747775;
+  border: 1px solid rgb(var(--color-line));
   background: transparent;
-  color: #e8eaed;
+  color: rgb(var(--color-ink));
   box-shadow: none;
 }
 
@@ -144,7 +171,7 @@ select:focus-visible {
   display: grid;
   place-items: center;
   padding: 0 18px;
-  color: #bdc1c6;
+  color: rgb(var(--color-muted));
   font-size: 17px;
   font-weight: 600;
   line-height: 1;
@@ -152,12 +179,12 @@ select:focus-visible {
 }
 
 .gcal-view-tabs button + button {
-  border-left: 1px solid #747775;
+  border-left: 1px solid rgb(var(--color-line));
 }
 
 .gcal-view-tabs .active {
-  background: #075985;
-  color: #e8f0fe;
+  background: #4285f4;
+  color: #fff;
 }
 
 .gcal-icon-button {
@@ -166,15 +193,15 @@ select:focus-visible {
   height: 48px;
   place-items: center;
   border-radius: 999px;
-  color: #bdc1c6;
+  color: rgb(var(--color-muted));
   transition: background-color 140ms ease, color 140ms ease;
 }
 
 .gcal-icon-button:hover,
 .gcal-view-tabs button:hover,
 .gcal-today-button:hover {
-  background: #303134;
-  color: #fff;
+  background: rgb(var(--color-hover));
+  color: rgb(var(--color-ink));
 }
 
 .gcal-create-button {
@@ -193,7 +220,7 @@ select:focus-visible {
   height: 48px;
   place-items: center;
   border-radius: 999px;
-  color: #d2e3fc;
+  color: #4285f4;
 }
 
 .gcal-main {
@@ -209,7 +236,7 @@ select:focus-visible {
   flex: 1;
   overflow: hidden;
   border-radius: 44px;
-  background: #131314;
+  background: rgb(var(--color-calendar));
   margin: 0 18px 18px;
   padding: 0 var(--gcal-shell-inset);
 }
@@ -299,7 +326,7 @@ select:focus-visible {
 }
 
 .gcal-right-rail button:hover {
-  background: #303134;
+  background: rgb(var(--color-hover));
 }
 
 .gcal-day-head {
@@ -310,7 +337,7 @@ select:focus-visible {
 }
 
 .gcal-day-name {
-  color: #bdc1c6;
+  color: rgb(var(--color-muted));
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -322,22 +349,22 @@ select:focus-visible {
   height: 48px;
   place-items: center;
   border-radius: 999px;
-  color: #bdc1c6;
+  color: rgb(var(--color-muted));
   font-size: 28px;
   font-weight: 400;
   letter-spacing: 0;
 }
 
 .gcal-day-number-today {
-  background: #a8c7fa;
-  color: #06305f;
+  background: #4285f4;
+  color: #fff;
 }
 
 /* Subtle grid lines throughout */
 .calendar-board .fc-scrollgrid,
 .calendar-board .fc-theme-standard td,
 .calendar-board .fc-theme-standard th {
-  border-color: #333537;
+  border-color: rgb(var(--color-calendar-grid));
 }
 
 /* Half-hour lines: dashed + even more faint */
@@ -348,7 +375,7 @@ select:focus-visible {
 
 /* Column header */
 .calendar-board .fc-col-header-cell {
-  background: #131314;
+  background: rgb(var(--color-calendar));
   padding: 0;
   border-bottom: 0;
 }
@@ -379,7 +406,7 @@ select:focus-visible {
 
 .calendar-board .fc-timegrid-axis,
 .calendar-board .fc-timegrid-slot-label {
-  color: #bdc1c6;
+  color: rgb(var(--color-muted));
   font-size: 15px;
   font-weight: 500;
   border-top-color: transparent !important;
@@ -407,7 +434,7 @@ select:focus-visible {
   right: 0;
   width: 8px;
   height: 1px;
-  background: #333537;
+  background: rgb(var(--color-calendar-grid));
   content: "";
   transform: translateY(-50%);
 }
@@ -528,7 +555,7 @@ select:focus-visible {
 
 /* All-day area */
 .calendar-board .fc-daygrid-body {
-  background: #131314;
+  background: rgb(var(--color-calendar));
 }
 
 /* Remove bottom border on last timegrid row */
@@ -546,7 +573,7 @@ select:focus-visible {
 }
 
 .calendar-board .fc .fc-scroller {
-  scrollbar-color: #747775 transparent;
+  scrollbar-color: rgb(var(--color-muted)) transparent;
   scrollbar-width: thin;
 }
 
@@ -560,9 +587,9 @@ select:focus-visible {
 }
 
 .calendar-board .fc .fc-scroller::-webkit-scrollbar-thumb {
-  background: #747775;
+  background: rgb(var(--color-muted));
   border-radius: 999px;
-  border: 4px solid #131314;
+  border: 4px solid rgb(var(--color-calendar));
 }
 
 .gcal-board-compact .gcal-topbar {
@@ -670,5 +697,43 @@ select:focus-visible {
   .gcal-view-tabs,
   .gcal-create-button {
     display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .gcal-board-compact .gcal-topbar {
+    min-height: 52px;
+    gap: 4px;
+    padding: 0 8px;
+  }
+
+  .gcal-board-compact .gcal-title {
+    min-width: 3ch;
+    margin-left: 6px;
+    font-size: 16px;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .gcal-board-compact .gcal-today-button,
+  .gcal-board-compact .gcal-view-tabs {
+    height: 34px;
+  }
+
+  .gcal-board-compact .gcal-today-button {
+    min-width: 0;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+
+  .gcal-board-compact .gcal-icon-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .gcal-board-compact .gcal-calendar-shell {
+    margin: 0 8px 8px;
+    border-radius: 20px;
   }
 }

@@ -80,10 +80,10 @@ export function RecurrencePicker({
         ref={triggerRef}
         type="button"
         onClick={toggleMenu}
-        className="flex h-9 max-w-full items-center gap-2 rounded-md px-2 text-sm text-[#e8eaed] transition hover:bg-[#3c4043]"
+        className="flex h-9 max-w-full items-center gap-2 rounded-md px-2 text-sm text-ink transition hover:bg-paper"
       >
         <span className="truncate">{currentLabel}</span>
-        <ChevronDown className="size-4 shrink-0 text-[#9aa0a6]" />
+        <ChevronDown className="size-4 shrink-0 text-muted" />
       </button>
 
       {menuPos &&
@@ -91,7 +91,7 @@ export function RecurrencePicker({
           <div
             ref={menuRef}
             data-popup-card
-            className="fixed z-[300] w-[320px] rounded-xl border border-[#3c4043] bg-[#202124] py-2 shadow-[0_12px_36px_rgba(0,0,0,0.55)]"
+            className="fixed z-[300] w-[320px] rounded-xl border border-line bg-panel py-2 shadow-glow"
             style={{ top: menuPos.top, left: menuPos.left }}
           >
             {presets.map((preset) => {
@@ -102,8 +102,8 @@ export function RecurrencePicker({
                   type="button"
                   onClick={() => pick(preset.rule)}
                   className={cn(
-                    "block w-full px-4 py-2.5 text-left text-sm transition hover:bg-[#303134]",
-                    active ? "text-[#8ab4f8]" : "text-[#e8eaed]"
+                    "block w-full px-4 py-2.5 text-left text-sm transition hover:bg-paper",
+                    active ? "text-blue" : "text-ink"
                   )}
                 >
                   {preset.label}
@@ -116,7 +116,7 @@ export function RecurrencePicker({
                 setMenuPos(null);
                 setCustomOpen(true);
               }}
-              className="block w-full px-4 py-2.5 text-left text-sm text-[#e8eaed] transition hover:bg-[#303134]"
+              className="block w-full px-4 py-2.5 text-left text-sm text-ink transition hover:bg-paper"
             >
               Custom…
             </button>
@@ -175,15 +175,15 @@ function CustomRecurrenceDialog({
     onDone(rule);
   }
 
-  const inputClass = "rounded-md bg-[#303134] px-3 py-2 text-sm text-[#e8eaed] outline-none focus:ring-1 focus:ring-[#8ab4f8]";
+  const inputClass = "rounded-md bg-paper px-3 py-2 text-sm text-ink outline-none focus:ring-1 focus:ring-blue";
 
   return createPortal(
     <div data-popup-card className="fixed inset-0 z-[320] grid place-items-center bg-black/50" onPointerDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="w-[min(400px,calc(100vw-2rem))] rounded-2xl border border-[#3c4043] bg-[#202124] p-6 shadow-[0_24px_72px_rgba(0,0,0,0.6)]">
-        <h3 className="text-xl text-[#e8eaed]">Custom recurrence</h3>
+      <div className="w-[min(400px,calc(100vw-2rem))] rounded-2xl border border-line bg-panel p-6 shadow-glow">
+        <h3 className="text-xl text-ink">Custom recurrence</h3>
 
         <div className="mt-5 flex items-center gap-3">
-          <span className="text-sm text-[#bdc1c6]">Repeat every</span>
+          <span className="text-sm text-muted">Repeat every</span>
           <input
             type="number"
             min={1}
@@ -195,7 +195,7 @@ function CustomRecurrenceDialog({
           <select
             value={freq}
             onChange={(e) => setFreq(e.target.value as RecurrenceRule["freq"])}
-            className={cn(inputClass, "cursor-pointer [&>option]:bg-[#202124]")}
+            className={cn(inputClass, "cursor-pointer [&>option]:bg-panel")}
           >
             <option value="day">day{interval > 1 ? "s" : ""}</option>
             <option value="week">week{interval > 1 ? "s" : ""}</option>
@@ -206,7 +206,7 @@ function CustomRecurrenceDialog({
 
         {freq === "week" && (
           <div className="mt-5">
-            <p className="text-sm text-[#bdc1c6]">Repeat on</p>
+            <p className="text-sm text-muted">Repeat on</p>
             <div className="mt-2.5 flex gap-2">
               {DAY_LETTERS.map((letter, d) => (
                 <button
@@ -215,7 +215,7 @@ function CustomRecurrenceDialog({
                   onClick={() => toggleDay(d)}
                   className={cn(
                     "grid size-8 place-items-center rounded-full text-xs font-medium transition",
-                    days.includes(d) ? "bg-[#8ab4f8] text-[#202124]" : "bg-[#303134] text-[#9aa0a6] hover:text-[#e8eaed]"
+                    days.includes(d) ? "bg-blue text-white" : "bg-paper text-muted hover:text-ink"
                   )}
                 >
                   {letter}
@@ -226,7 +226,7 @@ function CustomRecurrenceDialog({
         )}
 
         <div className="mt-5">
-          <p className="text-sm text-[#bdc1c6]">Ends</p>
+          <p className="text-sm text-muted">Ends</p>
           <div className="mt-2.5 space-y-2.5">
             {([
               ["never", "Never"],
@@ -238,9 +238,9 @@ function CustomRecurrenceDialog({
                   type="radio"
                   checked={endsMode === mode}
                   onChange={() => setEndsMode(mode)}
-                  className="size-4 accent-[#8ab4f8]"
+                  className="size-4 accent-blue"
                 />
-                <span className="w-12 text-sm text-[#e8eaed]">{label}</span>
+                <span className="w-12 text-sm text-ink">{label}</span>
                 {mode === "on" && (
                   <input
                     type="date"
@@ -261,7 +261,7 @@ function CustomRecurrenceDialog({
                       disabled={endsMode !== "after"}
                       className={cn(inputClass, "w-20 text-center")}
                     />
-                    <span className="text-sm text-[#9aa0a6]">occurrences</span>
+                    <span className="text-sm text-muted">occurrences</span>
                   </span>
                 )}
               </label>
@@ -270,14 +270,14 @@ function CustomRecurrenceDialog({
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-2">
-          <button type="button" onClick={onCancel} className="rounded-full px-5 py-2 text-sm text-[#8ab4f8] transition hover:bg-[#303134]">
+          <button type="button" onClick={onCancel} className="rounded-full px-5 py-2 text-sm text-blue transition hover:bg-paper">
             Cancel
           </button>
           <button
             type="button"
             onClick={done}
             disabled={endsMode === "on" && !untilDate}
-            className="rounded-full bg-[#8ab4f8] px-6 py-2 text-sm font-medium text-[#202124] transition hover:brightness-110 disabled:opacity-40"
+            className="rounded-full bg-blue px-6 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-40"
           >
             Done
           </button>

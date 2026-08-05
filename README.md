@@ -25,6 +25,7 @@ npm run dev
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable (anon) key |
+| `NEXT_PUBLIC_LOCAL_PREVIEW` | Set to `1` to preview local mock data without Supabase auth |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-side writes for Google sync |
 | `OPENAI_API_KEY` | Capture parsing |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud OAuth desktop-app credentials |
@@ -37,6 +38,15 @@ Sign-in is a Supabase magic link: enter your email on `/login`, click the link
 in the email, and the session persists per device. Row level security restricts
 every table to the signed-in user, so only accounts you create in the Supabase
 dashboard (Authentication → Add user) can see or change anything.
+
+For local UI preview without auth, run:
+
+```bash
+npm run dev:preview
+```
+
+Then open `http://localhost:3000/home`. This uses mock/local data and skips
+Supabase session checks, which is handy for comparing desktop and mobile layouts.
 
 ### Database
 

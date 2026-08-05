@@ -103,7 +103,7 @@ export function NotesWorkspace() {
 
   return (
     <main className="grid min-h-[calc(100dvh-96px)] min-w-0 overflow-hidden rounded-lg border border-line bg-[#242528] lg:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="border-b border-line bg-[#202124] lg:border-b-0 lg:border-r">
+      <aside className="border-b border-line bg-panel lg:border-b-0 lg:border-r">
         <div className="border-b border-line px-4 py-3">
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-base font-medium text-ink">Notes</h1>
