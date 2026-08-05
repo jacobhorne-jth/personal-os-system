@@ -545,7 +545,7 @@ select:focus-visible {
 }
 
 .calendar-board .fc-timeGridWeek-view .fc-timegrid-body {
-  border-top: 1px solid rgb(var(--color-calendar-grid));
+  border-top-color: transparent !important;
 }
 
 .calendar-board .fc-timegrid-divider {
