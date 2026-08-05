@@ -601,6 +601,10 @@ select:focus-visible {
   border-color: transparent !important;
 }
 
+.calendar-board .fc-scrollgrid-section-header .fc-timegrid-axis {
+  border-right-color: rgb(var(--color-calendar-grid)) !important;
+}
+
 .calendar-board .fc .fc-timegrid-col-frame {
   min-height: 100%;
 }
