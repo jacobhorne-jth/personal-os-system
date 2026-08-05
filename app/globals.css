@@ -495,14 +495,40 @@ select:focus-visible {
   height: 64px;
 }
 
-.calendar-board .fc-timeGridWeek-view .fc-timegrid-slot-lane {
-  background-image: repeating-linear-gradient(
-    to right,
-    transparent 0,
-    transparent calc((100% / 7) - 1px),
-    rgb(var(--color-calendar-grid)) calc((100% / 7) - 1px),
-    rgb(var(--color-calendar-grid)) calc(100% / 7)
-  );
+.calendar-board .fc-timeGridWeek-view .fc-col-header,
+.calendar-board .fc-timeGridWeek-view .fc-timegrid-slots {
+  background-image:
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc(var(--gcal-axis-width) - 1px),
+      rgb(var(--color-calendar-grid)) calc(var(--gcal-axis-width) - 1px),
+      rgb(var(--color-calendar-grid)) var(--gcal-axis-width),
+      transparent var(--gcal-axis-width)
+    ),
+    repeating-linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc((100% / 7) - 1px),
+      rgb(var(--color-calendar-grid)) calc((100% / 7) - 1px),
+      rgb(var(--color-calendar-grid)) calc(100% / 7)
+    );
+  background-position: 0 0, var(--gcal-axis-width) 0;
+  background-repeat: no-repeat;
+  background-size: 100% 100%, calc(100% - var(--gcal-axis-width)) 100%;
+}
+
+.calendar-board .fc-timeGridWeek-view .fc-col-header-cell {
+  background: transparent;
+}
+
+.calendar-board .fc-timeGridWeek-view .fc-col-header-cell,
+.calendar-board .fc-timeGridWeek-view .fc-timegrid-axis,
+.calendar-board .fc-timeGridWeek-view .fc-timegrid-slot-label,
+.calendar-board .fc-timeGridWeek-view .fc-timegrid-slot-lane,
+.calendar-board .fc-timeGridWeek-view .fc-timegrid-col.fc-day {
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
 }
 
 .calendar-board .fc-timeGridWeek-view .fc-timegrid-body {
