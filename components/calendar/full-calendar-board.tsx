@@ -291,7 +291,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       if (!scroller) return;
       const start = scroller.scrollTop;
       const distance = target - start;
-      const duration = 180;
+      const duration = 140;
       const startTime = performance.now();
       snapTarget = target;
 
@@ -329,28 +329,29 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     }
 
     function onScroll() {
-      if (snapTarget !== null && scroller) {
-        if (Math.abs(scroller.scrollTop - snapTarget) < 1) clearSnap();
-        return;
-      }
+      if (snapTarget !== null) return;
       if (snapTimer) window.clearTimeout(snapTimer);
-      snapTimer = window.setTimeout(snapToDayEdge, 120);
+      snapTimer = window.setTimeout(snapToDayEdge, 35);
     }
 
     function onUserScrollStart() {
-      clearSnap();
+      if (snapTarget === null) {
+        if (snapTimer) {
+          window.clearTimeout(snapTimer);
+          snapTimer = null;
+        }
+        clearSnap();
+      }
     }
 
     function attach() {
       const nextScroller = shellEl.querySelector<HTMLElement>(".fc-scroller-liquid-absolute");
       if (!nextScroller || nextScroller === scroller) return;
       scroller?.removeEventListener("scroll", onScroll);
-      scroller?.removeEventListener("scrollend", snapToDayEdge);
       scroller?.removeEventListener("wheel", onUserScrollStart);
       scroller?.removeEventListener("touchstart", onUserScrollStart);
       scroller = nextScroller;
       scroller.addEventListener("scroll", onScroll, { passive: true });
-      scroller.addEventListener("scrollend", snapToDayEdge, { passive: true });
       scroller.addEventListener("wheel", onUserScrollStart, { passive: true });
       scroller.addEventListener("touchstart", onUserScrollStart, { passive: true });
     }
@@ -362,7 +363,6 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     return () => {
       observer.disconnect();
       scroller?.removeEventListener("scroll", onScroll);
-      scroller?.removeEventListener("scrollend", snapToDayEdge);
       scroller?.removeEventListener("wheel", onUserScrollStart);
       scroller?.removeEventListener("touchstart", onUserScrollStart);
       if (snapTimer) window.clearTimeout(snapTimer);
