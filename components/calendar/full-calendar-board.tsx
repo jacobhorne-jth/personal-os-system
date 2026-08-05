@@ -289,6 +289,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     }
 
     function scheduleSnap(delay = 0) {
+      if (snapTarget !== null) return;
       if (snapTimer) window.clearTimeout(snapTimer);
       snapTimer = window.setTimeout(() => {
         snapTimer = null;
@@ -323,7 +324,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     }
 
     function snapToDayEdge() {
-      if (!scroller) return;
+      if (!scroller || snapTarget !== null) return;
       const buffer = getEdgeBuffer(scroller);
       if (buffer <= 0) return;
       const bottomSnap = Math.max(buffer, scroller.scrollHeight - scroller.clientHeight - buffer);
