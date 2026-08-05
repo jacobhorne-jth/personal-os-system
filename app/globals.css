@@ -476,8 +476,8 @@ select:focus-visible {
 .calendar-board .fc-timegrid-slot-label-cushion::after {
   position: absolute;
   top: 50%;
-  right: 0;
-  width: 8px;
+  right: -1px;
+  width: 12px;
   height: 1px;
   background: rgb(var(--color-calendar-grid));
   content: "";
@@ -495,8 +495,8 @@ select:focus-visible {
   height: 64px;
 }
 
-.calendar-board .fc-timeGridWeek-view .fc-col-header,
-.calendar-board .fc-timeGridWeek-view .fc-timegrid-slots {
+.calendar-board .fc-timeGridWeek-view .fc-scrollgrid {
+  position: relative;
   background-image:
     linear-gradient(
       to right,
@@ -752,7 +752,8 @@ select:focus-visible {
 }
 
 .gcal-board-compact .fc-timegrid-slot-label-cushion::after {
-  width: 8px;
+  right: -1px;
+  width: 12px;
 }
 
 .gcal-board-compact .fc-timegrid-axis-frame {
