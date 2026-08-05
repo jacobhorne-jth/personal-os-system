@@ -334,26 +334,36 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       snapTimer = window.setTimeout(snapToDayEdge, 35);
     }
 
-    function onUserScrollStart() {
-      if (snapTarget === null) {
-        if (snapTimer) {
-          window.clearTimeout(snapTimer);
-          snapTimer = null;
-        }
-        clearSnap();
-      }
+    function onWheel(e: WheelEvent) {
+      if (!scroller || snapTarget === null) return;
+      const movingAway =
+        (snapTarget > scroller.scrollTop && e.deltaY < 0) ||
+        (snapTarget < scroller.scrollTop && e.deltaY > 0);
+      if (movingAway) clearSnap();
+    }
+
+    function onTouchStart() {
+      if (snapTarget !== null) clearSnap();
+    }
+
+    function onTouchEnd() {
+      if (snapTarget !== null) return;
+      if (snapTimer) window.clearTimeout(snapTimer);
+      snapTimer = window.setTimeout(snapToDayEdge, 35);
     }
 
     function attach() {
       const nextScroller = shellEl.querySelector<HTMLElement>(".fc-scroller-liquid-absolute");
       if (!nextScroller || nextScroller === scroller) return;
       scroller?.removeEventListener("scroll", onScroll);
-      scroller?.removeEventListener("wheel", onUserScrollStart);
-      scroller?.removeEventListener("touchstart", onUserScrollStart);
+      scroller?.removeEventListener("wheel", onWheel);
+      scroller?.removeEventListener("touchstart", onTouchStart);
+      scroller?.removeEventListener("touchend", onTouchEnd);
       scroller = nextScroller;
       scroller.addEventListener("scroll", onScroll, { passive: true });
-      scroller.addEventListener("wheel", onUserScrollStart, { passive: true });
-      scroller.addEventListener("touchstart", onUserScrollStart, { passive: true });
+      scroller.addEventListener("wheel", onWheel, { passive: true });
+      scroller.addEventListener("touchstart", onTouchStart, { passive: true });
+      scroller.addEventListener("touchend", onTouchEnd, { passive: true });
     }
 
     attach();
@@ -363,8 +373,9 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     return () => {
       observer.disconnect();
       scroller?.removeEventListener("scroll", onScroll);
-      scroller?.removeEventListener("wheel", onUserScrollStart);
-      scroller?.removeEventListener("touchstart", onUserScrollStart);
+      scroller?.removeEventListener("wheel", onWheel);
+      scroller?.removeEventListener("touchstart", onTouchStart);
+      scroller?.removeEventListener("touchend", onTouchEnd);
       if (snapTimer) window.clearTimeout(snapTimer);
       clearSnap();
     };
