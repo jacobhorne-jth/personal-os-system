@@ -506,6 +506,8 @@ select:focus-visible {
   background-position: calc(var(--gcal-axis-width) - 12px) 0;
   background-repeat: repeat-y;
   background-size: calc(100% - var(--gcal-axis-width) + 12px) var(--gcal-slot-height);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 3px), transparent calc(100% - 3px));
+  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 3px), transparent calc(100% - 3px));
 }
 
 .calendar-board .fc-timeGridWeek-view .fc-scrollgrid {
@@ -622,6 +624,10 @@ select:focus-visible {
 
 .calendar-board .fc-scrollgrid-section-body td:first-child {
   border-right-color: #333537;
+}
+
+.calendar-board .fc-scrollgrid-section-body > td {
+  border-bottom-color: transparent !important;
 }
 
 .calendar-board .fc-scrollgrid-section > * {
