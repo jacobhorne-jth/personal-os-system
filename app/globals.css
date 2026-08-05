@@ -131,10 +131,15 @@ select:focus-visible {
 .gcal-board {
   --gcal-shell-inset: 18px;
   --gcal-axis-width: 70px;
+  --gcal-slot-height: 64px;
   height: 100%;
   min-height: 0;
   background: rgb(var(--color-paper));
   color: rgb(var(--color-ink));
+}
+
+.gcal-board-compact {
+  --gcal-slot-height: 44px;
 }
 
 .gcal-topbar {
@@ -474,14 +479,8 @@ select:focus-visible {
 }
 
 .calendar-board .fc-timegrid-slot-label-cushion::after {
-  position: absolute;
-  top: 50%;
-  right: -1px;
-  width: 12px;
-  height: 1px;
-  background: rgb(var(--color-calendar-grid));
+  display: none;
   content: "";
-  transform: translateY(-50%);
 }
 
 .calendar-board .fc-timegrid-axis-frame {
@@ -493,6 +492,20 @@ select:focus-visible {
 
 .calendar-board .fc-timegrid-slot {
   height: 64px;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+.calendar-board .fc-timegrid-slots {
+  background-image: linear-gradient(
+    to bottom,
+    rgb(var(--color-calendar-grid)) 0,
+    rgb(var(--color-calendar-grid)) 1px,
+    transparent 1px
+  );
+  background-position: calc(var(--gcal-axis-width) - 12px) 0;
+  background-repeat: repeat-y;
+  background-size: calc(100% - var(--gcal-axis-width) + 12px) var(--gcal-slot-height);
 }
 
 .calendar-board .fc-timeGridWeek-view .fc-scrollgrid {
@@ -749,11 +762,6 @@ select:focus-visible {
 
 .gcal-board-compact .fc-timegrid-slot-label-cushion {
   padding-right: 12px;
-}
-
-.gcal-board-compact .fc-timegrid-slot-label-cushion::after {
-  right: -1px;
-  width: 12px;
 }
 
 .gcal-board-compact .fc-timegrid-axis-frame {
