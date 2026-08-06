@@ -7,6 +7,7 @@ export type CalendarOverlay = {
 };
 
 export const calendarOverlays: CalendarOverlay[] = [
+  { type: "external_event", label: "Google", enabledByDefault: true },
   { type: "app_event", label: "Events", enabledByDefault: true },
   { type: "task_due", label: "Tasks", enabledByDefault: true },
   { type: "deadline", label: "Deadlines", enabledByDefault: true },

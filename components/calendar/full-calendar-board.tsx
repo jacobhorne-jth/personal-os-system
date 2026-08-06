@@ -43,15 +43,20 @@ const creatableTypes: Array<{ type: CalendarItemType; label: string }> = [
   { type: "reminder", label: "Reminder" }
 ];
 
-export function FullCalendarBoard({ fullChrome = false }: { fullChrome?: boolean }) {
+type FullCalendarBoardProps = {
+  fullChrome?: boolean;
+  homeMode?: boolean;
+};
+
+export function FullCalendarBoard({ fullChrome = false, homeMode = false }: FullCalendarBoardProps) {
   return (
     <Suspense fallback={<div className="h-full w-full bg-paper" />}>
-      <FullCalendarBoardInner fullChrome={fullChrome} />
+      <FullCalendarBoardInner fullChrome={fullChrome} homeMode={homeMode} />
     </Suspense>
   );
 }
 
-function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }) {
+function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCalendarBoardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const calendarRef = useRef<FullCalendar | null>(null);
@@ -89,7 +94,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   // Start of the instance the expanded editor was opened from (null when
   // editing a master directly)
   const [editingOccurrenceStart, setEditingOccurrenceStart] = useState<string | null>(null);
-  const { calendarView, setCalendarView, visibleOverlays, hiddenResponsibilities, calendarGotoDate, setCalendarGotoDate } = useUiStore();
+  const { calendarView, setCalendarView, visibleOverlays, hiddenResponsibilities, calendarGotoDate, setCalendarGotoDate, selectedDate, setSelectedDate } = useUiStore();
   const calendarItems = useAppStore((state) => state.calendarItems);
   const responsibilities = useAppStore((state) => state.responsibilities);
   const activeResponsibilities = responsibilities.filter((resp) => !resp.archivedAt);
@@ -101,13 +106,18 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   const isMobile = useIsMobile();
   // Week view is unusably cramped on a phone: fall back to day. Home keeps a
   // single day; the full calendar offers Day / Month.
-  const effectiveView = isMobile && calendarView === "week"
+  const allowInlineEditing = fullChrome || homeMode;
+  const effectiveView = homeMode
+    ? "day"
+    : isMobile && calendarView === "week"
     ? "day"
     : !fullChrome && calendarView === "month"
       ? "week"
       : calendarView;
   const initialView = effectiveView === "month" ? "dayGridMonth" : effectiveView === "week" ? "timeGridWeek" : "timeGridDay";
-  const availableViews = isMobile
+  const availableViews = homeMode
+    ? (["day"] as const)
+    : isMobile
     ? (fullChrome ? (["day", "month"] as const) : (["day"] as const))
     : (fullChrome ? (["day", "week", "month"] as const) : (["day", "week"] as const));
 
@@ -142,7 +152,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       };
     });
 
-  const initialDate = searchParams.get("start") ?? searchParams.get("date") ?? undefined;
+  const initialDate = homeMode ? selectedDate : searchParams.get("start") ?? searchParams.get("date") ?? undefined;
 
   // Keep the placeholder-block color in sync with the draft's label (or the
   // default label before a draft exists), and recolor a placed block live
@@ -183,7 +193,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
           const rect = col.getBoundingClientRect();
           const rootRect = root.getBoundingClientRect();
           const startMin = itemStart.getHours() * 60 + itemStart.getMinutes();
-          const eventTop = rect.top + (startMin / (25 * 60)) * rect.height;
+          const eventTop = rect.top + (startMin / (24 * 60)) * rect.height;
           const WIDTH = 400;
           const GAP = 12;
           let left = rect.left - rootRect.left - WIDTH - GAP;
@@ -221,7 +231,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
         positionCard({
           colLeft: rect.left,
           colRight: rect.right,
-          top: rect.top + (startMin / (25 * 60)) * rect.height,
+          top: rect.top + (startMin / (24 * 60)) * rect.height,
         });
         placeBlockRef.current(dateKey, startMin, endMin);
       } else {
@@ -252,6 +262,11 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     setCalendarView(nextView);
     setCalendarGotoDate(null);
   }, [calendarGotoDate, isMobile, setCalendarGotoDate, setCalendarView]);
+
+  useEffect(() => {
+    if (!homeMode) return;
+    calendarRef.current?.getApi().gotoDate(selectedDate);
+  }, [homeMode, selectedDate]);
 
   // Keep FullCalendar's view in sync with the effective view — needed because
   // useIsMobile resolves after first paint (week → day on phones)
@@ -365,7 +380,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
     const start = selection.start;
     const end = selection.end;
 
-    if (!fullChrome) {
+    if (!allowInlineEditing) {
       router.push(`/calendar?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}&date=${encodeURIComponent(start.toISOString())}`);
       return;
     }
@@ -630,7 +645,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   function handleEventClick(event: EventClickArg) {
     const item = visibleItems.find((calendarItem) => calendarItem.id === event.event.id);
     if (!item) return;
-    if (!fullChrome) {
+    if (!allowInlineEditing) {
       router.push(`/calendar?event=${encodeURIComponent(item.id)}&date=${encodeURIComponent(item.startsAt)}`);
       return;
     }
@@ -739,16 +754,28 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
   function openCreateDraft() {
     setSelectedItem(null);
     setDeleteMenuOpen(false);
-    const start = new Date();
-    start.setMinutes(0, 0, 0);
-    start.setHours(start.getHours() + 1);
+    const start = homeMode
+      ? (() => {
+          const [year, month, day] = selectedDate.split("-").map(Number);
+          const selected = new Date(year, month - 1, day, 9, 0, 0, 0);
+          const now = new Date();
+          if (localDateKeyOf(now.toISOString()) === selectedDate) {
+            selected.setHours(now.getHours() + 1, 0, 0, 0);
+          }
+          return selected;
+        })()
+      : new Date();
+    if (!homeMode) {
+      start.setMinutes(0, 0, 0);
+      start.setHours(start.getHours() + 1);
+    }
     const end = new Date(start.getTime() + 60 * 60 * 1000);
     const dateKey = localDateKeyOf(start.toISOString());
     const startMin = start.getHours() * 60;
     const col = shellRef.current?.querySelector<HTMLElement>(`.fc-timegrid-col[data-date='${dateKey}']`);
     if (col) {
       const rect = col.getBoundingClientRect();
-      positionCard({ colLeft: rect.left, colRight: rect.right, top: rect.top + (startMin / (25 * 60)) * rect.height });
+      positionCard({ colLeft: rect.left, colRight: rect.right, top: rect.top + (startMin / (24 * 60)) * rect.height });
       placeBlockRef.current(dateKey, startMin, startMin + 60);
     } else {
       positionCard(null);
@@ -827,6 +854,15 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
       const startMonth = start.toLocaleDateString("en-US", { month: "short" });
       const endMonth = end.toLocaleDateString("en-US", { month: "short" });
       setCalendarTitle(sameMonth ? `${startMonth} ${start.getFullYear()}` : `${startMonth} - ${endMonth} ${sameYear ? end.getFullYear() : `${start.getFullYear()} - ${end.getFullYear()}`}`);
+      return;
+    }
+    if (homeMode && dateInfo.view.type === "timeGridDay") {
+      setSelectedDate(localDateKeyOf(dateInfo.view.currentStart.toISOString()));
+      setCalendarTitle(dateInfo.view.currentStart.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric"
+      }));
       return;
     }
     setCalendarTitle(dateInfo.view.currentStart.toLocaleDateString("en-US", { month: "long", year: "numeric" }));
@@ -1035,7 +1071,7 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
         <h2 className="gcal-title">{calendarTitle}</h2>
 
         <div className="gcal-actions">
-          {isMobile ? (
+          {!homeMode && (isMobile ? (
             // A single compact toggle instead of the segmented control
             <button
               type="button"
@@ -1053,10 +1089,14 @@ function FullCalendarBoardInner({ fullChrome = false }: { fullChrome?: boolean }
                 </button>
               ))}
             </div>
-          )}
-          {fullChrome && (
-            <button onClick={openCreateDraft} className="gcal-create-button">
-              Create event
+          ))}
+          {allowInlineEditing && (
+            <button
+              onClick={openCreateDraft}
+              className={cn(homeMode && isMobile ? "gcal-icon-button" : "gcal-create-button")}
+              aria-label="Create event"
+            >
+              {homeMode && isMobile ? <Plus className="size-5" /> : "Create event"}
             </button>
           )}
         </div>

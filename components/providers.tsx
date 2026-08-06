@@ -11,6 +11,9 @@ function DataLoader() {
   const loadFromSupabase = useAppStore((s) => s.loadFromSupabase);
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_LOCAL_PREVIEW === "1") {
+      return;
+    }
     if (!hasSupabaseEnv()) return;
     const supabase = createBrowserSupabaseClient();
     supabase.auth.getUser().then(({ data: { user } }) => {

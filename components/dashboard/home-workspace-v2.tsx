@@ -311,75 +311,73 @@ export function HomeWorkspaceV2() {
   const tasks = useAppStore((state) => state.tasks);
   const responsibilities = useAppStore((s) => s.responsibilities);
   const toggleTask = useAppStore((state) => state.toggleTask);
+  const selectedDate = useUiStore((state) => state.selectedDate);
+  const [addingTask, setAddingTask] = useState(false);
 
-  const [dateFilter, setDateFilter] = useState<(typeof dateFilters)[number]>("Today");
-  const [labelFilter, setLabelFilter] = useState("all");
-  const today = localDateKey();
-  const todayHeading = formatDateHeading();
-
-  const filteredTasks = tasks
-    .filter((task) => {
-      const statusMatch = task.status !== "done";
-      const labelMatch = labelFilter === "all" || taskLabel(task.labels, task.responsibilityId, responsibilities) === labelFilter;
-      return statusMatch && labelMatch && matchesDate(dateFilter, today, task.dueAt);
-    })
+  const openTasks = tasks
+    .filter((task) => task.status !== "done")
     .sort((a, b) => {
       if (!a.dueAt && !b.dueAt) return 0;
       if (!a.dueAt) return 1;
       if (!b.dueAt) return -1;
       return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
     });
+  const selectedDateLabel = dateFromKey(selectedDate).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric"
+  });
 
   return (
-    <>
-      <MobileHome />
-      <div className="hidden h-full min-h-0 grid-cols-1 overflow-y-auto bg-paper lg:grid xl:grid-cols-[minmax(0,1fr)_360px] xl:overflow-visible">
-      <main className="min-h-[70dvh] min-w-0 xl:min-h-0">
-        <FullCalendarBoard />
+    <div className="grid h-dvh min-h-0 grid-rows-[minmax(320px,46dvh)_minmax(0,1fr)] overflow-hidden bg-paper text-ink lg:h-full lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-1">
+      <main className="min-h-0 min-w-0 border-b border-line lg:border-b-0 lg:border-r">
+        <FullCalendarBoard homeMode />
       </main>
 
-      <aside className="flex min-h-0 flex-col border-t border-line bg-panel [--panel-inset:20px] xl:border-l xl:border-t-0">
+      <aside className="flex min-h-0 flex-col bg-panel [--panel-inset:20px]">
         <div className="shrink-0 border-b border-line px-[var(--panel-inset)] py-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-ink">{todayHeading}</p>
-            <span className="text-xs text-muted">{filteredTasks.length} visible</span>
+            <div>
+              <p className="text-sm font-semibold text-ink">Todo list</p>
+              <p className="mt-0.5 text-xs text-muted">{selectedDateLabel} · {openTasks.length} open</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAddingTask((open) => !open)}
+              className={cn(
+                "flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition",
+                addingTask ? "border-line bg-paper text-ink hover:bg-hover" : "border-blue bg-blue text-white shadow-lift hover:brightness-110"
+              )}
+            >
+              {addingTask ? <X className="size-4" /> : <Plus className="size-4" />}
+              {addingTask ? "Close" : "Add task"}
+            </button>
           </div>
         </div>
 
-        <div className="shrink-0 space-y-3 border-b border-line p-[var(--panel-inset)]">
-          <div className="grid grid-cols-2 gap-2">
-            {dateFilters.map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setDateFilter(filter)}
-                className={cn(
-                  "h-9 rounded-md border px-3 text-sm font-medium transition",
-                  dateFilter === filter
-                    ? "border-blue bg-blue/15 text-blue"
-                    : "border-line text-muted hover:text-ink"
-                )}
-              >
-                {filter}
-              </button>
-            ))}
+        {addingTask && (
+          <div className="shrink-0 border-b border-line p-[var(--panel-inset)]">
+            <QuickCaptureForm
+              autoFocus
+              stackControls
+              dueAt={`${selectedDate}T17:00:00`}
+              placeholder="Task name"
+              onComplete={() => setAddingTask(false)}
+              onCancel={() => setAddingTask(false)}
+              inputClassName="border-line bg-paper text-ink [&_input]:text-ink [&_input::placeholder]:text-muted [&_svg]:text-muted"
+              selectClassName="border-line bg-panel text-muted"
+              dateClassName="border-line bg-panel text-muted"
+              descriptionClassName="border-line bg-panel text-ink placeholder:text-muted"
+            />
           </div>
-          <label className="flex items-center gap-2 rounded-md border border-line bg-paper px-2">
-            <Search className="size-3.5 text-muted" />
-            <select value={labelFilter} onChange={(event) => setLabelFilter(event.target.value)} className="h-10 min-w-0 flex-1 bg-transparent text-sm text-muted outline-none">
-              <option value="all">All labels</option>
-              {responsibilities.filter((resp) => !resp.archivedAt).map((r) => (
-                <option key={r.id} value={r.name}>{r.name}</option>
-              ))}
-            </select>
-          </label>
-        </div>
+        )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto pb-3">
-          {filteredTasks.length === 0 ? (
-            <p className="p-[var(--panel-inset)] text-sm text-muted">No tasks match these filters.</p>
+        <div className="min-h-0 flex-1 overflow-y-auto pb-28 lg:pb-3">
+          {openTasks.length === 0 ? (
+            <p className="p-[var(--panel-inset)] text-sm text-muted">No open tasks.</p>
           ) : (
             <div className="divide-y divide-line">
-              {filteredTasks.map((task) => {
+              {openTasks.map((task) => {
                 const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
                 const labelColor = taskLabelColor(label, responsibilities);
                 return (
@@ -401,8 +399,8 @@ export function HomeWorkspaceV2() {
                           {label}
                         </span>
                         {task.dueAt && (
-                          <span className={cn(taskDate(task.dueAt)! < today && "font-medium text-[#cf4444]")}>
-                            {taskDate(task.dueAt)! < today ? "Overdue · " : ""}
+                          <span className={cn(taskDate(task.dueAt)! < localDateKey() && "font-medium text-[#cf4444]")}>
+                            {taskDate(task.dueAt)! < localDateKey() ? "Overdue · " : ""}
                             {new Date(task.dueAt).toLocaleDateString([], { month: "short", day: "numeric" })}
                           </span>
                         )}
@@ -414,18 +412,7 @@ export function HomeWorkspaceV2() {
             </div>
           )}
         </div>
-
-        <div className="shrink-0 border-t border-line bg-panel p-[var(--panel-inset)]">
-          <QuickCaptureForm
-            dueAt={`${today}T17:00:00`}
-            inputClassName="border-line bg-paper text-ink [&_input]:text-ink [&_input::placeholder]:text-muted [&_svg]:text-muted"
-            selectClassName="border-line bg-paper text-muted"
-            dateClassName="border-line bg-paper text-muted"
-            descriptionClassName="border-line bg-paper text-ink placeholder:text-muted"
-          />
-        </div>
       </aside>
-      </div>
-    </>
+    </div>
   );
 }

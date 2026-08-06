@@ -7,6 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { aiReviewItems, calendarItems, lists, responsibilities, tasks } from "@/lib/data/mock";
 import { nextOccurrence } from "@/lib/recurrence";
+import { UNLABELED_RESPONSIBILITY_ID, withUnlabeledResponsibility } from "@/lib/responsibilities";
 import type { ActiveGymSession, CalendarItem, CaptureExtraction, FileAsset, FoodEntry, FoodMeal, Goal, GymDay, GymExercise, GymSession, GymSessionExercise, GymSet, Habit, HabitLog, HabitType, Idea, IdeaStatus, Note, NoteFolder, Responsibility, ResponsibilityColor, SavedFood, SavedList, Task } from "@/lib/types/domain";
 import type { Database, Json } from "@/lib/types/database";
 import { localDateKey } from "@/lib/dates";
@@ -41,6 +42,8 @@ const LOCAL_SLICE_KEYS = [
   "foodTargets",
   "savedFoods",
   "ideas",
+  "aiReviewItems",
+  "processedEmailIds",
 ] as const;
 
 let applyingServerSlices = false;
@@ -80,7 +83,7 @@ function dbCalendarItemToDomain(row: DbCalendarItem): CalendarItem {
     id: row.id,
     title: row.title,
     type: row.type as CalendarItem["type"],
-    responsibilityId: row.responsibility_id ?? "",
+    responsibilityId: row.responsibility_id ?? UNLABELED_RESPONSIBILITY_ID,
     startsAt: row.starts_at,
     endsAt: row.ends_at,
     source: (row.source as CalendarItem["source"]) ?? "app",
@@ -339,6 +342,11 @@ type AppState = {
   lastGoogleSync: string | null;
   syncGoogleCalendar: () => Promise<{ synced: number; errors: string[] }>;
 
+  // Gmail sync
+  lastEmailSync: string | null;
+  processedEmailIds: string[];
+  syncGmail: () => Promise<{ proposed: number; processed: number; errors: string[] }>;
+
   // Captures
   addCaptureExtraction: (input: { text: string; source: CaptureExtraction["source"]; responsibilityId: string }) => void;
   addParsedExtraction: (extraction: Omit<CaptureExtraction, "id">) => void;
@@ -452,18 +460,20 @@ type AppState = {
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
+const localPreview = process.env.NEXT_PUBLIC_LOCAL_PREVIEW === "1";
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       userId: null,
-      responsibilities: [],
-      calendarItems: [],
-      tasks: [],
+      responsibilities: localPreview ? responsibilities : [],
+      calendarItems: localPreview ? calendarItems : [],
+      tasks: localPreview ? tasks : [],
       aiReviewItems: [],
-      notes: [],
-      noteFolders: [],
+      notes: localPreview ? seedNotes : [],
+      noteFolders: localPreview ? seedNoteFolders : [],
       files: [],
-      lists: [],
+      lists: localPreview ? lists : [],
       habits: [],
       habitLogs: [],
       goals: [],
@@ -477,6 +487,8 @@ export const useAppStore = create<AppState>()(
       activeGymSession: null,
       gymWeightUnit: "lbs",
       lastGoogleSync: null,
+      lastEmailSync: null,
+      processedEmailIds: [],
       timer: {
         running: false,
         responsibilityId: "",
@@ -579,6 +591,7 @@ export const useAppStore = create<AppState>()(
         } else {
           loadedResp = (dbResp ?? []).map((r) => dbResponsibilityToDomain(r, loadedTasks, loadedItems));
         }
+        loadedResp = withUnlabeledResponsibility(loadedResp);
 
         set({
           userId,
@@ -589,7 +602,6 @@ export const useAppStore = create<AppState>()(
           lists: loadedLists,
           responsibilities: loadedResp,
           files: [],
-          aiReviewItems: [],
         });
 
         // Cross-device slices (habits, gym, goals, food, ideas): server copy
@@ -1369,15 +1381,74 @@ export const useAppStore = create<AppState>()(
       // ── Google Calendar sync ───────────────────────────────────────────────
 
       syncGoogleCalendar: async () => {
-        const res = await fetch("/api/google/sync", { method: "POST" });
-        const data = await res.json() as { synced: number; errors: string[] };
+        const res = await fetch("/api/google/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ responsibilities: get().responsibilities }),
+        });
+        const data = await res.json() as { synced: number; errors: string[]; items?: CalendarItem[] };
         if (res.ok && data.synced >= 0) {
           set({ lastGoogleSync: new Date().toISOString() });
+          if (data.items?.length) {
+            set((state) => {
+              const byKey = new Map<string, CalendarItem>();
+              for (const item of state.calendarItems) {
+                byKey.set(item.externalId ?? item.id, item);
+              }
+              for (const item of data.items ?? []) {
+                byKey.set(item.externalId ?? item.id, item);
+              }
+              return {
+                calendarItems: Array.from(byKey.values()),
+                responsibilities: data.items?.some((item) => item.responsibilityId === UNLABELED_RESPONSIBILITY_ID)
+                  ? withUnlabeledResponsibility(state.responsibilities)
+                  : state.responsibilities,
+              };
+            });
+            return { synced: data.synced, errors: data.errors };
+          }
           // Reload calendar items from Supabase so newly synced events appear
           const userId = get().userId;
           if (userId) await get().loadFromSupabase(userId);
         }
         return data;
+      },
+
+      syncGmail: async () => {
+        const res = await fetch("/api/gmail/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            knownMessageIds: get().processedEmailIds,
+            responsibilities: get().responsibilities,
+          }),
+        });
+        const data = await res.json() as {
+          proposals?: Array<Omit<CaptureExtraction, "id"> & { externalId: string }>;
+          processedMessageIds?: string[];
+          errors?: string[];
+          error?: string;
+        };
+
+        const errors = data.errors ?? (data.error ? [data.error] : []);
+        const proposals = data.proposals ?? [];
+        const processedMessageIds = data.processedMessageIds ?? [];
+
+        if (res.ok) {
+          set((state) => {
+            const existingExternalIds = new Set(state.aiReviewItems.map((item) => item.externalId).filter(Boolean));
+            const nextProposals = proposals
+              .filter((proposal) => !existingExternalIds.has(proposal.externalId))
+              .map((proposal) => ({ ...proposal, id: id("cap") }));
+            return {
+              lastEmailSync: new Date().toISOString(),
+              processedEmailIds: Array.from(new Set([...state.processedEmailIds, ...processedMessageIds])).slice(-500),
+              aiReviewItems: [...nextProposals, ...state.aiReviewItems],
+            };
+          });
+        }
+
+        return { proposed: proposals.length, processed: processedMessageIds.length, errors };
       },
 
       initGymIfEmpty: () => {
@@ -1626,8 +1697,18 @@ export const useAppStore = create<AppState>()(
       name: "jacob-os-ui-v1",
       // Only persist UI state — data comes from Supabase on auth
       partialize: (state) => ({
+        ...(localPreview && {
+          responsibilities: state.responsibilities,
+          calendarItems: state.calendarItems,
+          tasks: state.tasks,
+          notes: state.notes,
+          noteFolders: state.noteFolders,
+          lists: state.lists,
+        }),
         timer: state.timer,
         lastGoogleSync: state.lastGoogleSync,
+        lastEmailSync: state.lastEmailSync,
+        processedEmailIds: state.processedEmailIds,
         habits: state.habits,
         habitLogs: state.habitLogs,
         gymExercises: state.gymExercises,
@@ -1640,6 +1721,7 @@ export const useAppStore = create<AppState>()(
         foodTargets: state.foodTargets,
         savedFoods: state.savedFoods,
         ideas: state.ideas,
+        aiReviewItems: state.aiReviewItems,
       }),
     }
   )

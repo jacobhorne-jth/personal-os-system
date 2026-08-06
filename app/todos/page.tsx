@@ -207,30 +207,20 @@ export default function TodosPage() {
 
           {/* Add task form */}
           {addingTask ? (
-            <div className="mb-4 rounded-lg border border-line bg-panel p-4 shadow-glow">
+            <div className="mb-4">
               <QuickCaptureForm
                 key={view}
                 autoFocus
                 defaultLabel={selectedLabel || undefined}
                 dueAt={view === "today" ? `${today}T17:00:00` : undefined}
-                placeholder="Title"
+                placeholder="Task name"
                 onComplete={() => setAddingTask(false)}
-                inputClassName="border-line bg-paper [&_input]:text-ink [&_input::placeholder]:text-muted"
+                onCancel={() => setAddingTask(false)}
+                inputClassName="border-line bg-panel [&_input]:text-ink [&_input::placeholder]:text-muted"
                 selectClassName="border-line bg-paper text-muted"
                 dateClassName="border-line bg-paper text-muted"
                 descriptionClassName="border-line bg-paper text-ink placeholder:text-muted"
               />
-              <div className="mt-3 flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAddingTask(false);
-                  }}
-                  className="rounded-md px-3 py-1.5 text-sm text-muted transition hover:bg-paper hover:text-ink"
-                >
-                  Cancel
-                </button>
-              </div>
             </div>
           ) : (
             <button

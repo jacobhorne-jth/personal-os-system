@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, Calendar, Dumbbell, Flame, LogOut, RefreshCw, Settings, Tags } from "lucide-react";
+import { BarChart3, Calendar, Dumbbell, Flame, LogOut, Mail, RefreshCw, Settings, Tags } from "lucide-react";
 import { useState } from "react";
 import { DailyReview } from "@/components/time/daily-review";
 import { TimerControl } from "@/components/time/timer-control";
@@ -384,9 +384,13 @@ export function SettingsWorkspace() {
   const responsibilities = useAppStore((s) => s.responsibilities);
   const lastGoogleSync = useAppStore((s) => s.lastGoogleSync);
   const syncGoogleCalendar = useAppStore((s) => s.syncGoogleCalendar);
+  const lastEmailSync = useAppStore((s) => s.lastEmailSync);
+  const syncGmail = useAppStore((s) => s.syncGmail);
 
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ synced: number; errors: string[] } | null>(null);
+  const [emailSyncing, setEmailSyncing] = useState(false);
+  const [emailSyncResult, setEmailSyncResult] = useState<{ proposed: number; processed: number; errors: string[] } | null>(null);
 
   async function handleGoogleSync() {
     setSyncing(true);
@@ -396,6 +400,17 @@ export function SettingsWorkspace() {
       setSyncResult(result);
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function handleEmailSync() {
+    setEmailSyncing(true);
+    setEmailSyncResult(null);
+    try {
+      const result = await syncGmail();
+      setEmailSyncResult(result);
+    } finally {
+      setEmailSyncing(false);
     }
   }
 
@@ -509,9 +524,9 @@ export function SettingsWorkspace() {
         </div>
         <div className="px-5 py-4 space-y-3">
           <p className="text-xs text-muted">
-            Pulls events from your personal and school Google accounts into the calendar (read-only, last 30 days + next 90).
-            Requires <span className="font-mono text-ink">GOOGLE_REFRESH_TOKEN_PERSONAL</span> and/or{" "}
-            <span className="font-mono text-ink">GOOGLE_REFRESH_TOKEN_SCHOOL</span> in{" "}
+            Pulls events from configured Google calendars into the calendar (read-only, last 30 days + next 90).
+            Supports <span className="font-mono text-ink">GOOGLE_CALENDAR_SOURCES_JSON</span> or{" "}
+            <span className="font-mono text-ink">GOOGLE_REFRESH_TOKEN_PERSONAL/SCHOOL/WORK</span> in{" "}
             <span className="font-mono text-ink">.env.local</span>.
           </p>
           <div className="flex items-center gap-3">
@@ -535,6 +550,49 @@ export function SettingsWorkspace() {
                 ? `✓ Synced ${syncResult.synced} events`
                 : `Synced ${syncResult.synced} events · ${syncResult.errors.length} error(s): ${syncResult.errors[0]}`}
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Gmail */}
+      <div className="overflow-hidden rounded-xl border border-line bg-panel">
+        <div className="flex items-center gap-2 border-b border-line bg-line/40 px-5 py-3">
+          <Mail className="size-4 text-muted" />
+          <p className="text-sm font-medium text-ink">Gmail</p>
+        </div>
+        <div className="space-y-3 px-5 py-4">
+          <p className="text-xs text-muted">
+            Reads recent inbox emails, skips obvious noise, and sends likely actions to Review as proposed tasks or events.
+            Requires <span className="font-mono text-ink">GMAIL_SOURCES_JSON</span> or{" "}
+            <span className="font-mono text-ink">GMAIL_REFRESH_TOKEN_PERSONAL/SCHOOL/WORK</span> plus{" "}
+            <span className="font-mono text-ink">OPENAI_API_KEY</span>.
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleEmailSync}
+              disabled={emailSyncing}
+              className="flex items-center gap-2 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:bg-line disabled:opacity-50"
+            >
+              <RefreshCw className={cn("size-4", emailSyncing && "animate-spin")} />
+              {emailSyncing ? "Checking…" : "Check email"}
+            </button>
+            {lastEmailSync && (
+              <span className="text-xs text-muted">
+                Last checked {new Date(lastEmailSync).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
+          {emailSyncResult && (
+            <div className={cn("rounded-lg border px-3 py-2 text-xs", emailSyncResult.errors.length > 0 ? "border-amber-500/30 bg-amber-500/10 text-amber-400" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400")}>
+              {emailSyncResult.errors.length === 0
+                ? `Processed ${emailSyncResult.processed} emails · ${emailSyncResult.proposed} review item(s)`
+                : `Processed ${emailSyncResult.processed} emails · ${emailSyncResult.errors.length} error(s): ${emailSyncResult.errors[0]}`}
+            </div>
+          )}
+          {emailSyncResult && emailSyncResult.proposed > 0 && (
+            <Link href="/inbox" className="inline-flex rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:bg-line">
+              Review proposed actions
+            </Link>
           )}
         </div>
       </div>

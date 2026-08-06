@@ -3,23 +3,46 @@
  *
  * Prerequisites:
  *   1. Create a Google Cloud project at console.cloud.google.com
- *   2. Enable the Google Calendar API
+ *   2. Enable the Google Calendar API and/or Gmail API
  *   3. Create OAuth 2.0 credentials → choose "Desktop app" type
  *   4. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local
  *
  * Usage:
  *   GOOGLE_CLIENT_ID=xxx GOOGLE_CLIENT_SECRET=yyy node scripts/google-auth.mjs
+ *   GOOGLE_AUTH_SCOPE=calendar node scripts/google-auth.mjs
+ *   GOOGLE_AUTH_SCOPE=gmail node scripts/google-auth.mjs
+ *   GOOGLE_AUTH_SCOPE=both node scripts/google-auth.mjs
  *
  * Run once for your personal account, once for your school account.
  * Add the output tokens to .env.local as GOOGLE_REFRESH_TOKEN_PERSONAL / GOOGLE_REFRESH_TOKEN_SCHOOL.
  */
 
 import { google } from "googleapis";
+import fs from "fs";
 import http from "http";
 import { URL } from "url";
 
+function loadDotenvLocal() {
+  if (!fs.existsSync(".env.local")) return;
+  const lines = fs.readFileSync(".env.local", "utf8").split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
+    const idx = trimmed.indexOf("=");
+    const key = trimmed.slice(0, idx).trim();
+    let value = trimmed.slice(idx + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] ||= value;
+  }
+}
+
+loadDotenvLocal();
+
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const SCOPE_MODE = process.env.GOOGLE_AUTH_SCOPE ?? "both";
 const PORT = 9876;
 const REDIRECT_URI = `http://localhost:${PORT}/callback`;
 
@@ -32,14 +55,22 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
 }
 
 const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+const scope =
+  SCOPE_MODE === "calendar"
+    ? ["https://www.googleapis.com/auth/calendar.readonly"]
+    : SCOPE_MODE === "gmail"
+      ? ["https://www.googleapis.com/auth/gmail.readonly"]
+      : ["https://www.googleapis.com/auth/calendar.readonly", "https://www.googleapis.com/auth/gmail.readonly"];
 
 const authUrl = oauth2Client.generateAuthUrl({
   access_type: "offline",
-  scope: ["https://www.googleapis.com/auth/calendar.readonly"],
+  scope,
   prompt: "consent", // always return a refresh token
 });
 
 console.log("\n=== Google Calendar Auth ===\n");
+console.log("Using OAuth client:", `${CLIENT_ID.slice(0, 8)}...${CLIENT_ID.slice(-28)}`);
+console.log("Scope mode:", SCOPE_MODE);
 console.log("Open this URL in your browser (sign into the correct Google account):\n");
 console.log(authUrl);
 console.log("\nWaiting for Google to redirect back on port", PORT, "...\n");
@@ -70,19 +101,31 @@ const server = http.createServer(async (req, res) => {
     res.end(`
       <html><body style="font-family:monospace;padding:2rem">
         <h2>✅ Success! Copy the token below into .env.local</h2>
-        <p>For your personal account (jacobhorne09@gmail.com):</p>
+        <p>Scope mode: ${SCOPE_MODE}</p>
+        <p>For your personal account:</p>
         <pre style="background:#f0f0f0;padding:1rem">GOOGLE_REFRESH_TOKEN_PERSONAL=${tokens.refresh_token}</pre>
+        <pre style="background:#f0f0f0;padding:1rem">GMAIL_REFRESH_TOKEN_PERSONAL=${tokens.refresh_token}</pre>
         <p>For your school account (@uci.edu):</p>
         <pre style="background:#f0f0f0;padding:1rem">GOOGLE_REFRESH_TOKEN_SCHOOL=${tokens.refresh_token}</pre>
+        <pre style="background:#f0f0f0;padding:1rem">GMAIL_REFRESH_TOKEN_SCHOOL=${tokens.refresh_token}</pre>
+        <p>For your work account:</p>
+        <pre style="background:#f0f0f0;padding:1rem">GOOGLE_REFRESH_TOKEN_WORK=${tokens.refresh_token}</pre>
+        <pre style="background:#f0f0f0;padding:1rem">GMAIL_REFRESH_TOKEN_WORK=${tokens.refresh_token}</pre>
         <p>You can close this tab.</p>
       </body></html>
     `);
 
     console.log("\n✅ Refresh token received!\n");
+    console.log(`Scope mode: ${SCOPE_MODE}`);
     console.log("Add to .env.local (use the correct variable name for this account):\n");
     console.log(`GOOGLE_REFRESH_TOKEN_PERSONAL=${tokens.refresh_token}`);
+    console.log(`GMAIL_REFRESH_TOKEN_PERSONAL=${tokens.refresh_token}`);
     console.log("  - or -");
     console.log(`GOOGLE_REFRESH_TOKEN_SCHOOL=${tokens.refresh_token}`);
+    console.log(`GMAIL_REFRESH_TOKEN_SCHOOL=${tokens.refresh_token}`);
+    console.log("  - or -");
+    console.log(`GOOGLE_REFRESH_TOKEN_WORK=${tokens.refresh_token}`);
+    console.log(`GMAIL_REFRESH_TOKEN_WORK=${tokens.refresh_token}`);
     console.log();
   } catch (err) {
     res.writeHead(500);

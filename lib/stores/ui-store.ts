@@ -18,6 +18,7 @@ type UiState = {
 };
 
 const defaultOverlays: CalendarItemType[] = [
+  "external_event",
   "app_event",
   "task_due",
   "deadline",
