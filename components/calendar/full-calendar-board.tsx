@@ -5,7 +5,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type EventResizeDoneArg } from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import type { DatesSetArg, EventClickArg, EventDropArg, EventContentArg } from "@fullcalendar/core";
+import type { DatesSetArg, EventClickArg, EventDropArg, EventContentArg, DayHeaderContentArg } from "@fullcalendar/core";
 import { AlignLeft, CalendarDays, ChevronLeft, ChevronRight, Clock, FileText, LayoutGrid, MapPin, Pencil, Plus, RefreshCw, Tags, Trash2, X } from "lucide-react";
 import { DateTimeRow } from "@/components/calendar/date-time-picker";
 import { LabelSelect } from "@/components/calendar/label-select";
@@ -260,8 +260,9 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
     api.changeView(nextView === "day" ? "timeGridDay" : "timeGridWeek");
     api.gotoDate(calendarGotoDate);
     setCalendarView(nextView);
+    setSelectedDate(localDateKeyOf(calendarGotoDate));
     setCalendarGotoDate(null);
-  }, [calendarGotoDate, isMobile, setCalendarGotoDate, setCalendarView]);
+  }, [calendarGotoDate, isMobile, setCalendarGotoDate, setCalendarView, setSelectedDate]);
 
   useEffect(() => {
     if (!homeMode) return;
@@ -355,6 +356,47 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
       scroller?.removeEventListener("scroll", onScroll);
       scroller?.removeEventListener("wheel", onWheel);
       if (clampFrame) window.cancelAnimationFrame(clampFrame);
+    };
+  }, [effectiveView]);
+
+  useEffect(() => {
+    if (effectiveView !== "month") return;
+    const shell = shellRef.current;
+    if (!shell) return;
+
+    let locked = false;
+    let unlockTimer: number | null = null;
+
+    function unlockSoon() {
+      if (unlockTimer) window.clearTimeout(unlockTimer);
+      unlockTimer = window.setTimeout(() => {
+        locked = false;
+        unlockTimer = null;
+      }, 260);
+    }
+
+    function onWheel(e: WheelEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".fc-dayGridMonth-view")) return;
+      const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      if (Math.abs(delta) < 24) return;
+
+      e.preventDefault();
+      if (locked) return;
+      locked = true;
+      const api = calendarRef.current?.getApi();
+      if (delta > 0) {
+        api?.next();
+      } else {
+        api?.prev();
+      }
+      unlockSoon();
+    }
+
+    shell.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      shell.removeEventListener("wheel", onWheel);
+      if (unlockTimer) window.clearTimeout(unlockTimer);
     };
   }, [effectiveView]);
 
@@ -846,6 +888,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
         : { start: rangeStart, end: rangeEnd }
     );
     if (dateInfo.view.type === "timeGridWeek") {
+      setSelectedDate(localDateKeyOf(dateInfo.view.currentStart.toISOString()));
       const start = dateInfo.start;
       const end = new Date(dateInfo.end);
       end.setDate(end.getDate() - 1);
@@ -865,6 +908,20 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
       }));
       return;
     }
+    if (dateInfo.view.type === "dayGridMonth") {
+      setSelectedDate(localDateKeyOf(dateInfo.view.currentStart.toISOString()));
+      setCalendarTitle(dateInfo.view.currentStart.toLocaleDateString("en-US", { month: "long", year: "numeric" }));
+      return;
+    }
+    if (dateInfo.view.type === "timeGridDay") {
+      setSelectedDate(localDateKeyOf(dateInfo.view.currentStart.toISOString()));
+      setCalendarTitle(dateInfo.view.currentStart.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric"
+      }));
+      return;
+    }
     setCalendarTitle(dateInfo.view.currentStart.toLocaleDateString("en-US", { month: "long", year: "numeric" }));
   }
 
@@ -874,9 +931,10 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
     const title = event.title || "Untitled";
 
     if (event.allDay || view.type === "dayGridMonth") {
+      const pillColor = event.backgroundColor || event.borderColor || "#4285f4";
       return (
-        <div style={{ padding: "1px 5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500, fontSize: 11 }}>
-          {title}
+        <div className="gcal-month-event-pill" style={{ backgroundColor: pillColor, color: event.textColor || "#fff" }}>
+          <span className="gcal-month-event-title">{title}</span>
         </div>
       );
     }
@@ -914,8 +972,11 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
     );
   }
 
-  function renderDayHeader(arg: { date: Date; isToday: boolean }) {
+  function renderDayHeader(arg: DayHeaderContentArg) {
     const weekday = arg.date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+    if (arg.view.type === "dayGridMonth") {
+      return <span className="gcal-month-weekday">{arg.text.toUpperCase()}</span>;
+    }
     const day = arg.date.getDate();
 
     return (
@@ -1110,7 +1171,11 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
             initialView={initialView}
             headerToolbar={false}
             timeZone="local"
+            firstDay={0}
             height={effectiveView === "month" ? "100%" : "100%"}
+            fixedWeekCount={false}
+            dayMaxEventRows={3}
+            moreLinkClick="popover"
             nowIndicator
             selectable
             selectMirror

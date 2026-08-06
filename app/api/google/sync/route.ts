@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { fetchEvents } from "@/lib/google/calendar";
 import { calendarSourcesFromEnv, googleExternalId } from "@/lib/google/sources";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { inferResponsibilityId, UNLABELED_RESPONSIBILITY_ID } from "@/lib/responsibilities";
+import { importedCalendarResponsibility, responsibilityIdForImportedCalendar, UNLABELED_RESPONSIBILITY_ID } from "@/lib/responsibilities";
 import type { Database } from "@/lib/types/database";
 import type { CalendarItem, Responsibility } from "@/lib/types/domain";
 
@@ -52,6 +52,7 @@ export async function POST(req: Request) {
   let synced = 0;
   const errors: string[] = [];
   const items: CalendarItem[] = [];
+  const labels = sources.map((source) => importedCalendarResponsibility(source.name));
 
   for (const source of sources) {
     try {
@@ -68,8 +69,9 @@ export async function POST(req: Request) {
         const startsAt = event.start?.dateTime ?? `${event.start?.date}T00:00:00`;
         const endsAt = event.end?.dateTime ?? `${event.end?.date}T23:59:59`;
         const externalId = googleExternalId(source, event.id);
-        const responsibilityId = inferResponsibilityId(
-          `${event.summary} ${event.location ?? ""} ${source.name}`,
+        const responsibilityId = responsibilityIdForImportedCalendar(
+          source.name,
+          `${event.summary} ${event.location ?? ""}`,
           responsibilities,
         );
 
@@ -117,5 +119,5 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({ synced, errors, items: localPreview ? items : undefined });
+  return NextResponse.json({ synced, errors, items: localPreview ? items : undefined, labels: localPreview ? labels : undefined });
 }

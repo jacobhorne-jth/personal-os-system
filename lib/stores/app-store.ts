@@ -7,7 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { aiReviewItems, calendarItems, lists, responsibilities, tasks } from "@/lib/data/mock";
 import { nextOccurrence } from "@/lib/recurrence";
-import { UNLABELED_RESPONSIBILITY_ID, withUnlabeledResponsibility } from "@/lib/responsibilities";
+import { mergeResponsibilities, UNLABELED_RESPONSIBILITY_ID, withUnlabeledResponsibility } from "@/lib/responsibilities";
 import type { ActiveGymSession, CalendarItem, CaptureExtraction, FileAsset, FoodEntry, FoodMeal, Goal, GymDay, GymExercise, GymSession, GymSessionExercise, GymSet, Habit, HabitLog, HabitType, Idea, IdeaStatus, Note, NoteFolder, Responsibility, ResponsibilityColor, SavedFood, SavedList, Task } from "@/lib/types/domain";
 import type { Database, Json } from "@/lib/types/database";
 import { localDateKey } from "@/lib/dates";
@@ -1386,7 +1386,7 @@ export const useAppStore = create<AppState>()(
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ responsibilities: get().responsibilities }),
         });
-        const data = await res.json() as { synced: number; errors: string[]; items?: CalendarItem[] };
+        const data = await res.json() as { synced: number; errors: string[]; items?: CalendarItem[]; labels?: Responsibility[] };
         if (res.ok && data.synced >= 0) {
           set({ lastGoogleSync: new Date().toISOString() });
           if (data.items?.length) {
@@ -1398,11 +1398,15 @@ export const useAppStore = create<AppState>()(
               for (const item of data.items ?? []) {
                 byKey.set(item.externalId ?? item.id, item);
               }
-              return {
-                calendarItems: Array.from(byKey.values()),
-                responsibilities: data.items?.some((item) => item.responsibilityId === UNLABELED_RESPONSIBILITY_ID)
+              const nextResponsibilities = mergeResponsibilities(
+                data.items?.some((item) => item.responsibilityId === UNLABELED_RESPONSIBILITY_ID)
                   ? withUnlabeledResponsibility(state.responsibilities)
                   : state.responsibilities,
+                data.labels ?? [],
+              );
+              return {
+                calendarItems: Array.from(byKey.values()),
+                responsibilities: nextResponsibilities,
               };
             });
             return { synced: data.synced, errors: data.errors };

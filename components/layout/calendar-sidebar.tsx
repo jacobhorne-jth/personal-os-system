@@ -7,7 +7,7 @@ import { expandCalendarItems } from "@/lib/recurrence";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { getTone } from "@/lib/theme";
-import type { CalendarItem } from "@/lib/types/domain";
+import type { CalendarItem, CalendarItemType } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -29,13 +29,41 @@ function miniMonthDays(displayMonth: Date, today: Date) {
   });
 }
 
-function weekRangeLabel(today: Date) {
-  const start = startOfWeek(today);
+function dayRange(date: Date) {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
   const end = new Date(start);
-  end.setDate(start.getDate() + 6);
+  end.setDate(start.getDate() + 1);
+  return {
+    start,
+    end,
+    label: start.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase()
+  };
+}
+
+function weekRange(date: Date) {
+  const start = startOfWeek(date);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 7);
+  const labelEnd = new Date(end);
+  labelEnd.setDate(end.getDate() - 1);
   const startMonth = start.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
-  const endMonth = end.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
-  return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}, ${end.getFullYear()}`;
+  const endMonth = labelEnd.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+  return {
+    start,
+    end,
+    label: `${startMonth} ${start.getDate()} - ${endMonth} ${labelEnd.getDate()}, ${labelEnd.getFullYear()}`
+  };
+}
+
+function monthRange(date: Date) {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  return {
+    start,
+    end,
+    label: start.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase()
+  };
 }
 
 function overlapMinutes(item: CalendarItem, start: Date, end: Date) {
@@ -51,26 +79,48 @@ function formatHours(minutes: number) {
   return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
 }
 
+const INSIGHT_TYPES = new Set<CalendarItemType>(["external_event", "app_event", "time_block", "time_log"]);
+
+function isAllDayLike(item: CalendarItem) {
+  const start = new Date(item.startsAt);
+  const end = new Date(item.endsAt);
+  const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
+  const startsAtMidnight = start.getHours() === 0 && start.getMinutes() === 0;
+  const endsAtDayEnd = end.getHours() === 23 && end.getMinutes() >= 55;
+  const endsAtNextMidnight = end.getHours() === 0 && end.getMinutes() === 0 && end.getDate() !== start.getDate();
+  return startsAtMidnight && (endsAtDayEnd || endsAtNextMidnight || durationMinutes >= 23 * 60);
+}
+
+function isInsightItem(item: CalendarItem) {
+  return INSIGHT_TYPES.has(item.type) && !isAllDayLike(item);
+}
+
+function dateFromKey(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function CalendarSidebar() {
   const responsibilities = useAppStore((state) => state.responsibilities);
   const calendarItems = useAppStore((state) => state.calendarItems);
-  const { hiddenResponsibilities, toggleResponsibility, setCalendarGotoDate } = useUiStore();
+  const { calendarView, hiddenResponsibilities, toggleResponsibility, setCalendarGotoDate, selectedDate } = useUiStore();
   const [monthOffset, setMonthOffset] = useState(0);
+  const [insightsOpen, setInsightsOpen] = useState(true);
   const today = useMemo(() => new Date(), []);
-  const displayMonth = useMemo(() => new Date(today.getFullYear(), today.getMonth() + monthOffset, 1), [today, monthOffset]);
+  const selectedDay = useMemo(() => dateFromKey(selectedDate), [selectedDate]);
+  const displayMonth = useMemo(() => new Date(selectedDay.getFullYear(), selectedDay.getMonth() + monthOffset, 1), [selectedDay, monthOffset]);
   const monthDays = useMemo(() => miniMonthDays(displayMonth, today), [displayMonth, today]);
-  const weekStart = useMemo(() => startOfWeek(today), [today]);
-  const weekEnd = useMemo(() => {
-    const end = new Date(weekStart);
-    end.setDate(weekStart.getDate() + 7);
-    return end;
-  }, [weekStart]);
-  const weeklyInsights = useMemo(() => {
-    const allItems = expandCalendarItems(calendarItems, weekStart, weekEnd).filter(
-      (item) => !hiddenResponsibilities.includes(item.responsibilityId)
+  const insightRange = useMemo(() => {
+    if (calendarView === "day") return dayRange(selectedDay);
+    if (calendarView === "month") return monthRange(selectedDay);
+    return weekRange(selectedDay);
+  }, [calendarView, selectedDay]);
+  const timeInsights = useMemo(() => {
+    const allItems = expandCalendarItems(calendarItems, insightRange.start, insightRange.end).filter(
+      (item) => isInsightItem(item) && !hiddenResponsibilities.includes(item.responsibilityId)
     );
     const minutesByResponsibility = allItems.reduce<Record<string, number>>((current, item) => {
-      const minutes = overlapMinutes(item, weekStart, weekEnd);
+      const minutes = overlapMinutes(item, insightRange.start, insightRange.end);
       if (minutes <= 0) return current;
       return {
         ...current,
@@ -88,7 +138,7 @@ export function CalendarSidebar() {
       .sort((a, b) => b.minutes - a.minutes);
     const totalMinutes = segments.reduce((sum, item) => sum + item.minutes, 0);
     return { segments, totalMinutes };
-  }, [calendarItems, hiddenResponsibilities, responsibilities, today, weekEnd, weekStart]);
+  }, [calendarItems, hiddenResponsibilities, insightRange.end, insightRange.start, responsibilities]);
 
   return (
     <aside className="hidden min-h-0 w-[360px] shrink-0 flex-col border-l border-line bg-panel [--panel-inset:18px] py-4 xl:flex">
@@ -171,38 +221,47 @@ export function CalendarSidebar() {
         <div className="my-5 h-px bg-line" />
 
         <section>
-          <div className="mb-3 flex h-11 items-center justify-between rounded-full bg-paper px-4">
+          <button
+            type="button"
+            onClick={() => setInsightsOpen((open) => !open)}
+            aria-expanded={insightsOpen}
+            className="mb-3 flex h-11 w-full items-center justify-between rounded-full bg-paper px-4 text-left transition hover:bg-hover"
+          >
             <h2 className="text-base font-semibold text-ink">Time Insights</h2>
-            <ChevronDown className="size-5 rotate-180 text-ink" />
-          </div>
-          <p className="px-4 text-sm font-semibold tracking-[0.12em] text-ink">{weekRangeLabel(today)}</p>
-          <div className="mx-4 mt-4 flex h-4 overflow-hidden rounded-full bg-line">
-            {weeklyInsights.totalMinutes > 0 ? (
-              weeklyInsights.segments.map((segment) => (
-                <div
-                  key={segment.id}
-                  title={`${segment.name}: ${formatHours(segment.minutes)}`}
-                  style={{
-                    width: `${(segment.minutes / weeklyInsights.totalMinutes) * 100}%`,
-                    backgroundColor: segment.color
-                  }}
-                />
-              ))
-            ) : (
-              <div className="h-full w-full bg-[#5f6368]" />
-            )}
-          </div>
-          <div className="mt-4 space-y-2 px-4">
-            {weeklyInsights.segments.slice(0, 6).map((segment) => (
-              <div key={segment.id} className="flex items-center justify-between gap-3 text-sm">
-                <span className="flex min-w-0 items-center gap-2 text-ink">
-                  <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: segment.color }} />
-                  <span className="truncate">{segment.name}</span>
-                </span>
-                <span className="shrink-0 text-muted">{formatHours(segment.minutes)}</span>
+            <ChevronDown className={cn("size-5 text-ink transition-transform", insightsOpen && "rotate-180")} />
+          </button>
+          {insightsOpen && (
+            <>
+              <p className="px-4 text-sm font-semibold tracking-[0.12em] text-ink">{insightRange.label}</p>
+              <div className="mx-4 mt-4 flex h-4 overflow-hidden rounded-full bg-line">
+                {timeInsights.totalMinutes > 0 ? (
+                  timeInsights.segments.map((segment) => (
+                    <div
+                      key={segment.id}
+                      title={`${segment.name}: ${formatHours(segment.minutes)}`}
+                      style={{
+                        width: `${(segment.minutes / timeInsights.totalMinutes) * 100}%`,
+                        backgroundColor: segment.color
+                      }}
+                    />
+                  ))
+                ) : (
+                  <div className="h-full w-full bg-[#5f6368]" />
+                )}
               </div>
-            ))}
-          </div>
+              <div className="mt-4 space-y-2 px-4">
+                {timeInsights.segments.slice(0, 6).map((segment) => (
+                  <div key={segment.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex min-w-0 items-center gap-2 text-ink">
+                      <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: segment.color }} />
+                      <span className="truncate">{segment.name}</span>
+                    </span>
+                    <span className="shrink-0 text-muted">{formatHours(segment.minutes)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </section>
       </div>
     </aside>
