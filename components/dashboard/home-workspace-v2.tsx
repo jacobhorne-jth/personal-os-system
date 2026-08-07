@@ -12,6 +12,7 @@ import {
   foodTotalsForDate,
   goalProgress,
   habitProgressForDate,
+  scheduledHoursForWeek,
   tasksForDay,
   taskStatsForWeek,
   weekBounds,
@@ -89,6 +90,7 @@ export function HomeWorkspaceV2() {
   const habitProgress = useMemo(() => habitProgressForDate(habits, habitLogs, selectedDate), [habits, habitLogs, selectedDate]);
   const foodTotals = useMemo(() => foodTotalsForDate(foodEntries, selectedDate), [foodEntries, selectedDate]);
   const weeklyTasks = useMemo(() => taskStatsForWeek(tasks, selectedDate), [tasks, selectedDate]);
+  const weeklyHours = useMemo(() => scheduledHoursForWeek(calendarItems, selectedDate), [calendarItems, selectedDate]);
   const goalsProgress = useMemo(() => goalProgress(goals), [goals]);
   const workoutLogged = gymSessions.some((session) => session.date === selectedDate);
   const completedForDate = tasks.filter((task) => task.status === "done" && task.dueAt?.slice(0, 10) === selectedDate).length;
@@ -339,6 +341,27 @@ export function HomeWorkspaceV2() {
                     : "The day looks open. Pick one important thing and protect time for it."}
               </p>
             </div>
+
+            <Link href="/weekly-review" className="block rounded-xl border border-line bg-panel p-4 shadow-glow transition hover:border-blue/40 hover:bg-hover">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold text-ink">Week pulse</h2>
+                <span className="text-xs font-semibold text-blue">Review</span>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-paper p-3">
+                  <p className="text-xl font-semibold text-ink">{weeklyTasks.completed}/{weeklyTasks.due}</p>
+                  <p className="mt-1 text-[11px] text-muted">tasks</p>
+                </div>
+                <div className="rounded-lg bg-paper p-3">
+                  <p className="text-xl font-semibold text-ink">{weeklyHours.toFixed(1)}h</p>
+                  <p className="mt-1 text-[11px] text-muted">scheduled</p>
+                </div>
+                <div className="rounded-lg bg-paper p-3">
+                  <p className="text-xl font-semibold text-ink">{weeklyTasks.overdue}</p>
+                  <p className="mt-1 text-[11px] text-muted">overdue</p>
+                </div>
+              </div>
+            </Link>
           </aside>
         </section>
       </main>
