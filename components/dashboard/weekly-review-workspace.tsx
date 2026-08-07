@@ -80,6 +80,13 @@ export function WeeklyReviewWorkspace() {
     avgProtein !== null && avgProtein < foodTargets.protein * 0.75 && `Protein averaged ${avgProtein}g against a ${foodTargets.protein}g target.`,
     goalStats.active.length > 0 && goalStats.average !== null && goalStats.average < 40 && `Active goals average ${goalStats.average}% progress.`,
   ].filter(Boolean) as string[];
+  const highlights = [
+    completedTasks.length > 0 && `Completed ${completedTasks.length} task${completedTasks.length === 1 ? "" : "s"} due this week.`,
+    gymThisWeek.length > 0 && `Logged ${gymThisWeek.length} workout${gymThisWeek.length === 1 ? "" : "s"}.`,
+    habitRate !== null && habitRate >= 80 && `Hit ${habitRate}% habit consistency.`,
+    reviewItems.length === 0 && "Inbox review queue is clear.",
+    goalStats.average !== null && goalStats.average >= 60 && `Active goals average ${goalStats.average}% progress.`,
+  ].filter(Boolean) as string[];
 
   return (
     <div className="min-h-dvh bg-paper text-ink">
@@ -191,6 +198,17 @@ export function WeeklyReviewWorkspace() {
           </div>
 
           <aside className="space-y-4">
+            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
+              <h2 className="text-sm font-semibold text-ink">Highlights</h2>
+              <div className="mt-4 space-y-2">
+                {highlights.length ? highlights.map((item) => (
+                  <p key={item} className="rounded-lg bg-mint/10 p-3 text-sm leading-6 text-ink">{item}</p>
+                )) : (
+                  <p className="rounded-lg bg-paper p-3 text-sm text-muted">No clear highlights yet. A small win next week is enough to start the trail.</p>
+                )}
+              </div>
+            </div>
+
             <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
                 <AlertCircle className="size-4 text-blue" />
