@@ -20,6 +20,7 @@ import {
   Repeat2,
   Settings,
   Tags,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlobalSearch } from "@/components/layout/global-search";
@@ -39,6 +40,7 @@ const navItems = [
   { href: "/lists", label: "Lists", icon: ListChecks },
   { href: "/notes", label: "Notes", icon: FileText },
   { href: "/progress", label: "Progress", icon: BarChart3 },
+  { href: "/weekly-review", label: "Weekly Review", icon: ClipboardCheck },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
 

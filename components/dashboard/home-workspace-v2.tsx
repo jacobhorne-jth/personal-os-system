@@ -330,7 +330,7 @@ export function HomeWorkspaceV2() {
             </div>
 
             <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-              <SectionHeader title="Focus next" href="/progress" action="Weekly review" />
+              <SectionHeader title="Focus next" href="/weekly-review" action="Weekly review" />
               <p className="text-sm leading-6 text-muted">
                 {dayTasks[0]
                   ? `Start with "${dayTasks[0].title}" before the day fills up.`
