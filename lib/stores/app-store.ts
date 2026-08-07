@@ -351,6 +351,7 @@ type AppState = {
   addCaptureExtraction: (input: { text: string; source: CaptureExtraction["source"]; responsibilityId: string }) => void;
   addParsedExtraction: (extraction: Omit<CaptureExtraction, "id">) => void;
   rejectExtraction: (extractionId: string) => void;
+  snoozeExtraction: (extractionId: string, until: string) => void;
   updateExtractionProposal: (extractionId: string, itemId: string, input: { title?: string; responsibilityId?: string; startsAt?: string; endsAt?: string }) => void;
 
   // Calendar
@@ -631,6 +632,13 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           aiReviewItems: state.aiReviewItems.map((item) =>
             item.id === extractionId ? { ...item, status: "rejected" as const } : item
+          ),
+        })),
+
+      snoozeExtraction: (extractionId, until) =>
+        set((state) => ({
+          aiReviewItems: state.aiReviewItems.map((item) =>
+            item.id === extractionId ? { ...item, snoozedUntil: until } : item
           ),
         })),
 

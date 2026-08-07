@@ -67,6 +67,7 @@ export type CaptureExtraction = {
   summary: string;
   confidence: number;
   status?: "pending_review" | "approved" | "rejected" | "partially_approved";
+  snoozedUntil?: string;
   decisions?: Record<string, boolean>;
   proposedTasks: Pick<Task, "title" | "priority" | "responsibilityId" | "dueAt">[];
   proposedEvents: Pick<CalendarItem, "title" | "type" | "responsibilityId" | "startsAt" | "endsAt" | "location" | "notes">[];
