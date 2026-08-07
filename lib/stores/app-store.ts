@@ -1386,10 +1386,16 @@ export const useAppStore = create<AppState>()(
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ responsibilities: get().responsibilities }),
         });
-        const data = await res.json() as { synced: number; errors: string[]; items?: CalendarItem[]; labels?: Responsibility[] };
+        const data = await res.json() as {
+          synced: number;
+          errors: string[];
+          items?: CalendarItem[];
+          reviewItems?: Array<Omit<CaptureExtraction, "id"> & { externalId: string }>;
+          labels?: Responsibility[];
+        };
         if (res.ok && data.synced >= 0) {
           set({ lastGoogleSync: new Date().toISOString() });
-          if (data.items?.length) {
+          if (data.items?.length || data.reviewItems?.length || data.labels?.length) {
             set((state) => {
               const byKey = new Map<string, CalendarItem>();
               for (const item of state.calendarItems) {
@@ -1404,9 +1410,14 @@ export const useAppStore = create<AppState>()(
                   : state.responsibilities,
                 data.labels ?? [],
               );
+              const existingExternalIds = new Set(state.aiReviewItems.map((item) => item.externalId).filter(Boolean));
+              const nextReviewItems = (data.reviewItems ?? [])
+                .filter((item) => !existingExternalIds.has(item.externalId))
+                .map((item) => ({ ...item, id: id("cap") }));
               return {
                 calendarItems: Array.from(byKey.values()),
                 responsibilities: nextResponsibilities,
+                aiReviewItems: [...nextReviewItems, ...state.aiReviewItems],
               };
             });
             return { synced: data.synced, errors: data.errors };
@@ -1609,7 +1620,7 @@ export const useAppStore = create<AppState>()(
         }));
 
         const newEvents: CalendarItem[] = extraction.proposedEvents.filter((event) => shouldCommit("event", event.title)).map((event) => ({
-          id: id("evt"), title: event.title, type: event.type, responsibilityId: event.responsibilityId, startsAt: event.startsAt, endsAt: event.endsAt, source: "ai_review" as const
+          id: id("evt"), title: event.title, type: event.type, responsibilityId: event.responsibilityId, startsAt: event.startsAt, endsAt: event.endsAt, location: event.location, notes: event.notes, source: "ai_review" as const
         }));
 
         const newNotes: Note[] = extraction.proposedNotes.filter((note) => shouldCommit("note", note.title)).map((note) => ({
@@ -1646,7 +1657,7 @@ export const useAppStore = create<AppState>()(
               .then(({ error }) => { if (error) console.error("commitExtraction tasks:", error.message); });
           }
           if (newEvents.length > 0) {
-            db.from("calendar_items").insert(newEvents.map((e) => ({ id: e.id, user_id: userId, responsibility_id: e.responsibilityId || null, type: e.type, title: e.title, starts_at: e.startsAt, ends_at: e.endsAt, source: e.source ?? "ai_review" })))
+            db.from("calendar_items").insert(newEvents.map((e) => ({ id: e.id, user_id: userId, responsibility_id: e.responsibilityId || null, type: e.type, title: e.title, starts_at: e.startsAt, ends_at: e.endsAt, source: e.source ?? "ai_review", location: e.location ?? null, notes: e.notes ?? null })))
               .then(({ error }) => { if (error) console.error("commitExtraction events:", error.message); });
           }
           if (newNotes.length > 0) {

@@ -75,7 +75,7 @@ export async function fetchRecentEmails(
   const res = await gmail.users.messages.list({
     userId: "me",
     maxResults,
-    q: "newer_than:7d in:inbox -category:promotions -category:social -from:me",
+    q: "newer_than:3d in:inbox -category:promotions -category:social -from:me",
   });
 
   const messages = res.data.messages ?? [];

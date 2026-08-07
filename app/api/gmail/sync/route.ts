@@ -13,6 +13,68 @@ function fallbackResponsibility(responsibilities: Responsibility[]) {
   return responsibilities.find((r) => !r.archivedAt)?.id ?? responsibilities[0]?.id ?? "";
 }
 
+function compactLines(lines: Array<string | false | null | undefined>) {
+  return lines.filter((line): line is string => typeof line === "string" && line.trim().length > 0);
+}
+
+function findResponsibilityByName(responsibilities: Responsibility[], names: string[]) {
+  const active = responsibilities.filter((r) => !r.archivedAt);
+  return active.find((responsibility) =>
+    names.some((name) => responsibility.name.toLowerCase() === name.toLowerCase())
+  );
+}
+
+function routingHints(email: ParsedEmail, responsibilities: Responsibility[]) {
+  const active = responsibilities.filter((r) => !r.archivedAt);
+  const recruiting = findResponsibilityByName(active, ["Recruiting", "Recruitment"]);
+  const source = email.sourceName.toLowerCase();
+  const professionalSource = /\b(work|professional|career|recruiting)\b/i.test(source);
+  const schoolSource = /\b(school|college|university|gatech|gt)\b/i.test(source);
+  return compactLines([
+    recruiting && `Recruiting label id: "${recruiting.id}"`,
+    professionalSource && recruiting && `Professional email default for interviews, coffee chats, recruiters, applications, hiring, offer, onsite, phone screen, and recruiting events: "${recruiting.id}"`,
+    schoolSource && "School email routing: use a club-specific existing label only when the subject, sender, or body strongly mentions that exact club/organization label; otherwise use the safest school/general label.",
+    active.length > 0 && `Existing label names: ${active.map((r) => `"${r.name}" -> "${r.id}"`).join(", ")}`,
+  ]).join("\n");
+}
+
+function routeResponsibilityId(email: ParsedEmail, proposedId: string | undefined, responsibilities: Responsibility[]) {
+  const active = responsibilities.filter((r) => !r.archivedAt);
+  const fallbackId = fallbackResponsibility(active);
+  const existing = active.find((r) => r.id === proposedId);
+  const text = `${email.sourceName} ${email.from} ${email.subject} ${email.snippet} ${email.body}`.toLowerCase();
+  const source = email.sourceName.toLowerCase();
+  const recruiting = findResponsibilityByName(active, ["Recruiting", "Recruitment"]);
+  const recruitingSignal = /\b(interview|coffee chat|recruiter|recruiting|hiring|application|phone screen|onsite|offer|greenhouse|lever|workday)\b/i.test(text);
+  const professionalSource = /\b(work|professional|career|recruiting)\b/i.test(source);
+
+  if (recruiting && (professionalSource || recruitingSignal) && recruitingSignal) {
+    return recruiting.id;
+  }
+
+  const schoolSource = /\b(school|college|university|gatech|gt)\b/i.test(source);
+  if (schoolSource) {
+    const exactLabelMatch = active.find((responsibility) => {
+      const name = responsibility.name.toLowerCase();
+      return name.length >= 3 && new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text);
+    });
+    if (exactLabelMatch) return exactLabelMatch.id;
+  }
+
+  return existing?.id ?? fallbackId;
+}
+
+function normalizeProposalResponsibilities<T extends { responsibilityId?: string }>(
+  email: ParsedEmail,
+  items: T[],
+  responsibilities: Responsibility[],
+) {
+  return items.map((item) => ({
+    ...item,
+    responsibilityId: routeResponsibilityId(email, item.responsibilityId, responsibilities),
+  }));
+}
+
 function cleanJson(raw: string) {
   return raw.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "");
 }
@@ -35,6 +97,9 @@ Subject: ${email.subject}
 Date: ${email.date ?? "unknown"}
 Snippet: ${email.snippet}
 
+Routing hints:
+${routingHints(email, responsibilities)}
+
 Body:
 ${email.body}
 
@@ -55,11 +120,13 @@ Return ONLY JSON with this exact shape:
 }
 
 Rules:
+- This output becomes an in-app Inbox review card. Nothing is committed until Jacob approves it.
 - Be conservative. If it is marketing, newsletter, receipt, automated alert, or no personal action is needed, set shouldIgnore true and all arrays empty.
-- If the email requires Jacob to respond, create one response/follow-up task due today at 11:59 PM unless a deadline is explicit.
-- Interview emails usually produce: a response/schedule task, a prep task, and an event only when the time is confirmed.
-- If the email lists multiple possible times but no confirmed time, create a task to choose a time, not an event.
-- If there is a confirmed meeting/interview date and time, create a calendar event.
+- If the email requires Jacob to respond, create one response/follow-up task due today at 11:59 PM unless a deadline is explicit. Title it like "Respond to Jane about scheduling" or "Respond to Company interview email".
+- If an interview, coffee chat, recruiter call, or recruiting event asks Jacob to schedule, choose times, confirm availability, or reply, create a response task only. Do not create an event.
+- If an interview, coffee chat, recruiter call, or meeting has one confirmed date/time, create a proposed calendar event for review. Also create a response task only if Jacob still needs to reply.
+- For confirmed interviews, also create a prep task when useful.
+- If the email lists multiple possible times, tentative holds, or unconfirmed availability but no confirmed final time, create a task to confirm/schedule, not an event.
 - If an event has no end time, default to 1 hour.
 - Prefer one of the responsibility IDs exactly. Use "${fallbackId}" if unclear.
 - Do not invent dates or times.
@@ -105,14 +172,23 @@ async function parseEmail(openai: OpenAI, email: ParsedEmail, responsibilities: 
     externalId: email.id,
     externalSource: "gmail",
     source: "email",
+    sourceTitle: `${email.from} - ${email.subject}`,
+    sourceDetail: compactLines([
+      `Inbox: ${email.sourceName}`,
+      `From: ${email.from}`,
+      `Subject: ${email.subject}`,
+      email.date && `Date: ${email.date}`,
+      email.snippet && `Snippet: ${email.snippet}`,
+      email.body && `Body:\n${email.body}`,
+    ]).join("\n\n"),
     summary: raw.summary || `${email.from} - ${email.subject}`,
     confidence: typeof raw.confidence === "number" ? raw.confidence : 0.75,
     status: "pending_review",
     decisions: {},
-    proposedTasks,
-    proposedEvents,
-    proposedNotes,
-    proposedListItems,
+    proposedTasks: normalizeProposalResponsibilities(email, proposedTasks, responsibilities),
+    proposedEvents: normalizeProposalResponsibilities(email, proposedEvents, responsibilities),
+    proposedNotes: normalizeProposalResponsibilities(email, proposedNotes, responsibilities),
+    proposedListItems: normalizeProposalResponsibilities(email, proposedListItems, responsibilities),
   };
 }
 

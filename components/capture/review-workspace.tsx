@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarPlus, Check, ChevronLeft, ChevronRight, FileText, GitPullRequestArrow, ListChecks, ListTodo, Pencil, X } from "lucide-react";
+import { CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, FileText, GitPullRequestArrow, ListChecks, ListTodo, Mail, Pencil, X } from "lucide-react";
 import { DateTimeRow } from "@/components/calendar/date-time-picker";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { getTone } from "@/lib/theme";
@@ -11,6 +11,8 @@ export function ReviewWorkspace() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [pendingIdx, setPendingIdx] = useState(0);
+  const [sourceOpen, setSourceOpen] = useState(true);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const items = useAppStore((state) => state.aiReviewItems);
   const responsibilities = useActiveResponsibilities();
   const setExtractionDecision = useAppStore((state) => state.setExtractionDecision);
@@ -31,9 +33,45 @@ export function ReviewWorkspace() {
   }
 
   const rows = [
-    ...item.proposedTasks.map((task) => ({ id: `task-${task.title}`, kind: "Task", icon: ListTodo, title: task.title, editTitle: task.title, meta: task.responsibilityId, startsAt: undefined as string | undefined, endsAt: undefined as string | undefined })),
-    ...item.proposedEvents.map((event) => ({ id: `event-${event.title}`, kind: "Event", icon: CalendarPlus, title: event.title, editTitle: event.title, meta: event.responsibilityId, startsAt: event.startsAt, endsAt: event.endsAt })),
-    ...item.proposedNotes.map((note) => ({ id: `note-${note.title}`, kind: "Note", icon: FileText, title: note.title, editTitle: note.title, meta: note.responsibilityId, startsAt: undefined as string | undefined, endsAt: undefined as string | undefined })),
+    ...item.proposedTasks.map((task) => ({
+      id: `task-${task.title}`,
+      kind: "Task",
+      icon: ListTodo,
+      title: task.title,
+      editTitle: task.title,
+      meta: task.responsibilityId,
+      startsAt: undefined as string | undefined,
+      endsAt: undefined as string | undefined,
+      detail: [
+        `Priority: ${task.priority ?? "medium"}`,
+        task.dueAt ? `Due: ${new Date(task.dueAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : "No due date",
+      ].join("\n"),
+    })),
+    ...item.proposedEvents.map((event) => ({
+      id: `event-${event.title}`,
+      kind: "Event",
+      icon: CalendarPlus,
+      title: event.title,
+      editTitle: event.title,
+      meta: event.responsibilityId,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      detail: [
+        event.location && `Location: ${event.location}`,
+        event.notes && `Description:\n${event.notes}`,
+      ].filter(Boolean).join("\n\n"),
+    })),
+    ...item.proposedNotes.map((note) => ({
+      id: `note-${note.title}`,
+      kind: "Note",
+      icon: FileText,
+      title: note.title,
+      editTitle: note.title,
+      meta: note.responsibilityId,
+      startsAt: undefined as string | undefined,
+      endsAt: undefined as string | undefined,
+      detail: note.body,
+    })),
     ...(item.proposedListItems ?? []).map((listItem) => ({
       id: `list-${listItem.listTitle}:${listItem.itemTitle}`,
       kind: "List item",
@@ -42,7 +80,8 @@ export function ReviewWorkspace() {
       editTitle: listItem.itemTitle,
       meta: listItem.responsibilityId,
       startsAt: undefined as string | undefined,
-      endsAt: undefined as string | undefined
+      endsAt: undefined as string | undefined,
+      detail: `Add "${listItem.itemTitle}" to "${listItem.listTitle}".`,
     }))
   ];
 
@@ -59,6 +98,18 @@ export function ReviewWorkspace() {
     if (title) updateExtractionProposal(item.id, editingId, { title });
     setEditingId(null);
     setDraftTitle("");
+  }
+
+  function toggleRow(rowId: string) {
+    setExpandedRows((current) => {
+      const next = new Set(current);
+      if (next.has(rowId)) {
+        next.delete(rowId);
+      } else {
+        next.add(rowId);
+      }
+      return next;
+    });
   }
 
   return (
@@ -94,19 +145,57 @@ export function ReviewWorkspace() {
             )}
           </div>
         </div>
+        {(item.sourceTitle || item.sourceDetail) && (
+          <div className="border-b border-line bg-paper/70">
+            <button
+              type="button"
+              onClick={() => setSourceOpen((open) => !open)}
+              className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-hover"
+            >
+              <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-panel text-muted">
+                <Mail className="size-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold uppercase tracking-[0.08em] text-muted">Source</p>
+                <p className="truncate text-sm font-medium text-ink">{item.sourceTitle ?? item.summary}</p>
+              </div>
+              <ChevronDown className={cn("size-4 shrink-0 text-muted transition-transform", sourceOpen && "rotate-180")} />
+            </button>
+            {sourceOpen && item.sourceDetail && (
+              <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap border-t border-line px-4 py-3 text-xs leading-5 text-muted">
+                {item.sourceDetail}
+              </pre>
+            )}
+          </div>
+        )}
         <div className="divide-y divide-line">
           {rows.map((row) => {
             const Icon = row.icon;
-            const isApproved = item.decisions?.[row.id] !== false;
+            const decision = item.decisions?.[row.id];
+            const isRejected = decision === false;
+            const isApproved = !isRejected;
+            const explicitApproved = decision === true;
+            const expanded = expandedRows.has(row.id);
             const responsibility = responsibilities.find((entry) => entry.id === row.meta);
             const tone = responsibility ? getTone(responsibility.color) : getTone("blue");
             return (
-              <div key={row.id} className={cn("grid gap-3 p-4 transition sm:grid-cols-[1fr_auto]", isApproved && "bg-mint/5")}>
-                <div className="flex items-start gap-3">
+              <div key={row.id} className={cn("grid gap-3 p-4 transition sm:grid-cols-[1fr_auto]", isApproved ? "bg-mint/5" : "bg-coral/5 opacity-75")}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggleRow(row.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      toggleRow(row.id);
+                    }
+                  }}
+                  className="flex min-w-0 cursor-pointer items-start gap-3 text-left"
+                >
                   <div className="grid size-9 place-items-center rounded-lg border bg-line text-muted" style={{ borderColor: tone.hex }}>
                     <Icon className="size-4" />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     {editingId === row.id ? (
                       <div className="space-y-2">
                         <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]">
@@ -143,20 +232,35 @@ export function ReviewWorkspace() {
                       </div>
                     ) : (
                       <>
-                        <p className="text-sm font-medium text-ink">{row.title}</p>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <p className={cn("truncate text-sm font-medium text-ink", isRejected && "line-through text-muted")}>{row.title}</p>
+                          <span className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+                            isRejected ? "bg-coral/15 text-coral" : explicitApproved ? "bg-mint/15 text-mint" : "bg-blue/15 text-blue"
+                          )}>
+                            {isRejected ? "Rejected" : explicitApproved ? "Approved" : "Suggested"}
+                          </span>
+                        </div>
                         <p className="mt-1 text-xs text-muted">
                           {row.kind} - {responsibility?.name ?? "Unsorted"}
                           {row.startsAt && (
                             <> · {new Date(row.startsAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</>
                           )}
                         </p>
+                        {expanded && row.detail && (
+                          <pre className="mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg border border-line bg-paper p-3 text-xs leading-5 text-muted">
+                            {row.detail}
+                          </pre>
+                        )}
                       </>
                     )}
                   </div>
+                  <ChevronDown className={cn("mt-2 size-4 shrink-0 text-muted transition-transform", expanded && "rotate-180")} />
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
+                    onClick={(event) => {
+                      event.stopPropagation();
                       if (editingId === row.id) {
                         saveDraft();
                       } else {
@@ -172,18 +276,28 @@ export function ReviewWorkspace() {
                     <Pencil className="size-4" />
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={(event) => {
+                      event.stopPropagation();
                       setExtractionDecision(item.id, row.id, true);
                     }}
-                    className="grid size-9 place-items-center rounded-lg bg-mint text-white transition hover:brightness-110"
+                    className={cn(
+                      "grid size-9 place-items-center rounded-lg border transition hover:brightness-110",
+                      isApproved ? "border-mint bg-mint text-white" : "border-line bg-paper text-muted"
+                    )}
+                    title="Approve suggestion"
                   >
                     <Check className="size-4" />
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={(event) => {
+                      event.stopPropagation();
                       setExtractionDecision(item.id, row.id, false);
                     }}
-                    className="grid size-9 place-items-center rounded-lg bg-coral text-white transition hover:brightness-110"
+                    className={cn(
+                      "grid size-9 place-items-center rounded-lg border transition hover:brightness-110",
+                      isRejected ? "border-coral bg-coral text-white" : "border-line bg-paper text-muted"
+                    )}
+                    title="Reject suggestion"
                   >
                     <X className="size-4" />
                   </button>

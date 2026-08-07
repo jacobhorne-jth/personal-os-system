@@ -59,15 +59,17 @@ export type Task = {
 
 export type CaptureExtraction = {
   id: string;
-  source: "typed" | "voice" | "upload" | "paste" | "time_log" | "email";
+  source: "typed" | "voice" | "upload" | "paste" | "time_log" | "email" | "calendar";
   externalId?: string;
-  externalSource?: "gmail";
+  externalSource?: "gmail" | "google_calendar";
+  sourceTitle?: string;
+  sourceDetail?: string;
   summary: string;
   confidence: number;
   status?: "pending_review" | "approved" | "rejected" | "partially_approved";
   decisions?: Record<string, boolean>;
   proposedTasks: Pick<Task, "title" | "priority" | "responsibilityId" | "dueAt">[];
-  proposedEvents: Pick<CalendarItem, "title" | "type" | "responsibilityId" | "startsAt" | "endsAt">[];
+  proposedEvents: Pick<CalendarItem, "title" | "type" | "responsibilityId" | "startsAt" | "endsAt" | "location" | "notes">[];
   proposedNotes: { title: string; body: string; responsibilityId: string }[];
   proposedListItems?: { listTitle: string; itemTitle: string; responsibilityId: string }[];
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type EventResizeDoneArg } from "@fullcalendar/interaction";
@@ -1006,6 +1006,31 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
     return responsibility ? getTone(responsibility.color) : getTone("blue");
   }
 
+  function renderLinkedText(text: string) {
+    const urlPattern = /https?:\/\/[^\s<>"')]+/gi;
+    const nodes: ReactNode[] = [];
+    let lastIndex = 0;
+    for (const match of text.matchAll(urlPattern)) {
+      const url = match[0];
+      const index = match.index ?? 0;
+      if (index > lastIndex) nodes.push(text.slice(lastIndex, index));
+      nodes.push(
+        <a
+          key={`${url}-${index}`}
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="text-blue underline underline-offset-2 hover:brightness-110"
+        >
+          {url}
+        </a>
+      );
+      lastIndex = index + url.length;
+    }
+    if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+    return nodes;
+  }
+
   function saveDraftEvent(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!draftEvent || !draftEvent.title.trim()) return;
@@ -1417,7 +1442,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
       {selectedItem && (
         <div
           data-popup-card
-          className="absolute z-30 w-[min(400px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-panel shadow-glow"
+          className="absolute z-30 max-h-[min(70vh,560px)] w-[min(440px,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-line bg-panel shadow-glow"
           style={selectedPanelPos ? { left: selectedPanelPos.left, top: selectedPanelPos.top } : { left: 24, top: 64 }}
         >
           <div className="flex h-10 items-center justify-end gap-0.5 px-2.5 pt-1.5 text-muted">
@@ -1458,7 +1483,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
                 )}
               </div>
 
-              {selectedItem.location && (
+              {selectedItem.location && !(selectedItem.source === "google" && selectedItem.notes) && (
                 <>
                   <MapPin className="mt-0.5 size-4 justify-self-center text-muted" />
                   <p className="text-sm leading-5 text-ink">{selectedItem.location}</p>
@@ -1481,7 +1506,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
               {selectedItem.notes && (
                 <>
                   <FileText className="mt-0.5 size-4 justify-self-center text-muted" />
-                  <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-5 text-ink">{selectedItem.notes}</p>
+                  <p className="whitespace-pre-wrap break-words text-sm leading-5 text-ink">{renderLinkedText(selectedItem.notes)}</p>
                 </>
               )}
             </div>
