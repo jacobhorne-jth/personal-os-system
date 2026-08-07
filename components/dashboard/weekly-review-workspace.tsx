@@ -97,6 +97,45 @@ export function WeeklyReviewWorkspace() {
           <MetricCard label="Gym" value={gymThisWeek.length} detail="sessions completed" icon={Dumbbell} />
         </section>
 
+        <section className="rounded-xl border border-line bg-panel p-4 shadow-glow">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-ink">Week at a glance</h2>
+            <p className="text-xs text-muted">Tasks · events · habits</p>
+          </div>
+          <div className="grid gap-2 md:grid-cols-7">
+            {keys.map((key) => {
+              const date = new Date(`${key}T12:00:00`);
+              const due = tasks.filter((task) => task.dueAt && taskDate(task) === key);
+              const done = due.filter((task) => task.status === "done").length;
+              const dayEvents = meetings.filter((item) => dateKeyOf(item.startsAt) === key).length;
+              const dayHabits = habitProgressForDate(habits, habitLogs, key);
+              const habitLabel = dayHabits.total ? `${dayHabits.completed}/${dayHabits.total}` : "—";
+              return (
+                <div key={key} className="rounded-lg border border-line bg-paper p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                    {date.toLocaleDateString("en-US", { weekday: "short" })}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-ink">{date.getDate()}</p>
+                  <div className="mt-3 space-y-2 text-xs text-muted">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Tasks</span>
+                      <span className="font-medium text-ink">{done}/{due.length}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Events</span>
+                      <span className="font-medium text-ink">{dayEvents}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Habits</span>
+                      <span className="font-medium text-ink">{habitLabel}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="space-y-4">
             <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
