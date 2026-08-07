@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, ChevronRight, ExternalLink, Inbox, Mail, Plus, Sparkles, Trash2 } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronRight, ExternalLink, Inbox, Mail, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { QuickCaptureForm } from "@/components/capture/quick-capture-form";
 import { ReviewWorkspace } from "@/components/capture/review-workspace";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
@@ -46,7 +46,11 @@ export function InboxWorkspace() {
   const toggleTask = useAppStore((state) => state.toggleTask);
   const deleteTask = useAppStore((state) => state.deleteTask);
   const updateTask = useAppStore((state) => state.updateTask);
+  const syncGoogleCalendar = useAppStore((state) => state.syncGoogleCalendar);
+  const syncGmail = useAppStore((state) => state.syncGmail);
   const [selected, setSelected] = useState<SelectedInboxItem | null>(null);
+  const [syncing, setSyncing] = useState<"calendar" | "email" | null>(null);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const activeReviews = useMemo(() => aiReviewItems.filter(isActiveReview), [aiReviewItems]);
   const snoozedReviews = useMemo(
@@ -77,6 +81,32 @@ export function InboxWorkspace() {
     return { label, color };
   }
 
+  async function pullCalendar() {
+    setSyncing("calendar");
+    setSyncMessage(null);
+    try {
+      const result = await syncGoogleCalendar();
+      setSyncMessage(result.errors.length ? result.errors[0] : `Calendar checked ${result.synced} item${result.synced === 1 ? "" : "s"}.`);
+    } catch (err) {
+      setSyncMessage(String(err));
+    } finally {
+      setSyncing(null);
+    }
+  }
+
+  async function pullEmail() {
+    setSyncing("email");
+    setSyncMessage(null);
+    try {
+      const result = await syncGmail();
+      setSyncMessage(result.errors.length ? result.errors[0] : `Email added ${result.proposed} review item${result.proposed === 1 ? "" : "s"}.`);
+    } catch (err) {
+      setSyncMessage(String(err));
+    } finally {
+      setSyncing(null);
+    }
+  }
+
   return (
     <div className="grid min-h-[calc(100dvh-2rem)] gap-4 xl:grid-cols-[390px_1fr]">
       <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-panel shadow-glow">
@@ -90,6 +120,29 @@ export function InboxWorkspace() {
               {queueItems.length}
             </div>
           </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={pullEmail}
+              disabled={syncing !== null}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-line px-3 text-xs font-medium text-ink transition hover:bg-paper disabled:opacity-50"
+            >
+              <RefreshCw className={cn("size-3.5", syncing === "email" && "animate-spin")} />
+              Pull email
+            </button>
+            <button
+              type="button"
+              onClick={pullCalendar}
+              disabled={syncing !== null}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-line px-3 text-xs font-medium text-ink transition hover:bg-paper disabled:opacity-50"
+            >
+              <RefreshCw className={cn("size-3.5", syncing === "calendar" && "animate-spin")} />
+              Pull calendar
+            </button>
+          </div>
+          {syncMessage && (
+            <p className="mt-2 line-clamp-2 text-xs text-muted">{syncMessage}</p>
+          )}
           <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
             <div className="rounded-lg bg-paper px-2 py-2">
               <p className="text-lg font-semibold text-ink">{activeReviews.length}</p>
