@@ -1,418 +1,304 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, GripVertical, Plus, Search, Video, X } from "lucide-react";
-import { FullCalendarBoard } from "@/components/calendar/full-calendar-board";
+import { CalendarDays, CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, Dumbbell, Flame, Inbox, Plus, Search, Utensils, X } from "lucide-react";
 import { QuickCaptureForm } from "@/components/capture/quick-capture-form";
-import { addDays, localDateKey, formatDateHeading } from "@/lib/dates";
-import { expandCalendarItems } from "@/lib/recurrence";
+import { addDays, formatDateHeading, localDateKey } from "@/lib/dates";
+import {
+  activeReviewItems,
+  dateFromKey,
+  eventsForDay,
+  foodTotalsForDate,
+  goalProgress,
+  habitProgressForDate,
+  tasksForDay,
+  taskStatsForWeek,
+  weekBounds,
+} from "@/lib/dashboard/summary";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { taskLabel, taskLabelColor } from "@/lib/task-labels";
-import type { CalendarItem } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
-const dateFilters = ["Today", "All"] as const;
-
-function taskDate(taskDate?: string) {
-  return taskDate?.slice(0, 10);
-}
-
-function matchesDate(filter: (typeof dateFilters)[number], today: string, dueAt?: string) {
-  const due = taskDate(dueAt);
-  if (filter === "All") return true;
-  // "Today" includes overdue — they're still today's reality
-  return due !== undefined && due <= today;
-}
-
-function dateFromKey(dateKey: string) {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
-
-function longDateHeading(dateKey: string) {
-  return dateFromKey(dateKey).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric"
-  });
+function formatTime(value: string) {
+  return new Date(value).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
 function weekStripDays(dateKey: string) {
-  const selected = dateFromKey(dateKey);
-  const monday = new Date(selected);
-  const day = selected.getDay();
-  monday.setDate(selected.getDate() - ((day + 6) % 7));
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + index);
+  const { keys } = weekBounds(dateKey);
+  return keys.map((key) => {
+    const date = dateFromKey(key);
     return {
-      key: localDateKey(date),
-      dayNumber: date.getDate(),
-      dayLabel: date.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 1),
+      key,
+      label: date.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 1),
+      day: date.getDate(),
     };
   });
 }
 
-function dayBounds(dateKey: string) {
-  const start = dateFromKey(dateKey);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 1);
-  return { start, end };
-}
-
-function isScheduleItem(item: CalendarItem) {
-  return item.type !== "task_due" && item.type !== "time_log";
-}
-
-function formatScheduleTime(value: string) {
-  return new Date(value).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit"
-  });
-}
-
-function MobileHome() {
-  const tasks = useAppStore((state) => state.tasks);
-  const calendarItems = useAppStore((state) => state.calendarItems);
-  const responsibilities = useAppStore((state) => state.responsibilities);
-  const toggleTask = useAppStore((state) => state.toggleTask);
-  const { selectedDate, setSelectedDate, setCalendarView, setCalendarGotoDate } = useUiStore();
-  const [addOpen, setAddOpen] = useState(false);
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
-
-  const today = localDateKey();
-  const selectedIsToday = selectedDate === today;
-  const weekDays = weekStripDays(selectedDate);
-  const { start, end } = dayBounds(selectedDate);
-  const scheduleItems = expandCalendarItems(calendarItems, start, end)
-    .filter((item) => isScheduleItem(item) && localDateKey(new Date(item.startsAt)) === selectedDate)
-    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
-
-  const openTasks = tasks.filter((task) => task.status !== "done");
-  const selectedTasks = openTasks
-    .filter((task) => {
-      const due = taskDate(task.dueAt);
-      if (!due) return false;
-      return selectedIsToday ? due <= selectedDate : due === selectedDate;
-    })
-    .sort((a, b) => {
-      if (!a.dueAt && !b.dueAt) return 0;
-      if (!a.dueAt) return 1;
-      if (!b.dueAt) return -1;
-      return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
-    });
-  const completedToday = tasks.filter((task) => task.status === "done" && taskDate(task.dueAt) === selectedDate).length;
-
-  function openSelectedDay() {
-    setCalendarView("day");
-    setCalendarGotoDate(`${selectedDate}T12:00:00`);
-  }
-
-  function addEventHref() {
-    return `/calendar?start=${encodeURIComponent(`${selectedDate}T09:00:00`)}&end=${encodeURIComponent(`${selectedDate}T10:00:00`)}`;
-  }
-
+function StatTile({ label, value, detail, icon: Icon }: { label: string; value: string; detail: string; icon: React.ElementType }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-paper text-ink lg:hidden">
-      <main className="flex-1 overflow-y-auto px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
-        <header className="mb-6 flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-[22px] font-semibold leading-tight text-ink">{longDateHeading(selectedDate)}</h1>
-            <p className="mt-1 text-sm text-muted">
-              {scheduleItems.length} {scheduleItems.length === 1 ? "meeting" : "meetings"} · {selectedTasks.length} {selectedTasks.length === 1 ? "task" : "tasks"} remaining
-            </p>
-            <p className="mt-1 text-xs text-muted/70">{completedToday} completed</p>
-          </div>
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setAddOpen((open) => !open)}
-              aria-label="Add task or event"
-              className="grid size-12 place-items-center rounded-full bg-blue text-white shadow-[0_14px_30px_rgba(66,133,244,0.32)] transition active:scale-95"
-            >
-              {addOpen ? <X className="size-5" /> : <Plus className="size-6" />}
-            </button>
-            {addOpen && (
-              <div className="absolute right-0 top-14 z-20 w-44 overflow-hidden rounded-lg border border-line bg-panel py-1 shadow-glow">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuickAddOpen(true);
-                    setAddOpen(false);
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink transition hover:bg-paper"
-                >
-                  <CheckSquare2 className="size-4 text-[#109855]" />
-                  Add task
-                </button>
-                <Link
-                  href={addEventHref()}
-                  onClick={() => {
-                    setAddOpen(false);
-                    setCalendarView("day");
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-ink transition hover:bg-paper"
-                >
-                  <CalendarDays className="size-4 text-blue" />
-                  Add event
-                </Link>
-              </div>
-            )}
-          </div>
-        </header>
+    <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{label}</p>
+        <Icon className="size-4 text-muted" />
+      </div>
+      <p className="mt-3 text-2xl font-semibold text-ink">{value}</p>
+      <p className="mt-1 text-xs text-muted">{detail}</p>
+    </div>
+  );
+}
 
-        <section className="mb-5">
-          <div className="mb-2 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setSelectedDate(addDays(selectedDate, -7))}
-              aria-label="Previous week"
-              className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-panel"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <div className="text-xs font-semibold uppercase text-muted">
-              {dateFromKey(selectedDate).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedDate(addDays(selectedDate, 7))}
-              aria-label="Next week"
-              className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-panel"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {weekDays.map((day) => {
-              const selected = day.key === selectedDate;
-              return (
-                <button
-                  key={day.key}
-                  type="button"
-                  onClick={() => setSelectedDate(day.key)}
-                  className={cn(
-                    "grid h-16 place-items-center rounded-lg text-center transition",
-                    selected ? "bg-blue text-white shadow-lift" : "text-ink hover:bg-panel"
-                  )}
-                >
-                  <span className={cn("text-[11px] font-semibold uppercase", selected ? "text-white/80" : "text-muted")}>{day.dayLabel}</span>
-                  <span className="text-lg font-semibold">{day.dayNumber}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="mb-4 rounded-lg border border-line bg-panel shadow-glow">
-          <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase text-blue">
-              <CalendarDays className="size-4" />
-              Today's Schedule
-            </div>
-            <Link
-              href="/calendar"
-              onClick={openSelectedDay}
-              className="flex items-center gap-1 text-xs font-semibold text-blue"
-            >
-              View day
-              <ChevronRight className="size-3.5" />
-            </Link>
-          </div>
-          {scheduleItems.length > 0 ? (
-            <div className="divide-y divide-line px-4">
-              {scheduleItems.slice(0, 3).map((item) => (
-                <Link key={item.id} href={`/event/${item.id}`} className="grid grid-cols-[72px_1fr_auto] items-center gap-3 py-3">
-                  <span className="text-sm font-medium text-blue">{formatScheduleTime(item.startsAt)}</span>
-                  <span className="min-w-0 truncate text-sm font-medium text-ink">{item.title}</span>
-                  <Video className="size-4 text-muted" />
-                </Link>
-              ))}
-              {scheduleItems.length > 3 && (
-                <Link href="/calendar" onClick={openSelectedDay} className="block py-3 text-center text-xs font-semibold text-blue">
-                  {scheduleItems.length - 3} more
-                </Link>
-              )}
-            </div>
-          ) : (
-            <Link href="/calendar" onClick={openSelectedDay} className="flex items-center justify-between px-4 py-3 text-sm text-muted">
-              <span>No events today</span>
-              <span className="font-semibold text-blue">View calendar</span>
-            </Link>
-          )}
-        </section>
-
-        <section className="rounded-lg border border-line bg-panel shadow-glow">
-          <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase text-[#109855]">
-              <CheckSquare2 className="size-4" />
-              Tasks
-            </div>
-            <Link href="/tasks" className="flex items-center gap-1 text-xs font-semibold text-[#109855]">
-              See all
-              <ChevronRight className="size-3.5" />
-            </Link>
-          </div>
-          {quickAddOpen && (
-            <div className="border-b border-line p-3">
-              <QuickCaptureForm
-                autoFocus
-                dueAt={`${selectedDate}T17:00:00`}
-                placeholder="Add a task"
-                onComplete={() => setQuickAddOpen(false)}
-                inputClassName="border-line bg-paper"
-                selectClassName="border-line bg-paper"
-                dateClassName="border-line bg-paper"
-                descriptionClassName="border-line bg-paper"
-              />
-            </div>
-          )}
-          {selectedTasks.length > 0 ? (
-            <div className="divide-y divide-line px-4">
-              {selectedTasks.slice(0, 8).map((task) => {
-                const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
-                const color = taskLabelColor(label, responsibilities);
-                return (
-                  <div key={task.id} className="flex items-start gap-3 py-3">
-                    <button
-                      type="button"
-                      onClick={() => toggleTask(task.id)}
-                      aria-label="Complete task"
-                      className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-[4px] border-[1.5px] bg-panel transition active:scale-95"
-                      style={{ borderColor: `${color}99` }}
-                    />
-                    <Link href={`/task/${task.id}`} className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-ink">{task.title}</p>
-                      {task.description && <p className="mt-0.5 line-clamp-1 text-xs text-muted">{task.description}</p>}
-                    </Link>
-                    <GripVertical className="mt-0.5 size-4 shrink-0 text-muted/50" />
-                  </div>
-                );
-              })}
-              {selectedTasks.length > 8 && (
-                <Link href="/tasks" className="block py-3 text-center text-xs font-semibold text-[#109855]">
-                  {selectedTasks.length - 8} more tasks
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="px-4 py-6 text-center text-sm text-muted">No tasks for this day.</div>
-          )}
-        </section>
-      </main>
+function SectionHeader({ title, href, action }: { title: string; href?: string; action?: string }) {
+  return (
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <h2 className="text-sm font-semibold text-ink">{title}</h2>
+      {href && action && (
+        <Link href={href} className="text-xs font-semibold text-blue transition hover:brightness-110">
+          {action}
+        </Link>
+      )}
     </div>
   );
 }
 
 export function HomeWorkspaceV2() {
   const tasks = useAppStore((state) => state.tasks);
-  const responsibilities = useAppStore((s) => s.responsibilities);
+  const calendarItems = useAppStore((state) => state.calendarItems);
+  const responsibilities = useAppStore((state) => state.responsibilities);
+  const aiReviewItems = useAppStore((state) => state.aiReviewItems);
+  const habits = useAppStore((state) => state.habits);
+  const habitLogs = useAppStore((state) => state.habitLogs);
+  const foodEntries = useAppStore((state) => state.foodEntries);
+  const foodTargets = useAppStore((state) => state.foodTargets);
+  const gymSessions = useAppStore((state) => state.gymSessions);
+  const goals = useAppStore((state) => state.goals);
   const toggleTask = useAppStore((state) => state.toggleTask);
-  const selectedDate = useUiStore((state) => state.selectedDate);
-  const [addingTask, setAddingTask] = useState(false);
+  const logHabit = useAppStore((state) => state.logHabit);
+  const { selectedDate, setSelectedDate, setCalendarView, setCalendarGotoDate } = useUiStore();
+  const [captureOpen, setCaptureOpen] = useState(false);
 
-  const openTasks = tasks
-    .filter((task) => task.status !== "done")
-    .sort((a, b) => {
-      if (!a.dueAt && !b.dueAt) return 0;
-      if (!a.dueAt) return 1;
-      if (!b.dueAt) return -1;
-      return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
-    });
-  const selectedDateLabel = dateFromKey(selectedDate).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric"
-  });
+  const today = localDateKey();
+  const selectedIsToday = selectedDate === today;
+  const dateLabel = formatDateHeading(dateFromKey(selectedDate));
+  const weekDays = weekStripDays(selectedDate);
+  const schedule = useMemo(() => eventsForDay(calendarItems, selectedDate), [calendarItems, selectedDate]);
+  const dayTasks = useMemo(() => tasksForDay(tasks, selectedDate), [tasks, selectedDate]);
+  const activeReviews = useMemo(() => activeReviewItems(aiReviewItems), [aiReviewItems]);
+  const habitProgress = useMemo(() => habitProgressForDate(habits, habitLogs, selectedDate), [habits, habitLogs, selectedDate]);
+  const foodTotals = useMemo(() => foodTotalsForDate(foodEntries, selectedDate), [foodEntries, selectedDate]);
+  const weeklyTasks = useMemo(() => taskStatsForWeek(tasks, selectedDate), [tasks, selectedDate]);
+  const goalsProgress = useMemo(() => goalProgress(goals), [goals]);
+  const workoutLogged = gymSessions.some((session) => session.date === selectedDate);
+  const completedForDate = tasks.filter((task) => task.status === "done" && task.dueAt?.slice(0, 10) === selectedDate).length;
+
+  function openSelectedDay() {
+    setCalendarView("day");
+    setCalendarGotoDate(`${selectedDate}T12:00:00`);
+  }
 
   return (
-    <div className="grid h-dvh min-h-0 grid-rows-[minmax(320px,46dvh)_minmax(0,1fr)] overflow-hidden bg-paper text-ink lg:h-full lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-1">
-      <main className="min-h-0 min-w-0 border-b border-line lg:border-b-0 lg:border-r">
-        <FullCalendarBoard homeMode />
-      </main>
-
-      <aside className="flex min-h-0 flex-col bg-panel [--panel-inset:20px]">
-        <div className="shrink-0 border-b border-line px-[var(--panel-inset)] py-3">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-sm font-semibold text-ink">Todo list</p>
-              <p className="mt-0.5 text-xs text-muted">{selectedDateLabel} · {openTasks.length} open</p>
+    <div className="h-full overflow-y-auto bg-paper text-ink">
+      <main className="mx-auto flex w-full max-w-[1560px] flex-col gap-4 px-4 pb-28 pt-4 sm:px-6 lg:px-8 lg:py-6">
+        <section className="rounded-xl border border-line bg-panel p-4 shadow-glow sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm text-muted">{selectedIsToday ? "Today" : "Selected day"}</p>
+              <h1 className="mt-1 text-3xl font-semibold leading-tight text-ink sm:text-4xl">{dateLabel}</h1>
+              <p className="mt-2 text-sm text-muted">
+                {schedule.length} event{schedule.length === 1 ? "" : "s"} · {dayTasks.length} task{dayTasks.length === 1 ? "" : "s"} · {activeReviews.length} inbox review{activeReviews.length === 1 ? "" : "s"}
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setAddingTask((open) => !open)}
-              className={cn(
-                "flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition",
-                addingTask ? "border-line bg-paper text-ink hover:bg-hover" : "border-blue bg-blue text-white shadow-lift hover:brightness-110"
+
+            <div className="flex flex-col gap-3 lg:w-[520px]">
+              <button
+                type="button"
+                onClick={() => setCaptureOpen((open) => !open)}
+                className="flex h-12 items-center gap-3 rounded-xl border border-line bg-paper px-4 text-left text-muted transition hover:bg-hover hover:text-ink"
+              >
+                {captureOpen ? <X className="size-5" /> : <Search className="size-5" />}
+                <span className="min-w-0 flex-1 truncate">{captureOpen ? "Close capture" : "Search or capture anything..."}</span>
+                {!captureOpen && <Plus className="size-5 text-blue" />}
+              </button>
+              {captureOpen && (
+                <QuickCaptureForm
+                  autoFocus
+                  dueAt={`${selectedDate}T17:00:00`}
+                  placeholder="Task, note, event, or reminder"
+                  onComplete={() => setCaptureOpen(false)}
+                  onCancel={() => setCaptureOpen(false)}
+                  inputClassName="border-line bg-paper text-ink"
+                  selectClassName="border-line bg-paper text-ink"
+                  dateClassName="border-line bg-paper text-ink"
+                  descriptionClassName="border-line bg-paper text-ink placeholder:text-muted"
+                />
               )}
-            >
-              {addingTask ? <X className="size-4" /> : <Plus className="size-4" />}
-              {addingTask ? "Close" : "Add task"}
-            </button>
+            </div>
           </div>
-        </div>
 
-        {addingTask && (
-          <div className="shrink-0 border-b border-line p-[var(--panel-inset)]">
-            <QuickCaptureForm
-              autoFocus
-              stackControls
-              dueAt={`${selectedDate}T17:00:00`}
-              placeholder="Task name"
-              onComplete={() => setAddingTask(false)}
-              onCancel={() => setAddingTask(false)}
-              inputClassName="border-line bg-paper text-ink [&_input]:text-ink [&_input::placeholder]:text-muted [&_svg]:text-muted"
-              selectClassName="border-line bg-panel text-muted"
-              dateClassName="border-line bg-panel text-muted"
-              descriptionClassName="border-line bg-panel text-ink placeholder:text-muted"
-            />
-          </div>
-        )}
-
-        <div className="min-h-0 flex-1 overflow-y-auto pb-28 lg:pb-3">
-          {openTasks.length === 0 ? (
-            <p className="p-[var(--panel-inset)] text-sm text-muted">No open tasks.</p>
-          ) : (
-            <div className="divide-y divide-line">
-              {openTasks.map((task) => {
-                const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
-                const labelColor = taskLabelColor(label, responsibilities);
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setSelectedDate(addDays(selectedDate, -7))}
+                className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-paper"
+                aria-label="Previous week"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                {dateFromKey(selectedDate).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedDate(addDays(selectedDate, 7))}
+                className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-paper"
+                aria-label="Next week"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {weekDays.map((day) => {
+                const active = day.key === selectedDate;
                 return (
-                  <div key={task.id} className="flex items-start gap-3 px-[var(--panel-inset)] py-3 transition hover:bg-paper">
-                    <button
-                      onClick={() => toggleTask(task.id)}
-                      aria-label={task.status === "done" ? "Reopen task" : "Complete task"}
-                      className={cn("mt-0.5 grid size-[17px] shrink-0 place-items-center rounded-full border-[1.5px] transition hover:opacity-60", task.status === "done" && "bg-mint")}
-                      style={{ borderColor: task.status === "done" ? "#34a853" : labelColor }}
-                    >
-                      {task.status === "done" && <CheckCircle2 className="size-3 text-white" />}
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-ink">{task.title}</p>
-                      {task.description && <p className="mt-0.5 line-clamp-1 text-xs text-muted">{task.description}</p>}
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted">
-                        <span className="flex items-center gap-1">
-                          <span className="size-1.5 rounded-full" style={{ backgroundColor: labelColor }} />
-                          {label}
-                        </span>
-                        {task.dueAt && (
-                          <span className={cn(taskDate(task.dueAt)! < localDateKey() && "font-medium text-[#cf4444]")}>
-                            {taskDate(task.dueAt)! < localDateKey() ? "Overdue · " : ""}
-                            {new Date(task.dueAt).toLocaleDateString([], { month: "short", day: "numeric" })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <button
+                    key={day.key}
+                    type="button"
+                    onClick={() => setSelectedDate(day.key)}
+                    className={cn(
+                      "grid h-16 place-items-center rounded-lg text-center transition",
+                      active ? "bg-blue text-white shadow-lift" : "bg-paper text-ink hover:bg-hover"
+                    )}
+                  >
+                    <span className={cn("text-[11px] font-semibold uppercase", active ? "text-white/80" : "text-muted")}>{day.label}</span>
+                    <span className="text-lg font-semibold">{day.day}</span>
+                  </button>
                 );
               })}
             </div>
-          )}
-        </div>
-      </aside>
+          </div>
+        </section>
+
+        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <StatTile label="Tasks" value={`${completedForDate}/${completedForDate + dayTasks.length}`} detail={`${weeklyTasks.overdue} overdue this week`} icon={CheckSquare2} />
+          <StatTile label="Habits" value={`${habitProgress.completed}/${habitProgress.total}`} detail={habitProgress.total ? "scheduled today" : "none set up"} icon={Flame} />
+          <StatTile label="Calories" value={`${foodTotals.calories}/${foodTargets.calories}`} detail={`${foodTotals.protein}/${foodTargets.protein}g protein`} icon={Utensils} />
+          <StatTile label="Workout" value={workoutLogged ? "Logged" : "Not logged"} detail={goalsProgress.average !== null ? `${goalsProgress.average}% avg goal progress` : "no active goals"} icon={Dumbbell} />
+        </section>
+
+        <section className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="space-y-4">
+            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
+              <SectionHeader title="Today's schedule" href="/calendar" action="View day" />
+              {schedule.length ? (
+                <div className="divide-y divide-line">
+                  {schedule.slice(0, 5).map((item) => (
+                    <Link key={item.id} href="/calendar" onClick={openSelectedDay} className="grid grid-cols-[78px_1fr] gap-3 py-3 transition hover:text-blue">
+                      <span className="text-sm font-semibold text-blue">{formatTime(item.startsAt)}</span>
+                      <span className="min-w-0 truncate text-sm font-medium text-ink">{item.title}</span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <Link href="/calendar" onClick={openSelectedDay} className="flex items-center justify-between rounded-lg bg-paper px-4 py-3 text-sm text-muted transition hover:bg-hover">
+                  No events on this day
+                  <ChevronRight className="size-4" />
+                </Link>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
+              <SectionHeader title="Tasks" href="/tasks" action="See all" />
+              {dayTasks.length ? (
+                <div className="divide-y divide-line">
+                  {dayTasks.slice(0, 8).map((task) => {
+                    const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
+                    const color = taskLabelColor(label, responsibilities);
+                    return (
+                      <div key={task.id} className="flex items-start gap-3 py-3">
+                        <button
+                          type="button"
+                          onClick={() => toggleTask(task.id)}
+                          className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-[5px] border-[1.5px] transition active:scale-95"
+                          style={{ borderColor: color }}
+                          aria-label="Complete task"
+                        />
+                        <Link href={`/task/${task.id}`} className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-ink">{task.title}</p>
+                          <p className="mt-1 flex items-center gap-2 text-xs text-muted">
+                            <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
+                            {label}
+                          </p>
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-lg bg-paper px-4 py-6 text-center text-sm text-muted">No tasks for this day.</div>
+              )}
+            </div>
+          </div>
+
+          <aside className="space-y-4">
+            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
+              <SectionHeader title="Inbox review" href="/inbox" action="Open inbox" />
+              {activeReviews.length ? (
+                <div className="space-y-2">
+                  {activeReviews.slice(0, 4).map((item) => (
+                    <Link key={item.id} href="/inbox" className="flex items-center gap-3 rounded-lg bg-paper px-3 py-3 transition hover:bg-hover">
+                      <Inbox className="size-4 shrink-0 text-blue" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-ink">{item.summary}</p>
+                        <p className="text-xs text-muted">{Math.round(item.confidence * 100)}% confidence</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-lg bg-paper px-4 py-4 text-sm text-muted">No reviews waiting.</p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
+              <SectionHeader title="Habits" href="/habits" action="Track" />
+              {habitProgress.rows.length ? (
+                <div className="space-y-2">
+                  {habitProgress.rows.slice(0, 6).map(({ habit, value, complete }) => (
+                    <button
+                      key={habit.id}
+                      type="button"
+                      onClick={() => logHabit(habit.id, selectedDate, complete ? 0 : Math.max(1, habit.target))}
+                      className="flex w-full items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2 text-left transition hover:bg-hover"
+                    >
+                      <span className="min-w-0 truncate text-sm text-ink">{habit.title}</span>
+                      <span className={cn("grid size-5 place-items-center rounded-full border", complete ? "border-mint bg-mint text-white" : "border-line text-muted")}>
+                        {complete && <CheckCircle2 className="size-3.5" />}
+                      </span>
+                      <span className="sr-only">{value}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-lg bg-paper px-4 py-4 text-sm text-muted">No habits configured.</p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
+              <SectionHeader title="Focus next" href="/progress" action="Weekly review" />
+              <p className="text-sm leading-6 text-muted">
+                {dayTasks[0]
+                  ? `Start with "${dayTasks[0].title}" before the day fills up.`
+                  : activeReviews.length
+                    ? "Clear the inbox review queue before adding more work."
+                    : "The day looks open. Pick one important thing and protect time for it."}
+              </p>
+            </div>
+          </aside>
+        </section>
+      </main>
     </div>
   );
 }
