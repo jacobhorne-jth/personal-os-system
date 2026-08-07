@@ -92,6 +92,29 @@ export function HomeWorkspaceV2() {
   const goalsProgress = useMemo(() => goalProgress(goals), [goals]);
   const workoutLogged = gymSessions.some((session) => session.date === selectedDate);
   const completedForDate = tasks.filter((task) => task.status === "done" && task.dueAt?.slice(0, 10) === selectedDate).length;
+  const briefingItems = [
+    schedule[0] && {
+      label: "Next event",
+      title: `${formatTime(schedule[0].startsAt)} · ${schedule[0].title}`,
+      href: "/calendar",
+      onClick: openSelectedDay,
+    },
+    dayTasks[0] && {
+      label: "First task",
+      title: dayTasks[0].title,
+      href: `/task/${dayTasks[0].id}`,
+    },
+    activeReviews[0] && {
+      label: "Inbox",
+      title: `${activeReviews.length} review item${activeReviews.length === 1 ? "" : "s"} waiting`,
+      href: "/inbox",
+    },
+    !workoutLogged && {
+      label: "Body",
+      title: "Workout not logged",
+      href: "/gym",
+    },
+  ].filter(Boolean) as Array<{ label: string; title: string; href: string; onClick?: () => void }>;
 
   function openSelectedDay() {
     setCalendarView("day");
@@ -186,6 +209,26 @@ export function HomeWorkspaceV2() {
           <StatTile label="Habits" value={`${habitProgress.completed}/${habitProgress.total}`} detail={habitProgress.total ? "scheduled today" : "none set up"} icon={Flame} />
           <StatTile label="Calories" value={`${foodTotals.calories}/${foodTargets.calories}`} detail={`${foodTotals.protein}/${foodTargets.protein}g protein`} icon={Utensils} />
           <StatTile label="Workout" value={workoutLogged ? "Logged" : "Not logged"} detail={goalsProgress.average !== null ? `${goalsProgress.average}% avg goal progress` : "no active goals"} icon={Dumbbell} />
+        </section>
+
+        <section className="grid gap-3 lg:grid-cols-4">
+          {briefingItems.slice(0, 4).map((item) => (
+            <Link
+              key={`${item.label}-${item.title}`}
+              href={item.href}
+              onClick={item.onClick}
+              className="rounded-xl border border-line bg-panel p-4 shadow-glow transition hover:border-blue/40 hover:bg-hover"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{item.label}</p>
+              <p className="mt-2 line-clamp-2 text-sm font-medium leading-5 text-ink">{item.title}</p>
+            </Link>
+          ))}
+          {briefingItems.length === 0 && (
+            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow lg:col-span-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Daily briefing</p>
+              <p className="mt-2 text-sm text-muted">Nothing urgent is waiting. Pick one meaningful thing and protect the time.</p>
+            </div>
+          )}
         </section>
 
         <section className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
