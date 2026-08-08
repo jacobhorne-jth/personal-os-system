@@ -44,6 +44,8 @@ const LOCAL_SLICE_KEYS = [
   "ideas",
   "aiReviewItems",
   "processedEmailIds",
+  "timer",
+  "timeQuickLabels",
 ] as const;
 
 let applyingServerSlices = false;
@@ -197,6 +199,14 @@ type TimerState = {
   startedAt?: string;
 };
 
+type TimeQuickLabel = {
+  id: string;
+  title: string;
+  responsibilityId: string;
+  lastUsedAt: string;
+  useCount: number;
+};
+
 function id(prefix: string) {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -333,6 +343,7 @@ type AppState = {
   files: FileAsset[];
   lists: SavedList[];
   timer: TimerState;
+  timeQuickLabels: TimeQuickLabel[];
 
   // Auth / data loading
   setUserId: (id: string | null) => void;
@@ -453,10 +464,12 @@ type AppState = {
 
   // Timer
   setTimerResponsibility: (responsibilityId: string) => void;
-  startTimer: () => void;
+  setTimerTitle: (title: string) => void;
+  selectTimeQuickLabel: (labelId: string) => void;
+  startTimer: (input?: { title?: string; responsibilityId?: string }) => void;
   pauseTimer: () => void;
   stopTimer: () => void;
-  addManualTimeLog: (input: { title: string; responsibilityId: string; startedAt: string; endedAt: string }) => void;
+  addManualTimeLog: (input: { title: string; responsibilityId: string; startedAt: string; endedAt: string; notes?: string }) => void;
 };
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -495,6 +508,11 @@ export const useAppStore = create<AppState>()(
         responsibilityId: "",
         title: "Focus session"
       },
+      timeQuickLabels: [
+        { id: "leetcode", title: "LeetCode", responsibilityId: "", lastUsedAt: now, useCount: 0 },
+        { id: "system-design", title: "System design", responsibilityId: "", lastUsedAt: now, useCount: 0 },
+        { id: "job-apps", title: "Job apps", responsibilityId: "", lastUsedAt: now, useCount: 0 },
+      ],
 
       // ── Auth / data loading ───────────────────────────────────────────────
 
@@ -1680,8 +1698,39 @@ export const useAppStore = create<AppState>()(
       setTimerResponsibility: (responsibilityId) =>
         set((state) => ({ timer: { ...state.timer, responsibilityId } })),
 
-      startTimer: () =>
-        set((state) => ({ timer: { ...state.timer, running: true, startedAt: new Date().toISOString() } })),
+      setTimerTitle: (title) =>
+        set((state) => ({ timer: { ...state.timer, title } })),
+
+      selectTimeQuickLabel: (labelId) => {
+        const label = get().timeQuickLabels.find((item) => item.id === labelId);
+        if (!label) return;
+        const lastUsedAt = new Date().toISOString();
+        set((state) => ({
+          timer: {
+            ...state.timer,
+            title: label.title,
+            responsibilityId: label.responsibilityId || state.timer.responsibilityId,
+          },
+          timeQuickLabels: state.timeQuickLabels
+            .map((item) => item.id === labelId ? { ...item, lastUsedAt, useCount: item.useCount + 1 } : item)
+            .sort((a, b) => b.lastUsedAt.localeCompare(a.lastUsedAt)),
+        }));
+      },
+
+      startTimer: (input) => {
+        const startedAt = new Date().toISOString();
+        const title = input?.title?.trim() || get().timer.title.trim() || "Focus session";
+        const responsibilityId = input?.responsibilityId ?? get().timer.responsibilityId;
+        set((state) => ({
+          timer: {
+            ...state.timer,
+            title,
+            responsibilityId,
+            running: true,
+            startedAt,
+          },
+        }));
+      },
 
       pauseTimer: () =>
         set((state) => ({ timer: { ...state.timer, running: false } })),
@@ -1699,6 +1748,7 @@ export const useAppStore = create<AppState>()(
 
       addManualTimeLog: (input) => {
         const logId = id("log");
+        const lastUsedAt = new Date().toISOString();
         const newItem: CalendarItem = {
           id: logId,
           title: input.title,
@@ -1707,11 +1757,37 @@ export const useAppStore = create<AppState>()(
           startsAt: input.startedAt,
           endsAt: input.endedAt,
           source: "app",
+          notes: input.notes,
         };
-        set((state) => ({ calendarItems: [newItem, ...state.calendarItems] }));
+        set((state) => {
+          const existingLabel = state.timeQuickLabels.find(
+            (item) => item.title.toLowerCase() === input.title.toLowerCase() && item.responsibilityId === input.responsibilityId
+          );
+          const timeQuickLabels = existingLabel
+            ? state.timeQuickLabels.map((item) =>
+                item.id === existingLabel.id ? { ...item, lastUsedAt, useCount: item.useCount + 1 } : item
+              )
+            : [
+                {
+                  id: id("time-label"),
+                  title: input.title,
+                  responsibilityId: input.responsibilityId,
+                  lastUsedAt,
+                  useCount: 1,
+                },
+                ...state.timeQuickLabels,
+              ];
+
+          return {
+            calendarItems: [newItem, ...state.calendarItems],
+            timeQuickLabels: timeQuickLabels
+              .sort((a, b) => b.lastUsedAt.localeCompare(a.lastUsedAt))
+              .slice(0, 12),
+          };
+        });
         const { userId } = get();
         if (userId) {
-          getDb()?.from("calendar_items").insert({ id: logId, user_id: userId, responsibility_id: input.responsibilityId || null, type: "time_log", title: input.title, starts_at: input.startedAt, ends_at: input.endedAt, source: "app" })
+          getDb()?.from("calendar_items").insert({ id: logId, user_id: userId, responsibility_id: input.responsibilityId || null, type: "time_log", title: input.title, starts_at: input.startedAt, ends_at: input.endedAt, source: "app", notes: input.notes ?? null })
             .then(({ error }) => { if (error) console.error("addManualTimeLog:", error.message); });
         }
       },
@@ -1729,6 +1805,7 @@ export const useAppStore = create<AppState>()(
           lists: state.lists,
         }),
         timer: state.timer,
+        timeQuickLabels: state.timeQuickLabels,
         lastGoogleSync: state.lastGoogleSync,
         lastEmailSync: state.lastEmailSync,
         processedEmailIds: state.processedEmailIds,
