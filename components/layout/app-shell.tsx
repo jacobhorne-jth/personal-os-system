@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -21,10 +21,14 @@ import {
   Settings,
   Tags,
   ClipboardCheck,
+  Clock3,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlobalSearch } from "@/components/layout/global-search";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { TimerControl } from "@/components/time/timer-control";
+import { useAppStore } from "@/lib/stores/app-store";
 
 const navItems = [
   { href: "/home", label: "Home", icon: Home },
@@ -50,6 +54,65 @@ const mobileNavItems = [
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/responsibilities", label: "Projects", icon: Tags },
 ];
+
+
+function compactElapsed(startedAt?: string) {
+  if (!startedAt) return "00:00";
+  const totalSeconds = Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return hours > 0 ? `${hours}:${minutes}:${seconds}` : `${minutes}:${seconds}`;
+}
+
+function TimerDock() {
+  const timer = useAppStore((state) => state.timer);
+  const [open, setOpen] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!timer.running) return;
+    const interval = window.setInterval(() => setTick((value) => value + 1), 1000);
+    return () => window.clearInterval(interval);
+  }, [timer.running]);
+
+  const elapsed = compactElapsed(timer.startedAt);
+  const title = timer.title?.trim() || "Timer";
+
+  return (
+    <div className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 z-40 lg:bottom-auto lg:right-6 lg:top-4">
+      {open && (
+        <div className="mb-2 w-[min(calc(100vw-1.5rem),420px)] rounded-xl border border-line bg-panel p-3 shadow-lift lg:mt-2">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="truncate text-xs font-medium text-muted">{title}</p>
+            <button
+              onClick={() => setOpen(false)}
+              title="Close timer"
+              className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-line hover:text-ink"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+          <TimerControl plain compact />
+        </div>
+      )}
+      <button
+        onClick={() => setOpen((value) => !value)}
+        title="Open timer"
+        className={cn(
+          "ml-auto flex h-11 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full border border-line bg-paper/95 px-3 text-sm text-ink shadow-lift backdrop-blur transition hover:border-muted",
+          timer.running && "border-blue/40"
+        )}
+      >
+        <span className={cn("grid size-7 place-items-center rounded-full bg-line text-muted", timer.running && "bg-blue text-white")}>
+          <Clock3 className="size-4" />
+        </span>
+        <span className="min-w-14 text-left font-medium tabular-nums">{timer.startedAt ? elapsed : "Timer"}</span>
+        <span className="hidden max-w-32 truncate text-xs text-muted sm:block">{title}</span>
+      </button>
+    </div>
+  );
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -166,6 +229,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
+      <TimerDock />
       <ThemeToggle className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] left-4 z-30 lg:hidden" />
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-18px_48px_rgba(15,23,42,0.18)] backdrop-blur-2xl lg:hidden">
