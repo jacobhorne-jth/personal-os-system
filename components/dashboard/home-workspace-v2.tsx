@@ -75,9 +75,16 @@ export function HomeWorkspaceV2() {
       <main className="mx-auto flex w-full max-w-[1560px] flex-col gap-3 px-4 pb-28 pt-3 sm:px-6 lg:px-8 lg:py-4">
         <section className="rounded-xl border border-line bg-panel p-3 shadow-glow">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-muted">{selectedIsToday ? "Today" : "Selected day"}</p>
-              <h1 className="mt-0.5 text-2xl font-semibold leading-tight text-ink sm:text-3xl">{dateLabel}</h1>
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold leading-tight text-ink sm:text-3xl">{dateLabel}</h1>
+              <button
+                type="button"
+                onClick={() => setSelectedDate(today)}
+                disabled={selectedIsToday}
+                className="h-8 rounded-lg border border-line bg-paper px-3 text-xs font-semibold text-muted transition hover:bg-hover hover:text-ink disabled:opacity-40"
+              >
+                Today
+              </button>
             </div>
 
             <div className="flex flex-col gap-2 lg:w-[460px]">
@@ -154,7 +161,7 @@ export function HomeWorkspaceV2() {
           <DayTimeline date={selectedDate} className="min-h-[620px] xl:col-start-1 xl:row-start-1" />
 
           <div className="rounded-xl border border-line bg-panel p-4 shadow-glow xl:col-start-2 xl:row-start-1">
-            <SectionHeader title={selectedIsToday ? "Today's tasks" : "Selected day's tasks"} href="/tasks" action="See all" count={dayTasks.length} />
+            <SectionHeader title="Tasks" href="/tasks" action="See all" count={dayTasks.length} />
             {dayTasks.length ? (
               <div className="divide-y divide-line">
                 {dayTasks.slice(0, 8).map((task) => {
