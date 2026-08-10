@@ -80,9 +80,9 @@ function TimerDock() {
   const title = timer.title?.trim() || "Timer";
 
   return (
-    <div className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 z-40 lg:bottom-auto lg:right-6 lg:top-4">
+    <div className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 z-40 lg:bottom-4 lg:left-[72px] lg:right-auto lg:top-auto">
       {open && (
-        <div className="mb-2 w-[min(calc(100vw-1.5rem),420px)] rounded-xl border border-line bg-panel p-3 shadow-lift lg:mt-2">
+        <div className="mb-2 w-[min(calc(100vw-1.5rem),420px)] rounded-xl border border-line bg-panel p-3 shadow-lift">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="truncate text-xs font-medium text-muted">{title}</p>
             <button
@@ -100,7 +100,7 @@ function TimerDock() {
         onClick={() => setOpen((value) => !value)}
         title="Open timer"
         className={cn(
-          "ml-auto flex h-11 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full border border-line bg-paper/95 px-3 text-sm text-ink shadow-lift backdrop-blur transition hover:border-muted",
+          "ml-auto flex h-11 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full border border-line bg-paper/95 px-3 text-sm text-ink shadow-lift backdrop-blur transition hover:border-muted lg:ml-0",
           timer.running && "border-blue/40"
         )}
       >
