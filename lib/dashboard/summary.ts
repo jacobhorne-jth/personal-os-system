@@ -1,15 +1,8 @@
-import { localDateKey } from "@/lib/dates";
+import { dateFromKey, dateKeyOf, localDateKey } from "@/lib/dates";
 import { expandCalendarItems } from "@/lib/recurrence";
 import type { CalendarItem, CaptureExtraction, FoodEntry, Goal, GymSession, Habit, HabitLog, Task } from "@/lib/types/domain";
 
-export function dateFromKey(dateKey: string) {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
-
-export function dateKeyOf(value: string | Date) {
-  return localDateKey(typeof value === "string" ? new Date(value) : value);
-}
+export { dateFromKey, dateKeyOf };
 
 export function dayBounds(dateKey: string) {
   const start = dateFromKey(dateKey);

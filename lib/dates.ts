@@ -5,6 +5,18 @@ export function localDateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+export function dateFromKey(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+export function dateKeyOf(value: string | Date) {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return localDateKey(dateFromKey(value));
+  }
+  return localDateKey(typeof value === "string" ? new Date(value) : value);
+}
+
 // Habit days roll over at 4 AM, not midnight: finishing a habit at 1 AM still
 // counts toward the evening you're coming from, and streaks don't break while
 // you're still awake.

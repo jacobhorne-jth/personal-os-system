@@ -25,10 +25,12 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { detectedTimeZone, localDateKey } from "@/lib/dates";
 import { GlobalSearch } from "@/components/layout/global-search";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { TimerControl } from "@/components/time/timer-control";
 import { useAppStore } from "@/lib/stores/app-store";
+import { useUiStore } from "@/lib/stores/ui-store";
 
 const navItems = [
   { href: "/home", label: "Home", icon: Home },
@@ -63,6 +65,40 @@ function compactElapsed(startedAt?: string) {
   const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, "0");
   const seconds = (totalSeconds % 60).toString().padStart(2, "0");
   return hours > 0 ? `${hours}:${minutes}:${seconds}` : `${minutes}:${seconds}`;
+}
+
+function DeviceDateSync() {
+  const setSelectedDate = useUiStore((state) => state.setSelectedDate);
+
+  useEffect(() => {
+    let currentToday = localDateKey();
+    let currentTimeZone = detectedTimeZone();
+
+    function syncDeviceDate() {
+      const nextToday = localDateKey();
+      const nextTimeZone = detectedTimeZone();
+      if (nextToday === currentToday && nextTimeZone === currentTimeZone) return;
+
+      const wasShowingToday = useUiStore.getState().selectedDate === currentToday;
+      currentToday = nextToday;
+      currentTimeZone = nextTimeZone;
+      if (wasShowingToday) {
+        setSelectedDate(nextToday);
+      }
+    }
+
+    syncDeviceDate();
+    const interval = window.setInterval(syncDeviceDate, 60_000);
+    window.addEventListener("focus", syncDeviceDate);
+    document.addEventListener("visibilitychange", syncDeviceDate);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", syncDeviceDate);
+      document.removeEventListener("visibilitychange", syncDeviceDate);
+    };
+  }, [setSelectedDate]);
+
+  return null;
 }
 
 function TimerDock() {
@@ -129,6 +165,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh">
+      <DeviceDateSync />
       <aside
         onMouseEnter={() => {
           if (!sidebarLockedClosed) setSidebarOpen(true);

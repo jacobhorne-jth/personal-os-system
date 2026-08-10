@@ -19,6 +19,7 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { getTone } from "@/lib/theme";
 import type { CalendarItem, CalendarItemType } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
+import { dateFromKey, localDateKey } from "@/lib/dates";
 
 type DraftEvent = {
   startsAt: string;
@@ -723,8 +724,17 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
   }
 
   function localDateKeyOf(iso: string) {
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
+    return localDateKey(new Date(iso));
+  }
+
+  function focusedDateForRange(start: Date, end: Date) {
+    const current = dateFromKey(selectedDate);
+    const today = new Date();
+    const includesCurrent = current >= start && current < end;
+    const includesToday = today >= start && today < end;
+    if (includesCurrent) return selectedDate;
+    if (includesToday) return localDateKey(today);
+    return localDateKey(start);
   }
 
   // A recurring instance was dragged or resized: capture the new times, snap
@@ -899,7 +909,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
         : { start: rangeStart, end: rangeEnd }
     );
     if (dateInfo.view.type === "timeGridWeek") {
-      setSelectedDate(localDateKeyOf(dateInfo.view.currentStart.toISOString()));
+      setSelectedDate(focusedDateForRange(dateInfo.start, dateInfo.end));
       const start = dateInfo.start;
       const end = new Date(dateInfo.end);
       end.setDate(end.getDate() - 1);
@@ -920,7 +930,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
       return;
     }
     if (dateInfo.view.type === "dayGridMonth") {
-      setSelectedDate(localDateKeyOf(dateInfo.view.currentStart.toISOString()));
+      setSelectedDate(focusedDateForRange(dateInfo.start, dateInfo.end));
       setCalendarTitle(dateInfo.view.currentStart.toLocaleDateString("en-US", { month: "long", year: "numeric" }));
       return;
     }
