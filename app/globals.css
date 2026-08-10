@@ -585,6 +585,11 @@ select:focus-visible {
   border-radius: 7px;
 }
 
+.calendar-board .fc-timegrid-event-harness {
+  margin-left: 1px;
+  margin-right: 2px;
+}
+
 .calendar-board .fc-timegrid-event .fc-event-main {
   height: 100%;
   padding: 0;

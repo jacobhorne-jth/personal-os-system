@@ -1204,6 +1204,9 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
             selectMirror
             editable
             eventResizableFromStart
+            slotEventOverlap={false}
+            eventMinHeight={18}
+            eventShortHeight={18}
             allDaySlot={false}
             slotMinTime="00:00:00"
             slotMaxTime="24:00:00"
