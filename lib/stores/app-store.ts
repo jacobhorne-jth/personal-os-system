@@ -215,6 +215,15 @@ function id(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function extractionProposalIds(item: CaptureExtraction) {
+  return [
+    ...item.proposedTasks.map((task) => `task-${task.title}`),
+    ...item.proposedEvents.map((event) => `event-${event.title}`),
+    ...item.proposedNotes.map((note) => `note-${note.title}`),
+    ...(item.proposedListItems ?? []).map((listItem) => `list-${listItem.listTitle}:${listItem.itemTitle}`),
+  ];
+}
+
 function parseCapture(input: { text: string; source: CaptureExtraction["source"]; responsibilityId: string }): CaptureExtraction {
   const text = input.text.trim();
   const lower = text.toLowerCase();
@@ -1625,11 +1634,17 @@ export const useAppStore = create<AppState>()(
 
       setExtractionDecision: (extractionId, itemId, approved) =>
         set((state) => ({
-          aiReviewItems: state.aiReviewItems.map((item) =>
-            item.id === extractionId
-              ? { ...item, decisions: { ...item.decisions, [itemId]: approved }, status: "partially_approved" as const }
-              : item
-          )
+          aiReviewItems: state.aiReviewItems.map((item) => {
+            if (item.id !== extractionId) return item;
+            const decisions = { ...item.decisions, [itemId]: approved };
+            const proposalIds = extractionProposalIds(item);
+            const allRejected = proposalIds.length > 0 && proposalIds.every((id) => decisions[id] === false);
+            return {
+              ...item,
+              decisions,
+              status: allRejected ? "rejected" as const : "partially_approved" as const,
+            };
+          })
         })),
 
       commitExtraction: (extractionId) => {
