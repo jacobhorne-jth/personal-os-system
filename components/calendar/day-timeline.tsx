@@ -8,8 +8,9 @@ import type { CalendarItem } from "@/lib/types/domain";
 import { getTone } from "@/lib/theme";
 import { cn, minutesBetween } from "@/lib/utils";
 
-const DEFAULT_START_HOUR = 7;
-const DEFAULT_END_HOUR = 19;
+const DAY_START_HOUR = 0;
+const DAY_END_HOUR = 24;
+const INITIAL_SCROLL_HOUR = 7;
 const ROW_HEIGHT = 60;
 
 function itemPosition(item: CalendarItem, startHour: number, totalMinutes: number) {
@@ -51,14 +52,8 @@ export function DayTimeline({ filteredResponsibilityId, date, className }: { fil
     (item) => item.startsAt.startsWith(dayKey) && (!filteredResponsibilityId || item.responsibilityId === filteredResponsibilityId)
   );
   const { hours, startHour, totalMinutes, contentHeight } = useMemo(() => {
-    const earliestHour = items.length
-      ? Math.min(...items.map((item) => new Date(item.startsAt).getHours()))
-      : DEFAULT_START_HOUR;
-    const latestHour = items.length
-      ? Math.max(...items.map((item) => Math.ceil((new Date(item.endsAt).getHours() * 60 + new Date(item.endsAt).getMinutes()) / 60)))
-      : DEFAULT_END_HOUR;
-    const rangeStart = Math.min(DEFAULT_START_HOUR, earliestHour);
-    const rangeEnd = Math.max(DEFAULT_END_HOUR, latestHour);
+    const rangeStart = DAY_START_HOUR;
+    const rangeEnd = DAY_END_HOUR;
     const hourCount = rangeEnd - rangeStart;
 
     return {
@@ -74,7 +69,7 @@ export function DayTimeline({ filteredResponsibilityId, date, className }: { fil
       return;
     }
 
-    scrollRef.current.scrollTop = Math.max(0, (DEFAULT_START_HOUR - startHour) * ROW_HEIGHT);
+    scrollRef.current.scrollTop = Math.max(0, (INITIAL_SCROLL_HOUR - startHour) * ROW_HEIGHT);
   }, [startHour]);
 
   return (
