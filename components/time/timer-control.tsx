@@ -31,6 +31,7 @@ export function TimerControl({ plain = false, compact = false }: { plain?: boole
   const timeQuickLabels = useAppStore((state) => state.timeQuickLabels);
   const setTimerResponsibility = useAppStore((state) => state.setTimerResponsibility);
   const setTimerTitle = useAppStore((state) => state.setTimerTitle);
+  const addTimeQuickLabel = useAppStore((state) => state.addTimeQuickLabel);
   const selectTimeQuickLabel = useAppStore((state) => state.selectTimeQuickLabel);
   const startTimer = useAppStore((state) => state.startTimer);
   const pauseTimer = useAppStore((state) => state.pauseTimer);
@@ -41,6 +42,8 @@ export function TimerControl({ plain = false, compact = false }: { plain?: boole
   const [pastTitle, setPastTitle] = useState("");
   const [pastStart, setPastStart] = useState("");
   const [pastEnd, setPastEnd] = useState("");
+  const [customLabelOpen, setCustomLabelOpen] = useState(false);
+  const [customLabel, setCustomLabel] = useState("");
 
   const activeResponsibilities = responsibilities.filter((item) => !item.archivedAt);
   const responsibilityId = timer.responsibilityId || activeResponsibilities[0]?.id || UNLABELED_RESPONSIBILITY_ID;
@@ -56,10 +59,29 @@ export function TimerControl({ plain = false, compact = false }: { plain?: boole
       .sort((a, b) => b.lastUsedAt.localeCompare(a.lastUsedAt))
       .slice(0, compact ? 4 : 8);
   }, [compact, timeQuickLabels]);
+  const selectedLabelId = timer.labelId && recentLogs.some((item) => item.id === timer.labelId) ? timer.labelId : "";
 
   function handleStart() {
     const nextTitle = title.trim() || "Focus session";
-    startTimer({ title: nextTitle, responsibilityId });
+    startTimer({ title: nextTitle, responsibilityId, labelId: selectedLabelId || undefined });
+  }
+
+  function handleLabelChange(value: string) {
+    if (value === "__other") {
+      setCustomLabelOpen(true);
+      setCustomLabel("");
+      return;
+    }
+    setCustomLabelOpen(false);
+    selectTimeQuickLabel(value);
+  }
+
+  function saveCustomLabel() {
+    const labelId = addTimeQuickLabel({ title: customLabel, responsibilityId });
+    if (!labelId) return;
+    selectTimeQuickLabel(labelId);
+    setCustomLabel("");
+    setCustomLabelOpen(false);
   }
 
   function submitPastLog() {
@@ -134,13 +156,22 @@ export function TimerControl({ plain = false, compact = false }: { plain?: boole
 
       <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]">
         <label className="min-w-0">
-          <span className="sr-only">Activity label</span>
-          <input
-            value={title}
-            onChange={(event) => setTimerTitle(event.target.value)}
-            placeholder="What are you doing?"
-            className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none transition placeholder:text-muted focus:border-blue"
-          />
+          <span className="sr-only">Timer label</span>
+          <select
+            value={selectedLabelId}
+            onChange={(event) => handleLabelChange(event.target.value)}
+            className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none transition focus:border-blue"
+          >
+            <option value="" disabled>
+              Select label
+            </option>
+            {recentLogs.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.title}
+              </option>
+            ))}
+            <option value="__other">Other...</option>
+          </select>
         </label>
         <label>
           <span className="sr-only">Project</span>
@@ -157,6 +188,37 @@ export function TimerControl({ plain = false, compact = false }: { plain?: boole
           </select>
         </label>
       </div>
+
+      {customLabelOpen && (
+        <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <input
+            value={customLabel}
+            onChange={(event) => setCustomLabel(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") saveCustomLabel();
+            }}
+            placeholder="New label"
+            className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none transition placeholder:text-muted focus:border-blue"
+          />
+          <button
+            onClick={saveCustomLabel}
+            disabled={!customLabel.trim()}
+            className="h-10 rounded-lg bg-blue px-4 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            Save label
+          </button>
+        </div>
+      )}
+
+      <label className="mt-2 block">
+        <span className="sr-only">Activity title</span>
+        <input
+          value={title}
+          onChange={(event) => setTimerTitle(event.target.value)}
+          placeholder="Fine tune activity name"
+          className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none transition placeholder:text-muted focus:border-blue"
+        />
+      </label>
 
       {recentLogs.length > 0 && (
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
