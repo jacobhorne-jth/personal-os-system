@@ -25,7 +25,7 @@ function formatDuration(startedAt: string, endedAt: string) {
   return `${hours}h ${remainder}m`;
 }
 
-export function TimerControl({ plain = false, compact = false }: { plain?: boolean; compact?: boolean }) {
+export function TimerControl({ plain = false, compact = false, minimal = false }: { plain?: boolean; compact?: boolean; minimal?: boolean }) {
   const timer = useAppStore((state) => state.timer);
   const responsibilities = useAppStore((state) => state.responsibilities);
   const timeQuickLabels = useAppStore((state) => state.timeQuickLabels);
@@ -210,17 +210,19 @@ export function TimerControl({ plain = false, compact = false }: { plain?: boole
         </div>
       )}
 
-      <label className="mt-2 block">
-        <span className="sr-only">Activity title</span>
-        <input
-          value={title}
-          onChange={(event) => setTimerTitle(event.target.value)}
-          placeholder="Fine tune activity name"
-          className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none transition placeholder:text-muted focus:border-blue"
-        />
-      </label>
+      {!minimal && (
+        <label className="mt-2 block">
+          <span className="sr-only">Activity title</span>
+          <input
+            value={title}
+            onChange={(event) => setTimerTitle(event.target.value)}
+            placeholder="Fine tune activity name"
+            className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none transition placeholder:text-muted focus:border-blue"
+          />
+        </label>
+      )}
 
-      {recentLogs.length > 0 && (
+      {!minimal && recentLogs.length > 0 && (
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
           {recentLogs.map((item) => (
             <button
@@ -235,27 +237,29 @@ export function TimerControl({ plain = false, compact = false }: { plain?: boole
         </div>
       )}
 
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="flex min-w-0 items-center gap-2 truncate text-xs text-muted">
-          <Clock3 className="size-3.5 shrink-0" />
-          {timer.startedAt
-            ? `Started ${new Date(timer.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
-            : "Ready"}
-        </p>
-        <button
-          onClick={() => setLogPastOpen((open) => !open)}
-          title="Log past time"
-          className={cn(
-            "flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs transition",
-            logPastOpen ? "border-blue/50 text-blue" : "border-line text-muted hover:border-muted hover:text-ink"
-          )}
-        >
-          <Plus className="size-3.5" />
-          Log past
-        </button>
-      </div>
+      {!minimal && (
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <p className="flex min-w-0 items-center gap-2 truncate text-xs text-muted">
+            <Clock3 className="size-3.5 shrink-0" />
+            {timer.startedAt
+              ? `Started ${new Date(timer.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+              : "Ready"}
+          </p>
+          <button
+            onClick={() => setLogPastOpen((open) => !open)}
+            title="Log past time"
+            className={cn(
+              "flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs transition",
+              logPastOpen ? "border-blue/50 text-blue" : "border-line text-muted hover:border-muted hover:text-ink"
+            )}
+          >
+            <Plus className="size-3.5" />
+            Log past
+          </button>
+        </div>
+      )}
 
-      {logPastOpen && (
+      {!minimal && logPastOpen && (
         <div className="mt-3 space-y-2 rounded-lg border border-line bg-paper p-3">
           <input
             value={pastTitle}

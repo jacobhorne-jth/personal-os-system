@@ -93,7 +93,7 @@ function TimerDock() {
               <X className="size-4" />
             </button>
           </div>
-          <TimerControl plain compact />
+          <TimerControl plain compact minimal />
         </div>
       )}
       <button
