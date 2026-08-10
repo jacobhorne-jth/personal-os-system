@@ -64,22 +64,19 @@ export function HomeWorkspaceV2() {
 
   return (
     <div className="h-full overflow-y-auto bg-paper text-ink">
-      <main className="mx-auto flex w-full max-w-[1560px] flex-col gap-4 px-4 pb-28 pt-4 sm:px-6 lg:px-8 lg:py-6">
-        <section className="rounded-xl border border-line bg-panel p-4 shadow-glow sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <main className="mx-auto flex w-full max-w-[1560px] flex-col gap-3 px-4 pb-28 pt-3 sm:px-6 lg:px-8 lg:py-4">
+        <section className="rounded-xl border border-line bg-panel p-3 shadow-glow">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <p className="text-sm text-muted">{selectedIsToday ? "Today" : "Selected day"}</p>
-              <h1 className="mt-1 text-3xl font-semibold leading-tight text-ink sm:text-4xl">{dateLabel}</h1>
-              <p className="mt-2 text-sm text-muted">
-                {dayTasks.length} task{dayTasks.length === 1 ? "" : "s"} · {activeReviews.length} inbox review{activeReviews.length === 1 ? "" : "s"}
-              </p>
+              <p className="text-xs font-medium text-muted">{selectedIsToday ? "Today" : "Selected day"}</p>
+              <h1 className="mt-0.5 text-2xl font-semibold leading-tight text-ink sm:text-3xl">{dateLabel}</h1>
             </div>
 
-            <div className="flex flex-col gap-3 lg:w-[520px]">
+            <div className="flex flex-col gap-2 lg:w-[460px]">
               <button
                 type="button"
                 onClick={() => setCaptureOpen((open) => !open)}
-                className="flex h-12 items-center gap-3 rounded-xl border border-line bg-paper px-4 text-left text-muted transition hover:bg-hover hover:text-ink"
+                className="flex h-10 items-center gap-3 rounded-xl border border-line bg-paper px-3 text-left text-muted transition hover:bg-hover hover:text-ink"
               >
                 {captureOpen ? <X className="size-5" /> : <Search className="size-5" />}
                 <span className="min-w-0 flex-1 truncate">{captureOpen ? "Close capture" : "Search or capture anything..."}</span>
@@ -101,12 +98,12 @@ export function HomeWorkspaceV2() {
             </div>
           </div>
 
-          <div className="mt-5">
-            <div className="mb-2 flex items-center justify-between">
+          <div className="mt-3">
+            <div className="mb-1 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setSelectedDate(addDays(selectedDate, -7))}
-                className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-paper"
+                className="grid size-7 place-items-center rounded-full text-muted transition hover:bg-paper"
                 aria-label="Previous week"
               >
                 <ChevronLeft className="size-4" />
@@ -117,7 +114,7 @@ export function HomeWorkspaceV2() {
               <button
                 type="button"
                 onClick={() => setSelectedDate(addDays(selectedDate, 7))}
-                className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-paper"
+                className="grid size-7 place-items-center rounded-full text-muted transition hover:bg-paper"
                 aria-label="Next week"
               >
                 <ChevronRight className="size-4" />
@@ -132,12 +129,12 @@ export function HomeWorkspaceV2() {
                     type="button"
                     onClick={() => setSelectedDate(day.key)}
                     className={cn(
-                      "grid h-16 place-items-center rounded-lg text-center transition",
+                      "grid h-11 place-items-center rounded-lg text-center transition sm:h-12",
                       active ? "bg-blue text-white shadow-lift" : "bg-paper text-ink hover:bg-hover"
                     )}
                   >
-                    <span className={cn("text-[11px] font-semibold uppercase", active ? "text-white/80" : "text-muted")}>{day.label}</span>
-                    <span className="text-lg font-semibold">{day.day}</span>
+                    <span className={cn("text-[10px] font-semibold uppercase", active ? "text-white/80" : "text-muted")}>{day.label}</span>
+                    <span className="text-base font-semibold">{day.day}</span>
                   </button>
                 );
               })}
