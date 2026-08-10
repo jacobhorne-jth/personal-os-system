@@ -30,12 +30,19 @@ function weekStripDays(dateKey: string) {
   });
 }
 
-function SectionHeader({ title, href, action }: { title: string; href?: string; action?: string }) {
+function SectionHeader({ title, href, action, count }: { title: string; href?: string; action?: string; count?: number }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-sm font-semibold text-ink">{title}</h2>
+      <div className="flex min-w-0 items-center gap-2">
+        <h2 className="truncate text-sm font-semibold text-ink">{title}</h2>
+        {count !== undefined && (
+          <span className="grid min-w-6 place-items-center rounded-full bg-paper px-2 py-0.5 text-xs font-semibold text-muted">
+            {count}
+          </span>
+        )}
+      </div>
       {href && action && (
-        <Link href={href} className="text-xs font-semibold text-blue transition hover:brightness-110">
+        <Link href={href} className="shrink-0 text-xs font-semibold text-blue transition hover:brightness-110">
           {action}
         </Link>
       )}
@@ -61,6 +68,7 @@ export function HomeWorkspaceV2() {
   const dayTasks = useMemo(() => tasksForDay(tasks, selectedDate), [tasks, selectedDate]);
   const activeReviews = useMemo(() => activeReviewItems(aiReviewItems), [aiReviewItems]);
   const habitProgress = useMemo(() => habitProgressForDate(habits, habitLogs, selectedDate), [habits, habitLogs, selectedDate]);
+  const incompleteHabits = habitProgress.rows.filter((row) => !row.complete).length;
 
   return (
     <div className="h-full overflow-y-auto bg-paper text-ink">
@@ -146,7 +154,7 @@ export function HomeWorkspaceV2() {
           <DayTimeline date={selectedDate} className="min-h-[620px] xl:col-start-1 xl:row-start-1" />
 
           <div className="rounded-xl border border-line bg-panel p-4 shadow-glow xl:col-start-2 xl:row-start-1">
-            <SectionHeader title={selectedIsToday ? "Today's tasks" : "Selected day's tasks"} href="/tasks" action="See all" />
+            <SectionHeader title={selectedIsToday ? "Today's tasks" : "Selected day's tasks"} href="/tasks" action="See all" count={dayTasks.length} />
             {dayTasks.length ? (
               <div className="divide-y divide-line">
                 {dayTasks.slice(0, 8).map((task) => {
@@ -179,7 +187,7 @@ export function HomeWorkspaceV2() {
 
           <aside className="space-y-4 xl:col-start-3 xl:row-start-1">
             <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-              <SectionHeader title="Inbox review" href="/inbox" action="Open inbox" />
+              <SectionHeader title="Inbox review" href="/inbox" action="Open inbox" count={activeReviews.length} />
               {activeReviews.length ? (
                 <div className="space-y-2">
                   {activeReviews.slice(0, 4).map((item) => (
@@ -198,7 +206,7 @@ export function HomeWorkspaceV2() {
             </div>
 
             <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-              <SectionHeader title="Habits" href="/habits" action="Track" />
+              <SectionHeader title="Habits" href="/habits" action="Track" count={incompleteHabits} />
               {habitProgress.rows.length ? (
                 <div className="space-y-2">
                   {habitProgress.rows.slice(0, 6).map(({ habit, value, complete }) => (
