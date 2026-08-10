@@ -92,7 +92,7 @@ export function DayTimeline({ filteredResponsibilityId, date, className }: { fil
               const color = responsibility?.color ?? "blue";
               const duration = minutesBetween(item.startsAt, item.endsAt);
               const tiny = duration <= 20;
-              const compact = duration <= 45;
+              const compact = !tiny && duration <= 45;
               const roomy = duration >= 75;
               const startTime = formatTime(item.startsAt);
               const timeRange = `${startTime} - ${formatTime(item.endsAt)}`;

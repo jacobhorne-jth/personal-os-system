@@ -512,8 +512,8 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
     let colEl: HTMLElement | null = null;
     let dayDate: Date | null = null;
     let overlay: HTMLDivElement | null = null;
-    let titleLine: HTMLDivElement | null = null;
-    let label: HTMLDivElement | null = null;
+    let titleLine: HTMLElement | null = null;
+    let label: HTMLElement | null = null;
     let placed: HTMLDivElement | null = null; // block left on the grid while the draft card is open
     let startMinutes = 0;
     let endMinutes = 0;
@@ -526,7 +526,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
     };
 
     recolorPlacedRef.current = (hex) => {
-      if (placed) placed.style.background = hex;
+      placed?.style.setProperty("--gcal-event-color", hex);
     };
 
     function fmtMin(mins: number) {
@@ -536,19 +536,26 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
 
     function createBlock(col: HTMLElement, aMin: number, bMin: number, withTitle: boolean) {
       const frame = col.querySelector<HTMLElement>(".fc-timegrid-col-frame") ?? col;
+      const duration = Math.max(bMin - aMin, SNAP);
+      const tiny = duration <= 20;
+      const compact = duration <= 45;
       const el = document.createElement("div");
-      el.style.cssText =
-        `position:absolute;left:2px;right:3px;z-index:5;border-radius:6px;background:${draftColorRef.current};pointer-events:none;padding:3px 7px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.35);`;
-      const t = document.createElement("div");
-      t.style.cssText = "font-size:12px;font-weight:500;color:#fff;white-space:nowrap;";
-      const l = document.createElement("div");
-      l.style.cssText = "font-size:11px;color:rgba(255,255,255,0.9);white-space:nowrap;";
-      if (withTitle) t.textContent = "(No title)";
-      l.textContent = `${fmtMin(aMin)} – ${fmtMin(bMin)}`;
+      el.className = "gcal-draft-event-block";
+      el.style.setProperty("--gcal-event-color", draftColorRef.current);
       el.style.top = `${(aMin / TOTAL_MINUTES) * 100}%`;
-      el.style.height = `${(Math.max(bMin - aMin, SNAP) / TOTAL_MINUTES) * 100}%`;
-      el.appendChild(t);
-      el.appendChild(l);
+      el.style.height = `${(duration / TOTAL_MINUTES) * 100}%`;
+
+      const card = document.createElement("div");
+      card.className = `gcal-event-card${tiny ? " gcal-event-card-tiny" : compact ? " gcal-event-card-compact" : ""}`;
+      const t = document.createElement("span");
+      t.className = "gcal-event-title";
+      const l = document.createElement("span");
+      l.className = "gcal-event-time";
+      if (withTitle) t.textContent = "(No title)";
+      l.textContent = tiny ? `, ${fmtMin(aMin)}` : `${fmtMin(aMin)} – ${fmtMin(bMin)}`;
+      card.appendChild(t);
+      card.appendChild(l);
+      el.appendChild(card);
       frame.appendChild(el);
       return { el, t, l };
     }
@@ -572,9 +579,13 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
       if (!overlay) return;
       const a = Math.min(startMinutes, endMinutes);
       const b = Math.max(startMinutes, endMinutes);
+      const duration = Math.max(b - a, SNAP);
       overlay.style.top = `${(a / TOTAL_MINUTES) * 100}%`;
-      overlay.style.height = `${(Math.max(b - a, SNAP) / TOTAL_MINUTES) * 100}%`;
-      if (label) label.textContent = `${fmtMin(a)} – ${fmtMin(Math.max(b, a + SNAP))}`;
+      overlay.style.height = `${(duration / TOTAL_MINUTES) * 100}%`;
+      const card = overlay.firstElementChild;
+      card?.classList.toggle("gcal-event-card-tiny", duration <= 20);
+      card?.classList.toggle("gcal-event-card-compact", duration > 20 && duration <= 45);
+      if (label) label.textContent = duration <= 20 ? `, ${fmtMin(a)}` : `${fmtMin(a)} – ${fmtMin(Math.max(b, a + SNAP))}`;
     }
 
     function onMove(e: PointerEvent) {
@@ -979,6 +990,10 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
 
   function handleEventDidMount(arg: EventMountArg) {
     arg.el.style.setProperty("--gcal-event-color", arg.event.backgroundColor || arg.event.borderColor || "#4285f4");
+    const fmt = (d: Date) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const time = arg.event.start && arg.event.end ? `${fmt(arg.event.start)} - ${fmt(arg.event.end)}` : arg.event.start ? fmt(arg.event.start) : "";
+    const location = arg.event.extendedProps.location as string | undefined;
+    arg.el.title = [arg.event.title || "Untitled", time, location].filter(Boolean).join("\n");
   }
 
   function renderDayHeader(arg: DayHeaderContentArg) {

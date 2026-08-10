@@ -569,6 +569,7 @@ select:focus-visible {
   font-size: 12px;
   font-weight: 650;
   transition: box-shadow 140ms ease, filter 140ms ease, transform 140ms ease;
+  container-type: inline-size;
   box-shadow: inset 3px 0 0 var(--gcal-event-color), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
@@ -586,8 +587,22 @@ select:focus-visible {
 }
 
 .calendar-board .fc-timegrid-event-harness {
-  margin-left: 1px;
-  margin-right: 2px;
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+.calendar-board .gcal-draft-event-block {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  z-index: 5;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--gcal-event-color) 54%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--gcal-event-color) 78%, rgb(var(--color-paper)) 22%);
+  color: rgb(var(--color-ink));
+  pointer-events: none;
+  box-shadow: inset 3px 0 0 var(--gcal-event-color), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 5px 14px rgba(0, 0, 0, 0.2);
 }
 
 .calendar-board .fc-timegrid-event .fc-event-main {
@@ -649,8 +664,16 @@ select:focus-visible {
 .calendar-board .gcal-event-card-tiny .gcal-event-title,
 .calendar-board .gcal-event-card-compact .gcal-event-title {
   display: block;
-  flex: 1 1 auto;
   white-space: nowrap;
+}
+
+.calendar-board .gcal-event-card-tiny .gcal-event-title {
+  flex: 0 1 auto;
+}
+
+.calendar-board .gcal-event-card-compact .gcal-event-title {
+  flex: 1 1 auto;
+  margin-right: 4px;
 }
 
 .calendar-board .gcal-event-card-tiny .gcal-event-time,
@@ -659,8 +682,40 @@ select:focus-visible {
   opacity: 0.68;
 }
 
-.calendar-board .gcal-event-card-compact .gcal-event-title {
-  margin-right: 4px;
+.calendar-board .gcal-event-card-tiny .gcal-event-time {
+  flex-shrink: 0;
+}
+
+@container (max-width: 70px) {
+  .calendar-board .gcal-event-card {
+    gap: 0;
+    padding: 2px 4px 2px 6px;
+  }
+
+  .calendar-board .gcal-event-title {
+    display: block;
+    font-size: 9px;
+    line-height: 1.05;
+    white-space: nowrap;
+  }
+
+  .calendar-board .gcal-event-time {
+    display: none;
+  }
+
+  .calendar-board .gcal-event-location {
+    display: none;
+  }
+}
+
+@container (min-width: 71px) and (max-width: 116px) {
+  .calendar-board .gcal-event-location {
+    display: none;
+  }
+
+  .calendar-board .gcal-event-time {
+    font-size: 8.5px;
+  }
 }
 
 .home-day-event {
@@ -728,8 +783,16 @@ select:focus-visible {
 .home-day-event-card-tiny .home-day-event-title,
 .home-day-event-card-compact .home-day-event-title {
   display: block;
-  flex: 1 1 auto;
   white-space: nowrap;
+}
+
+.home-day-event-card-tiny .home-day-event-title {
+  flex: 0 1 auto;
+}
+
+.home-day-event-card-compact .home-day-event-title {
+  flex: 1 1 auto;
+  margin-right: 4px;
 }
 
 .home-day-event-card-tiny .home-day-event-time,
@@ -738,8 +801,8 @@ select:focus-visible {
   opacity: 0.68;
 }
 
-.home-day-event-card-compact .home-day-event-title {
-  margin-right: 4px;
+.home-day-event-card-tiny .home-day-event-time {
+  flex-shrink: 0;
 }
 
 .calendar-board .fc-daygrid-event {
