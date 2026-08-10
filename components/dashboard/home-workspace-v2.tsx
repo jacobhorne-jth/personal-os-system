@@ -72,7 +72,7 @@ export function HomeWorkspaceV2() {
 
   return (
     <div className="h-full overflow-y-auto bg-paper text-ink">
-      <main className="flex w-full max-w-none flex-col gap-3 px-3 pb-28 pt-3 sm:px-4 lg:px-5 lg:py-4">
+      <main className="flex min-h-full w-full max-w-none flex-col gap-3 px-3 pb-28 pt-3 sm:px-4 lg:h-full lg:min-h-0 lg:px-5 lg:py-4">
         <section className="rounded-xl border border-line bg-panel p-3 shadow-glow">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 flex-wrap items-center gap-3">
@@ -157,10 +157,10 @@ export function HomeWorkspaceV2() {
           </div>
         </section>
 
-        <section className="grid min-h-0 gap-3 xl:grid-cols-[minmax(760px,1fr)_minmax(320px,420px)_minmax(320px,420px)]">
-          <DayTimeline date={selectedDate} className="min-h-[620px] xl:col-start-1 xl:row-start-1" />
+        <section className="grid min-h-0 gap-3 xl:grid-cols-[minmax(760px,1fr)_minmax(320px,420px)_minmax(320px,420px)] lg:flex-1">
+          <DayTimeline date={selectedDate} className="min-h-[620px] lg:h-full lg:min-h-0 lg:max-h-none xl:col-start-1 xl:row-start-1" />
 
-          <div className="rounded-xl border border-line bg-panel p-4 shadow-glow xl:col-start-2 xl:row-start-1">
+          <div className="rounded-xl border border-line bg-panel p-4 shadow-glow lg:h-full xl:col-start-2 xl:row-start-1">
             <SectionHeader title="Tasks" href="/tasks" action="See all" count={dayTasks.length} />
             {dayTasks.length ? (
               <div className="divide-y divide-line">
