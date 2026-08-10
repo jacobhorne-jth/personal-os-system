@@ -5,7 +5,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type EventResizeDoneArg } from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import type { DatesSetArg, EventClickArg, EventDropArg, EventContentArg, DayHeaderContentArg } from "@fullcalendar/core";
+import type { DatesSetArg, EventClickArg, EventDropArg, EventContentArg, EventMountArg, DayHeaderContentArg } from "@fullcalendar/core";
 import { AlignLeft, CalendarDays, ChevronLeft, ChevronRight, Clock, FileText, LayoutGrid, MapPin, Pencil, Plus, RefreshCw, Tags, Trash2, X } from "lucide-react";
 import { DateTimeRow } from "@/components/calendar/date-time-picker";
 import { LabelSelect } from "@/components/calendar/label-select";
@@ -947,29 +947,27 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
 
     if (shortEvent) {
       return (
-        <div style={{ height: "100%", minHeight: 0, display: "flex", alignItems: "center", overflow: "hidden", padding: "0 8px" }}>
-          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#111827", fontWeight: 800, fontSize: 12, lineHeight: 1 }}>
-            {title}
-          </span>
+        <div className="gcal-event-card gcal-event-card-short">
+          <span className="gcal-event-dot" aria-hidden="true" />
+          <span className="gcal-event-title">{title}</span>
+          {timeRange && <span className="gcal-event-time">{timeRange}</span>}
         </div>
       );
     }
 
     return (
-      <div style={{ padding: "7px 8px", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", gap: 4 }}>
-        <span style={{ color: "#111827", fontWeight: 800, fontSize: 13, lineHeight: 1.12, whiteSpace: "normal", overflowWrap: "anywhere" }}>
-          {title}
-        </span>
-        <span style={{ color: "#1f1f1f", fontSize: 11, fontWeight: 600, opacity: 0.82, lineHeight: 1.2, whiteSpace: "normal", overflowWrap: "anywhere" }}>
-          {timeRange}
-        </span>
+      <div className="gcal-event-card">
+        <span className="gcal-event-title">{title}</span>
+        {timeRange && <span className="gcal-event-time">{timeRange}</span>}
         {location && (
-          <span style={{ color: "#1f1f1f", fontSize: 10, fontWeight: 600, opacity: 0.72, lineHeight: 1.18, whiteSpace: "normal", overflowWrap: "anywhere" }}>
-            {location}
-          </span>
+          <span className="gcal-event-location">{location}</span>
         )}
       </div>
     );
+  }
+
+  function handleEventDidMount(arg: EventMountArg) {
+    arg.el.style.setProperty("--gcal-event-color", arg.event.backgroundColor || arg.event.borderColor || "#4285f4");
   }
 
   function renderDayHeader(arg: DayHeaderContentArg) {
@@ -1219,6 +1217,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
             dayHeaderContent={renderDayHeader}
             events={events}
             eventContent={renderEventContent}
+            eventDidMount={handleEventDidMount}
             select={handleSelect}
             eventClick={handleEventClick}
             eventDrop={handleEventDrop}

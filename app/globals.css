@@ -559,34 +559,101 @@ select:focus-visible {
 
 /* Events */
 .calendar-board .fc-event {
-  border-radius: 8px;
-  border: none !important;
+  --gcal-event-color: #4285f4;
+  overflow: hidden;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--gcal-event-color) 54%, transparent) !important;
+  background: color-mix(in srgb, var(--gcal-event-color) 78%, rgb(var(--color-paper)) 22%) !important;
   cursor: pointer;
-  color: #1f1f1f !important;
-  font-size: 14px;
-  font-weight: 700;
-  transition: filter 100ms ease, box-shadow 100ms ease;
-  box-shadow: none;
+  color: rgb(var(--color-ink)) !important;
+  font-size: 12px;
+  font-weight: 650;
+  transition: box-shadow 140ms ease, filter 140ms ease, transform 140ms ease;
+  box-shadow: inset 3px 0 0 var(--gcal-event-color), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .calendar-board .fc-event:hover {
-  filter: brightness(1.08);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+  filter: brightness(1.06) saturate(1.04);
+  box-shadow: inset 3px 0 0 var(--gcal-event-color), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 5px 14px rgba(0, 0, 0, 0.22);
 }
 
 .calendar-board .fc-highlight {
-  background: rgba(66, 133, 244, 0.22);
+  background: rgba(66, 133, 244, 0.18);
 }
 
 .calendar-board .fc-timegrid-event {
-  border-radius: 8px;
-  box-shadow: none;
+  border-radius: 7px;
 }
 
 .calendar-board .fc-timegrid-event .fc-event-main {
   height: 100%;
   padding: 0;
+  color: inherit !important;
   overflow: hidden;
+}
+
+.calendar-board .gcal-event-card {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  padding: 5px 7px 5px 10px;
+}
+
+.calendar-board .gcal-event-card-short {
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.calendar-board .gcal-event-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gcal-event-color) 72%, rgb(var(--color-ink)) 28%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24);
+}
+
+.calendar-board .gcal-event-title,
+.calendar-board .gcal-event-time,
+.calendar-board .gcal-event-location {
+  min-width: 0;
+  overflow: hidden;
+  color: rgb(var(--color-ink));
+  text-overflow: ellipsis;
+}
+
+.calendar-board .gcal-event-title {
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.calendar-board .gcal-event-time,
+.calendar-board .gcal-event-location {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.18;
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+.calendar-board .gcal-event-card-short .gcal-event-title {
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+
+.calendar-board .gcal-event-card-short .gcal-event-time {
+  flex: 0 1 auto;
+  opacity: 0.62;
 }
 
 .calendar-board .fc-daygrid-event {
