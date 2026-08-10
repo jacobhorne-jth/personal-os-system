@@ -196,6 +196,7 @@ type TimerState = {
   running: boolean;
   responsibilityId: string;
   title: string;
+  labelId?: string;
   startedAt?: string;
 };
 
@@ -465,8 +466,9 @@ type AppState = {
   // Timer
   setTimerResponsibility: (responsibilityId: string) => void;
   setTimerTitle: (title: string) => void;
+  addTimeQuickLabel: (input: { title: string; responsibilityId?: string }) => string;
   selectTimeQuickLabel: (labelId: string) => void;
-  startTimer: (input?: { title?: string; responsibilityId?: string }) => void;
+  startTimer: (input?: { title?: string; responsibilityId?: string; labelId?: string }) => void;
   pauseTimer: () => void;
   stopTimer: () => void;
   addManualTimeLog: (input: { title: string; responsibilityId: string; startedAt: string; endedAt: string; notes?: string }) => void;
@@ -1699,7 +1701,33 @@ export const useAppStore = create<AppState>()(
         set((state) => ({ timer: { ...state.timer, responsibilityId } })),
 
       setTimerTitle: (title) =>
-        set((state) => ({ timer: { ...state.timer, title } })),
+        set((state) => ({ timer: { ...state.timer, title, labelId: undefined } })),
+
+      addTimeQuickLabel: (input) => {
+        const title = input.title.trim();
+        if (!title) return "";
+        const responsibilityId = input.responsibilityId ?? get().timer.responsibilityId;
+        const lastUsedAt = new Date().toISOString();
+        const existing = get().timeQuickLabels.find(
+          (item) => item.title.toLowerCase() === title.toLowerCase() && item.responsibilityId === responsibilityId
+        );
+        if (existing) {
+          set((state) => ({
+            timeQuickLabels: state.timeQuickLabels
+              .map((item) => item.id === existing.id ? { ...item, title, lastUsedAt } : item)
+              .sort((a, b) => b.lastUsedAt.localeCompare(a.lastUsedAt)),
+          }));
+          return existing.id;
+        }
+        const labelId = id("time-label");
+        set((state) => ({
+          timeQuickLabels: [
+            { id: labelId, title, responsibilityId, lastUsedAt, useCount: 0 },
+            ...state.timeQuickLabels,
+          ].slice(0, 16),
+        }));
+        return labelId;
+      },
 
       selectTimeQuickLabel: (labelId) => {
         const label = get().timeQuickLabels.find((item) => item.id === labelId);
@@ -1709,6 +1737,7 @@ export const useAppStore = create<AppState>()(
           timer: {
             ...state.timer,
             title: label.title,
+            labelId: label.id,
             responsibilityId: label.responsibilityId || state.timer.responsibilityId,
           },
           timeQuickLabels: state.timeQuickLabels
@@ -1721,10 +1750,12 @@ export const useAppStore = create<AppState>()(
         const startedAt = new Date().toISOString();
         const title = input?.title?.trim() || get().timer.title.trim() || "Focus session";
         const responsibilityId = input?.responsibilityId ?? get().timer.responsibilityId;
+        const labelId = input?.labelId ?? get().timer.labelId;
         set((state) => ({
           timer: {
             ...state.timer,
             title,
+            labelId,
             responsibilityId,
             running: true,
             startedAt,
