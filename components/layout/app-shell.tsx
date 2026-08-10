@@ -35,7 +35,7 @@ const navItems = [
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/tasks", label: "Tasks", icon: CheckCircle2 },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/responsibilities", label: "Responsibilities", icon: Tags },
+  { href: "/responsibilities", label: "Labels", icon: Tags },
   { href: "/goals", label: "Goals", icon: Flag },
   { href: "/habits", label: "Habits", icon: Repeat2 },
   { href: "/gym", label: "Gym", icon: Dumbbell },
@@ -52,7 +52,7 @@ const mobileNavItems = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/tasks", label: "Tasks", icon: CheckCircle2 },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/responsibilities", label: "Projects", icon: Tags },
+  { href: "/responsibilities", label: "Labels", icon: Tags },
 ];
 
 

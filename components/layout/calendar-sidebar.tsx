@@ -191,7 +191,7 @@ export function CalendarSidebar() {
       <div className="mx-[var(--panel-inset)] mb-4 h-px bg-line" />
 
       <div className="flex-1 overflow-y-auto px-[var(--panel-inset)]">
-        <p className="mb-2 text-xs font-medium text-muted">Responsibilities</p>
+        <p className="mb-2 text-xs font-medium text-muted">Labels</p>
         {responsibilities.filter((resp) => !resp.archivedAt).map((item) => {
           const tone = getTone(item.color);
           const hidden = hiddenResponsibilities.includes(item.id);
