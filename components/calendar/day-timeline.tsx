@@ -90,23 +90,27 @@ export function DayTimeline({ filteredResponsibilityId, date, className }: { fil
             {items.map((item) => {
               const responsibility = responsibilities.find((entry) => entry.id === item.responsibilityId);
               const color = responsibility?.color ?? "blue";
-              const compact = minutesBetween(item.startsAt, item.endsAt) <= 30;
-              const timeRange = `${formatTime(item.startsAt)} - ${formatTime(item.endsAt)}`;
+              const duration = minutesBetween(item.startsAt, item.endsAt);
+              const tiny = duration <= 20;
+              const compact = duration <= 45;
+              const roomy = duration >= 75;
+              const startTime = formatTime(item.startsAt);
+              const timeRange = `${startTime} - ${formatTime(item.endsAt)}`;
               return (
                 <Link
                   href={`/event/${item.id}`}
                   key={item.id}
                   className={cn(
                     "home-day-event group absolute left-2 right-3 overflow-hidden rounded-md text-xs leading-tight transition duration-200 hover:brightness-110 sm:left-4 sm:right-5",
+                    tiny && "home-day-event-tiny",
                     compact && "home-day-event-compact"
                   )}
                   style={{ ...itemPosition(item, startHour, totalMinutes), "--home-day-event-color": getTone(color).hex } as CSSProperties}
                 >
-                  <div className={cn("home-day-event-card", compact && "home-day-event-card-compact")}>
-                    {compact && <span className="home-day-event-dot" aria-hidden="true" />}
+                  <div className={cn("home-day-event-card", tiny && "home-day-event-card-tiny", compact && "home-day-event-card-compact")}>
                     <span className="home-day-event-title">{item.title}</span>
-                    <span className="home-day-event-time">{timeRange}</span>
-                    {item.location && !compact && <span className="home-day-event-location">{item.location}</span>}
+                    <span className="home-day-event-time">{tiny ? `, ${startTime}` : timeRange}</span>
+                    {roomy && item.location && <span className="home-day-event-location">{item.location}</span>}
                   </div>
                 </Link>
               );

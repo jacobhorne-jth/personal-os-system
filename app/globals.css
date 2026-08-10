@@ -603,26 +603,18 @@ select:focus-visible {
   min-height: 0;
   min-width: 0;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   overflow: hidden;
-  padding: 5px 7px 5px 10px;
+  padding: 3px 7px 3px 9px;
 }
 
-.calendar-board .gcal-event-card-short {
+.calendar-board .gcal-event-card-tiny,
+.calendar-board .gcal-event-card-compact {
   flex-direction: row;
   align-items: center;
-  gap: 5px;
+  gap: 0;
   padding-top: 0;
   padding-bottom: 0;
-}
-
-.calendar-board .gcal-event-dot {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--gcal-event-color) 72%, rgb(var(--color-ink)) 28%);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24);
 }
 
 .calendar-board .gcal-event-title,
@@ -635,30 +627,40 @@ select:focus-visible {
 }
 
 .calendar-board .gcal-event-title {
-  font-size: 12px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 11px;
   font-weight: 750;
-  line-height: 1.15;
+  line-height: 1.05;
   overflow-wrap: anywhere;
 }
 
 .calendar-board .gcal-event-time,
 .calendar-board .gcal-event-location {
   display: block;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.18;
-  opacity: 0.72;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.08;
+  opacity: 0.76;
   white-space: nowrap;
 }
 
-.calendar-board .gcal-event-card-short .gcal-event-title {
+.calendar-board .gcal-event-card-tiny .gcal-event-title,
+.calendar-board .gcal-event-card-compact .gcal-event-title {
+  display: block;
   flex: 1 1 auto;
   white-space: nowrap;
 }
 
-.calendar-board .gcal-event-card-short .gcal-event-time {
+.calendar-board .gcal-event-card-tiny .gcal-event-time,
+.calendar-board .gcal-event-card-compact .gcal-event-time {
   flex: 0 1 auto;
-  opacity: 0.62;
+  opacity: 0.68;
+}
+
+.calendar-board .gcal-event-card-compact .gcal-event-title {
+  margin-right: 4px;
 }
 
 .home-day-event {
@@ -679,26 +681,18 @@ select:focus-visible {
   min-width: 0;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 2px;
+  gap: 1px;
   overflow: hidden;
-  padding: 7px 9px 7px 11px;
+  padding: 4px 9px 4px 11px;
 }
 
+.home-day-event-card-tiny,
 .home-day-event-card-compact {
   flex-direction: row;
   align-items: center;
-  gap: 6px;
+  gap: 0;
   padding-top: 0;
   padding-bottom: 0;
-}
-
-.home-day-event-dot {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--home-day-event-color) 72%, rgb(var(--color-ink)) 28%);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24);
 }
 
 .home-day-event-title,
@@ -710,10 +704,13 @@ select:focus-visible {
 }
 
 .home-day-event-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   color: rgb(var(--color-ink));
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 750;
-  line-height: 1.15;
+  line-height: 1.05;
   overflow-wrap: anywhere;
 }
 
@@ -721,21 +718,28 @@ select:focus-visible {
 .home-day-event-location {
   display: block;
   color: rgb(var(--color-ink));
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.18;
-  opacity: 0.72;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.08;
+  opacity: 0.76;
   white-space: nowrap;
 }
 
+.home-day-event-card-tiny .home-day-event-title,
 .home-day-event-card-compact .home-day-event-title {
+  display: block;
   flex: 1 1 auto;
   white-space: nowrap;
 }
 
+.home-day-event-card-tiny .home-day-event-time,
 .home-day-event-card-compact .home-day-event-time {
   flex: 0 1 auto;
-  opacity: 0.62;
+  opacity: 0.68;
+}
+
+.home-day-event-card-compact .home-day-event-title {
+  margin-right: 4px;
 }
 
 .calendar-board .fc-daygrid-event {

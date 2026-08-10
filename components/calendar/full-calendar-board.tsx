@@ -940,15 +940,26 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
     }
 
     const fmt = (d: Date) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    const timeRange = event.start && event.end ? `${fmt(event.start)} – ${fmt(event.end)}` : event.start ? fmt(event.start) : "";
+    const startTime = event.start ? fmt(event.start) : "";
+    const timeRange = event.start && event.end ? `${startTime} – ${fmt(event.end)}` : startTime;
 
     const durationMinutes = event.start && event.end ? Math.max(0, (event.end.getTime() - event.start.getTime()) / 60000) : 0;
-    const shortEvent = durationMinutes > 0 && durationMinutes <= 30;
+    const tinyEvent = durationMinutes > 0 && durationMinutes <= 20;
+    const compactEvent = durationMinutes > 0 && durationMinutes <= 45;
+    const roomyEvent = durationMinutes >= 75;
 
-    if (shortEvent) {
+    if (tinyEvent) {
       return (
-        <div className="gcal-event-card gcal-event-card-short">
-          <span className="gcal-event-dot" aria-hidden="true" />
+        <div className="gcal-event-card gcal-event-card-tiny">
+          <span className="gcal-event-title">{title}</span>
+          {startTime && <span className="gcal-event-time">, {startTime}</span>}
+        </div>
+      );
+    }
+
+    if (compactEvent) {
+      return (
+        <div className="gcal-event-card gcal-event-card-compact">
           <span className="gcal-event-title">{title}</span>
           {timeRange && <span className="gcal-event-time">{timeRange}</span>}
         </div>
@@ -959,7 +970,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
       <div className="gcal-event-card">
         <span className="gcal-event-title">{title}</span>
         {timeRange && <span className="gcal-event-time">{timeRange}</span>}
-        {location && (
+        {roomyEvent && location && (
           <span className="gcal-event-location">{location}</span>
         )}
       </div>
