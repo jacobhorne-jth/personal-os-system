@@ -562,10 +562,10 @@ select:focus-visible {
   --gcal-event-color: #4285f4;
   overflow: hidden;
   border-radius: 7px;
-  border: 1px solid color-mix(in srgb, var(--gcal-event-color) 54%, transparent) !important;
-  background: color-mix(in srgb, var(--gcal-event-color) 78%, rgb(var(--color-paper)) 22%) !important;
+  border: 1px solid color-mix(in srgb, var(--gcal-event-color) 72%, white 28%) !important;
+  background: color-mix(in srgb, var(--gcal-event-color) 60%, white 40%) !important;
   cursor: pointer;
-  color: rgb(var(--color-ink)) !important;
+  color: #111827 !important;
   font-size: 12px;
   font-weight: 650;
   transition: box-shadow 140ms ease, filter 140ms ease, transform 140ms ease;
@@ -597,10 +597,10 @@ select:focus-visible {
   right: 4px;
   z-index: 5;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--gcal-event-color) 54%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gcal-event-color) 72%, white 28%);
   border-radius: 7px;
-  background: color-mix(in srgb, var(--gcal-event-color) 78%, rgb(var(--color-paper)) 22%);
-  color: rgb(var(--color-ink));
+  background: color-mix(in srgb, var(--gcal-event-color) 60%, white 40%);
+  color: #111827;
   pointer-events: none;
   box-shadow: inset 3px 0 0 var(--gcal-event-color), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 5px 14px rgba(0, 0, 0, 0.2);
 }
@@ -637,7 +637,7 @@ select:focus-visible {
 .calendar-board .gcal-event-location {
   min-width: 0;
   overflow: hidden;
-  color: rgb(var(--color-ink));
+  color: #111827;
   text-overflow: ellipsis;
 }
 
@@ -720,9 +720,9 @@ select:focus-visible {
 
 .home-day-event {
   --home-day-event-color: #4285f4;
-  border: 1px solid color-mix(in srgb, var(--home-day-event-color) 54%, transparent);
-  background: color-mix(in srgb, var(--home-day-event-color) 76%, rgb(var(--color-paper)) 24%);
-  color: rgb(var(--color-ink));
+  border: 1px solid color-mix(in srgb, var(--home-day-event-color) 72%, white 28%);
+  background: color-mix(in srgb, var(--home-day-event-color) 60%, white 40%);
+  color: #111827;
   box-shadow: inset 3px 0 0 var(--home-day-event-color), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
@@ -762,7 +762,7 @@ select:focus-visible {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  color: rgb(var(--color-ink));
+  color: #111827;
   font-size: 11px;
   font-weight: 750;
   line-height: 1.05;
@@ -772,7 +772,7 @@ select:focus-visible {
 .home-day-event-time,
 .home-day-event-location {
   display: block;
-  color: rgb(var(--color-ink));
+  color: #111827;
   font-size: 9px;
   font-weight: 650;
   line-height: 1.08;

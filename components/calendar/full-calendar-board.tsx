@@ -954,7 +954,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
     if (event.allDay || view.type === "dayGridMonth") {
       const pillColor = event.backgroundColor || event.borderColor || "#4285f4";
       return (
-        <div className="gcal-month-event-pill" style={{ backgroundColor: pillColor, color: event.textColor || "#fff" }}>
+        <div className="gcal-month-event-pill" style={{ backgroundColor: pillColor, color: "#111827" }}>
           <span className="gcal-month-event-title">{title}</span>
         </div>
       );
