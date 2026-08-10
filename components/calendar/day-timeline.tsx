@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import Link from "next/link";
 import { expandCalendarItems } from "@/lib/recurrence";
 import { useAppStore } from "@/lib/stores/app-store";
 import type { CalendarItem } from "@/lib/types/domain";
 import { getTone } from "@/lib/theme";
-import { cn, minutesBetween } from "@/lib/utils";
+import { cn, formatTime, minutesBetween } from "@/lib/utils";
 
 const DAY_START_HOUR = 0;
 const DAY_END_HOUR = 24;
@@ -91,25 +91,22 @@ export function DayTimeline({ filteredResponsibilityId, date, className }: { fil
               const responsibility = responsibilities.find((entry) => entry.id === item.responsibilityId);
               const color = responsibility?.color ?? "blue";
               const compact = minutesBetween(item.startsAt, item.endsAt) <= 30;
+              const timeRange = `${formatTime(item.startsAt)} - ${formatTime(item.endsAt)}`;
               return (
                 <Link
                   href={`/event/${item.id}`}
                   key={item.id}
                   className={cn(
-                    "group absolute left-2 right-3 overflow-hidden rounded-md border-0 px-3 text-xs leading-tight transition duration-200 hover:brightness-110 sm:left-4 sm:right-5",
-                    compact ? "flex min-h-7 items-center py-1" : "py-2"
+                    "home-day-event group absolute left-2 right-3 overflow-hidden rounded-md text-xs leading-tight transition duration-200 hover:brightness-110 sm:left-4 sm:right-5",
+                    compact && "home-day-event-compact"
                   )}
-                  style={{ ...itemPosition(item, startHour, totalMinutes), backgroundColor: getTone(color).hex }}
+                  style={{ ...itemPosition(item, startHour, totalMinutes), "--home-day-event-color": getTone(color).hex } as CSSProperties}
                 >
-                  <div className={cn("relative min-w-0", compact && "w-full")}>
-                    <div className={cn("min-w-0", compact && "flex items-center gap-2")}>
-                      <span className="block truncate font-semibold text-white">{item.title}</span>
-                      {item.location && (
-                        <span className={cn("block truncate text-[11px] text-white/90", compact ? "min-w-0 before:mr-2 before:content-['·']" : "mt-0.5")}>
-                          {item.location}
-                        </span>
-                      )}
-                    </div>
+                  <div className={cn("home-day-event-card", compact && "home-day-event-card-compact")}>
+                    {compact && <span className="home-day-event-dot" aria-hidden="true" />}
+                    <span className="home-day-event-title">{item.title}</span>
+                    <span className="home-day-event-time">{timeRange}</span>
+                    {item.location && !compact && <span className="home-day-event-location">{item.location}</span>}
                   </div>
                 </Link>
               );

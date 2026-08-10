@@ -656,6 +656,83 @@ select:focus-visible {
   opacity: 0.62;
 }
 
+.home-day-event {
+  --home-day-event-color: #4285f4;
+  border: 1px solid color-mix(in srgb, var(--home-day-event-color) 54%, transparent);
+  background: color-mix(in srgb, var(--home-day-event-color) 76%, rgb(var(--color-paper)) 24%);
+  color: rgb(var(--color-ink));
+  box-shadow: inset 3px 0 0 var(--home-day-event-color), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.home-day-event:hover {
+  box-shadow: inset 3px 0 0 var(--home-day-event-color), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 5px 14px rgba(0, 0, 0, 0.2);
+}
+
+.home-day-event-card {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 2px;
+  overflow: hidden;
+  padding: 7px 9px 7px 11px;
+}
+
+.home-day-event-card-compact {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.home-day-event-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--home-day-event-color) 72%, rgb(var(--color-ink)) 28%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24);
+}
+
+.home-day-event-title,
+.home-day-event-time,
+.home-day-event-location {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-day-event-title {
+  color: rgb(var(--color-ink));
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.home-day-event-time,
+.home-day-event-location {
+  display: block;
+  color: rgb(var(--color-ink));
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.18;
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+.home-day-event-card-compact .home-day-event-title {
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+
+.home-day-event-card-compact .home-day-event-time {
+  flex: 0 1 auto;
+  opacity: 0.62;
+}
+
 .calendar-board .fc-daygrid-event {
   border-radius: 8px;
   padding: 1px 6px;
