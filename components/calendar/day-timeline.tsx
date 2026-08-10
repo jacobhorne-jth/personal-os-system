@@ -14,11 +14,12 @@ const ROW_HEIGHT = 60;
 
 function itemPosition(item: CalendarItem, startHour: number, totalMinutes: number) {
   const start = new Date(item.startsAt);
-  const startMinutes = (start.getHours() - startHour) * 60 + start.getMinutes();
+  const startMinutes = Math.max(0, (start.getHours() - startHour) * 60 + start.getMinutes());
   const duration = Math.max(minutesBetween(item.startsAt, item.endsAt), 20);
+  const visibleDuration = Math.min(duration, totalMinutes - startMinutes);
   return {
     top: `${(startMinutes / totalMinutes) * 100}%`,
-    height: `${(duration / totalMinutes) * 100}%`
+    height: `${(visibleDuration / totalMinutes) * 100}%`
   };
 }
 
@@ -38,7 +39,7 @@ function todayKey() {
   return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
 }
 
-export function DayTimeline({ filteredResponsibilityId, date }: { filteredResponsibilityId?: string; date?: string }) {
+export function DayTimeline({ filteredResponsibilityId, date, className }: { filteredResponsibilityId?: string; date?: string; className?: string }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const calendarItems = useAppStore((state) => state.calendarItems);
   const responsibilities = useAppStore((state) => state.responsibilities);
@@ -77,18 +78,18 @@ export function DayTimeline({ filteredResponsibilityId, date }: { filteredRespon
   }, [startHour]);
 
   return (
-    <div ref={scrollRef} className="relative max-h-[660px] overflow-y-auto rounded-xl border border-line bg-panel shadow-glow">
+    <div ref={scrollRef} className={cn("relative max-h-[660px] overflow-y-auto rounded-xl border border-line bg-panel shadow-glow", className)}>
       <div className="grid grid-cols-[58px_1fr]" style={{ height: contentHeight }}>
         <div className="border-r border-line bg-paper">
           {hours.map((hour) => (
-            <div key={hour} className="h-14 pr-2 pt-1 text-right text-[10px] font-medium text-muted">
+            <div key={hour} className="pr-2 pt-1 text-right text-[10px] font-medium text-muted" style={{ height: ROW_HEIGHT }}>
               {hourLabel(hour)}
             </div>
           ))}
         </div>
         <div className="relative">
           {hours.map((hour) => (
-            <div key={hour} className="h-14 border-b border-line" />
+            <div key={hour} className="border-b border-line" style={{ height: ROW_HEIGHT }} />
           ))}
           <div className="absolute inset-0">
             {items.map((item) => {
@@ -100,7 +101,7 @@ export function DayTimeline({ filteredResponsibilityId, date }: { filteredRespon
                   href={`/event/${item.id}`}
                   key={item.id}
                   className={cn(
-                    "group absolute left-2 right-3 overflow-hidden rounded-md border-0 px-3 text-xs transition duration-200 hover:brightness-110 sm:left-4 sm:right-5",
+                    "group absolute left-2 right-3 overflow-hidden rounded-md border-0 px-3 text-xs leading-tight transition duration-200 hover:brightness-110 sm:left-4 sm:right-5",
                     compact ? "flex min-h-7 items-center py-1" : "py-2"
                   )}
                   style={{ ...itemPosition(item, startHour, totalMinutes), backgroundColor: getTone(color).hex }}
