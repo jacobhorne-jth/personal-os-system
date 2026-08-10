@@ -2,29 +2,21 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, Dumbbell, Flame, Inbox, Plus, Search, Utensils, X } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Inbox, Plus, Search, X } from "lucide-react";
+import { DayTimeline } from "@/components/calendar/day-timeline";
 import { QuickCaptureForm } from "@/components/capture/quick-capture-form";
 import { addDays, formatDateHeading, localDateKey } from "@/lib/dates";
 import {
   activeReviewItems,
   dateFromKey,
-  eventsForDay,
-  foodTotalsForDate,
-  goalProgress,
   habitProgressForDate,
-  scheduledHoursForWeek,
   tasksForDay,
-  taskStatsForWeek,
   weekBounds,
 } from "@/lib/dashboard/summary";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { taskLabel, taskLabelColor } from "@/lib/task-labels";
 import { cn } from "@/lib/utils";
-
-function formatTime(value: string) {
-  return new Date(value).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-}
 
 function weekStripDays(dateKey: string) {
   const { keys } = weekBounds(dateKey);
@@ -36,19 +28,6 @@ function weekStripDays(dateKey: string) {
       day: date.getDate(),
     };
   });
-}
-
-function StatTile({ label, value, detail, icon: Icon }: { label: string; value: string; detail: string; icon: React.ElementType }) {
-  return (
-    <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{label}</p>
-        <Icon className="size-4 text-muted" />
-      </div>
-      <p className="mt-3 text-2xl font-semibold text-ink">{value}</p>
-      <p className="mt-1 text-xs text-muted">{detail}</p>
-    </div>
-  );
 }
 
 function SectionHeader({ title, href, action }: { title: string; href?: string; action?: string }) {
@@ -66,62 +45,22 @@ function SectionHeader({ title, href, action }: { title: string; href?: string; 
 
 export function HomeWorkspaceV2() {
   const tasks = useAppStore((state) => state.tasks);
-  const calendarItems = useAppStore((state) => state.calendarItems);
   const responsibilities = useAppStore((state) => state.responsibilities);
   const aiReviewItems = useAppStore((state) => state.aiReviewItems);
   const habits = useAppStore((state) => state.habits);
   const habitLogs = useAppStore((state) => state.habitLogs);
-  const foodEntries = useAppStore((state) => state.foodEntries);
-  const foodTargets = useAppStore((state) => state.foodTargets);
-  const gymSessions = useAppStore((state) => state.gymSessions);
-  const goals = useAppStore((state) => state.goals);
   const toggleTask = useAppStore((state) => state.toggleTask);
   const logHabit = useAppStore((state) => state.logHabit);
-  const { selectedDate, setSelectedDate, setCalendarView, setCalendarGotoDate } = useUiStore();
+  const { selectedDate, setSelectedDate } = useUiStore();
   const [captureOpen, setCaptureOpen] = useState(false);
 
   const today = localDateKey();
   const selectedIsToday = selectedDate === today;
   const dateLabel = formatDateHeading(dateFromKey(selectedDate));
   const weekDays = weekStripDays(selectedDate);
-  const schedule = useMemo(() => eventsForDay(calendarItems, selectedDate), [calendarItems, selectedDate]);
   const dayTasks = useMemo(() => tasksForDay(tasks, selectedDate), [tasks, selectedDate]);
   const activeReviews = useMemo(() => activeReviewItems(aiReviewItems), [aiReviewItems]);
   const habitProgress = useMemo(() => habitProgressForDate(habits, habitLogs, selectedDate), [habits, habitLogs, selectedDate]);
-  const foodTotals = useMemo(() => foodTotalsForDate(foodEntries, selectedDate), [foodEntries, selectedDate]);
-  const weeklyTasks = useMemo(() => taskStatsForWeek(tasks, selectedDate), [tasks, selectedDate]);
-  const weeklyHours = useMemo(() => scheduledHoursForWeek(calendarItems, selectedDate), [calendarItems, selectedDate]);
-  const goalsProgress = useMemo(() => goalProgress(goals), [goals]);
-  const workoutLogged = gymSessions.some((session) => session.date === selectedDate);
-  const completedForDate = tasks.filter((task) => task.status === "done" && task.dueAt?.slice(0, 10) === selectedDate).length;
-  const briefingItems = [
-    schedule[0] && {
-      label: "Next event",
-      title: `${formatTime(schedule[0].startsAt)} · ${schedule[0].title}`,
-      href: "/calendar",
-      onClick: openSelectedDay,
-    },
-    dayTasks[0] && {
-      label: "First task",
-      title: dayTasks[0].title,
-      href: `/task/${dayTasks[0].id}`,
-    },
-    activeReviews[0] && {
-      label: "Inbox",
-      title: `${activeReviews.length} review item${activeReviews.length === 1 ? "" : "s"} waiting`,
-      href: "/inbox",
-    },
-    !workoutLogged && {
-      label: "Body",
-      title: "Workout not logged",
-      href: "/gym",
-    },
-  ].filter(Boolean) as Array<{ label: string; title: string; href: string; onClick?: () => void }>;
-
-  function openSelectedDay() {
-    setCalendarView("day");
-    setCalendarGotoDate(`${selectedDate}T12:00:00`);
-  }
 
   return (
     <div className="h-full overflow-y-auto bg-paper text-ink">
@@ -132,7 +71,7 @@ export function HomeWorkspaceV2() {
               <p className="text-sm text-muted">{selectedIsToday ? "Today" : "Selected day"}</p>
               <h1 className="mt-1 text-3xl font-semibold leading-tight text-ink sm:text-4xl">{dateLabel}</h1>
               <p className="mt-2 text-sm text-muted">
-                {schedule.length} event{schedule.length === 1 ? "" : "s"} · {dayTasks.length} task{dayTasks.length === 1 ? "" : "s"} · {activeReviews.length} inbox review{activeReviews.length === 1 ? "" : "s"}
+                {dayTasks.length} task{dayTasks.length === 1 ? "" : "s"} · {activeReviews.length} inbox review{activeReviews.length === 1 ? "" : "s"}
               </p>
             </div>
 
@@ -206,88 +145,42 @@ export function HomeWorkspaceV2() {
           </div>
         </section>
 
-        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <StatTile label="Tasks" value={`${completedForDate}/${completedForDate + dayTasks.length}`} detail={`${weeklyTasks.overdue} overdue this week`} icon={CheckSquare2} />
-          <StatTile label="Habits" value={`${habitProgress.completed}/${habitProgress.total}`} detail={habitProgress.total ? "scheduled today" : "none set up"} icon={Flame} />
-          <StatTile label="Calories" value={`${foodTotals.calories}/${foodTargets.calories}`} detail={`${foodTotals.protein}/${foodTargets.protein}g protein`} icon={Utensils} />
-          <StatTile label="Workout" value={workoutLogged ? "Logged" : "Not logged"} detail={goalsProgress.average !== null ? `${goalsProgress.average}% avg goal progress` : "no active goals"} icon={Dumbbell} />
-        </section>
+        <section className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px_360px]">
+          <DayTimeline date={selectedDate} className="min-h-[620px] xl:col-start-1 xl:row-start-1" />
 
-        <section className="grid gap-3 lg:grid-cols-4">
-          {briefingItems.slice(0, 4).map((item) => (
-            <Link
-              key={`${item.label}-${item.title}`}
-              href={item.href}
-              onClick={item.onClick}
-              className="rounded-xl border border-line bg-panel p-4 shadow-glow transition hover:border-blue/40 hover:bg-hover"
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{item.label}</p>
-              <p className="mt-2 line-clamp-2 text-sm font-medium leading-5 text-ink">{item.title}</p>
-            </Link>
-          ))}
-          {briefingItems.length === 0 && (
-            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow lg:col-span-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Daily briefing</p>
-              <p className="mt-2 text-sm text-muted">Nothing urgent is waiting. Pick one meaningful thing and protect the time.</p>
-            </div>
-          )}
-        </section>
-
-        <section className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="space-y-4">
-            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-              <SectionHeader title="Today's schedule" href="/calendar" action="View day" />
-              {schedule.length ? (
-                <div className="divide-y divide-line">
-                  {schedule.slice(0, 5).map((item) => (
-                    <Link key={item.id} href="/calendar" onClick={openSelectedDay} className="grid grid-cols-[78px_1fr] gap-3 py-3 transition hover:text-blue">
-                      <span className="text-sm font-semibold text-blue">{formatTime(item.startsAt)}</span>
-                      <span className="min-w-0 truncate text-sm font-medium text-ink">{item.title}</span>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <Link href="/calendar" onClick={openSelectedDay} className="flex items-center justify-between rounded-lg bg-paper px-4 py-3 text-sm text-muted transition hover:bg-hover">
-                  No events on this day
-                  <ChevronRight className="size-4" />
-                </Link>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-              <SectionHeader title="Tasks" href="/tasks" action="See all" />
-              {dayTasks.length ? (
-                <div className="divide-y divide-line">
-                  {dayTasks.slice(0, 8).map((task) => {
-                    const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
-                    const color = taskLabelColor(label, responsibilities);
-                    return (
-                      <div key={task.id} className="flex items-start gap-3 py-3">
-                        <button
-                          type="button"
-                          onClick={() => toggleTask(task.id)}
-                          className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-[5px] border-[1.5px] transition active:scale-95"
-                          style={{ borderColor: color }}
-                          aria-label="Complete task"
-                        />
-                        <Link href={`/task/${task.id}`} className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-ink">{task.title}</p>
-                          <p className="mt-1 flex items-center gap-2 text-xs text-muted">
-                            <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
-                            {label}
-                          </p>
-                        </Link>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-lg bg-paper px-4 py-6 text-center text-sm text-muted">No tasks for this day.</div>
-              )}
-            </div>
+          <div className="rounded-xl border border-line bg-panel p-4 shadow-glow xl:col-start-2 xl:row-start-1">
+            <SectionHeader title={selectedIsToday ? "Today's tasks" : "Selected day's tasks"} href="/tasks" action="See all" />
+            {dayTasks.length ? (
+              <div className="divide-y divide-line">
+                {dayTasks.slice(0, 8).map((task) => {
+                  const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
+                  const color = taskLabelColor(label, responsibilities);
+                  return (
+                    <div key={task.id} className="flex items-start gap-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleTask(task.id)}
+                        className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-[5px] border-[1.5px] transition active:scale-95"
+                        style={{ borderColor: color }}
+                        aria-label="Complete task"
+                      />
+                      <Link href={`/task/${task.id}`} className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-ink">{task.title}</p>
+                        <p className="mt-1 flex items-center gap-2 text-xs text-muted">
+                          <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
+                          {label}
+                        </p>
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-lg bg-paper px-4 py-6 text-center text-sm text-muted">No tasks for this day.</div>
+            )}
           </div>
 
-          <aside className="space-y-4">
+          <aside className="space-y-4 xl:col-start-3 xl:row-start-1">
             <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
               <SectionHeader title="Inbox review" href="/inbox" action="Open inbox" />
               {activeReviews.length ? (
@@ -330,38 +223,6 @@ export function HomeWorkspaceV2() {
                 <p className="rounded-lg bg-paper px-4 py-4 text-sm text-muted">No habits configured.</p>
               )}
             </div>
-
-            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-              <SectionHeader title="Focus next" href="/weekly-review" action="Weekly review" />
-              <p className="text-sm leading-6 text-muted">
-                {dayTasks[0]
-                  ? `Start with "${dayTasks[0].title}" before the day fills up.`
-                  : activeReviews.length
-                    ? "Clear the inbox review queue before adding more work."
-                    : "The day looks open. Pick one important thing and protect time for it."}
-              </p>
-            </div>
-
-            <Link href="/weekly-review" className="block rounded-xl border border-line bg-panel p-4 shadow-glow transition hover:border-blue/40 hover:bg-hover">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-ink">Week pulse</h2>
-                <span className="text-xs font-semibold text-blue">Review</span>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-lg bg-paper p-3">
-                  <p className="text-xl font-semibold text-ink">{weeklyTasks.completed}/{weeklyTasks.due}</p>
-                  <p className="mt-1 text-[11px] text-muted">tasks</p>
-                </div>
-                <div className="rounded-lg bg-paper p-3">
-                  <p className="text-xl font-semibold text-ink">{weeklyHours.toFixed(1)}h</p>
-                  <p className="mt-1 text-[11px] text-muted">scheduled</p>
-                </div>
-                <div className="rounded-lg bg-paper p-3">
-                  <p className="text-xl font-semibold text-ink">{weeklyTasks.overdue}</p>
-                  <p className="mt-1 text-[11px] text-muted">overdue</p>
-                </div>
-              </div>
-            </Link>
           </aside>
         </section>
       </main>
