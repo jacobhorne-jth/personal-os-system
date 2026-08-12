@@ -140,7 +140,7 @@ select:focus-visible {
 }
 
 .gcal-board-compact {
-  --gcal-slot-height: 44px;
+  --gcal-slot-height: 56px;
 }
 
 .gcal-topbar {
@@ -1193,7 +1193,7 @@ select:focus-visible {
 }
 
 .gcal-board-compact .fc-timegrid-slot {
-  height: 44px;
+  height: var(--gcal-slot-height);
 }
 
 .gcal-board-compact .fc-event {

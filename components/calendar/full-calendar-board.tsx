@@ -1246,7 +1246,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
             allDaySlot={false}
             slotMinTime="00:00:00"
             slotMaxTime="24:00:00"
-            scrollTime="07:00:00"
+            scrollTime="08:00:00"
             scrollTimeReset={false}
             initialDate={initialDate}
             slotDuration="01:00:00"
