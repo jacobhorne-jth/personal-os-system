@@ -15,7 +15,6 @@ export function GlobalSearch() {
   const tasks = useAppStore((state) => state.tasks);
   const calendarItems = useAppStore((state) => state.calendarItems);
   const notes = useAppStore((state) => state.notes);
-  const lists = useAppStore((state) => state.lists);
   const goals = useAppStore((state) => state.goals);
   const ideas = useAppStore((state) => state.ideas);
   const habits = useAppStore((state) => state.habits);
@@ -50,9 +49,6 @@ export function GlobalSearch() {
       ...notes
         .filter((item) => `${item.title} ${item.body}`.toLowerCase().includes(q))
         .map((item) => ({ id: item.id, title: item.title || "Untitled", href: `/notes/${item.id}`, kind: "Note", responsibilityId: item.responsibilityId })),
-      ...lists
-        .filter((item) => `${item.title} ${item.items.map((entry) => entry.title).join(" ")}`.toLowerCase().includes(q))
-        .map((item) => ({ id: item.id, title: item.title, href: "/lists", kind: "List", responsibilityId: item.responsibilityId })),
       ...goals
         .filter((item) => item.title.toLowerCase().includes(q))
         .map((item) => ({ id: item.id, title: item.title, href: "/goals", kind: "Goal", responsibilityId: item.responsibilityId })),
@@ -66,7 +62,7 @@ export function GlobalSearch() {
         .filter((item) => item.name.toLowerCase().includes(q))
         .map((item) => ({ id: item.id, title: item.name, href: `/r/${item.id}`, kind: "Responsibility", responsibilityId: item.id }))
     ].slice(0, 10);
-  }, [calendarItems, goals, habits, ideas, lists, notes, query, responsibilities, tasks]);
+  }, [calendarItems, goals, habits, ideas, notes, query, responsibilities, tasks]);
 
   useEffect(() => {
     setActiveIdx(0);
@@ -108,7 +104,7 @@ export function GlobalSearch() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Search tasks, events, notes, lists, goals…"
+          placeholder="Search tasks, events, notes, goals…"
           className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-muted"
         />
         <kbd className="hidden rounded-md border border-line bg-paper px-1.5 py-0.5 text-[10px] text-muted sm:block">⌘K</kbd>

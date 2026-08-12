@@ -604,7 +604,7 @@ export function SettingsWorkspace() {
         </div>
         <div className="px-5 py-4 space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted">Tasks, notes, events, lists</span>
+            <span className="text-muted">Tasks, notes, events</span>
             <span className="text-ink font-medium">Supabase</span>
           </div>
           <div className="flex items-center justify-between text-sm">
