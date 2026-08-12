@@ -150,7 +150,7 @@ export type Goal = {
 
 // ─── Food ─────────────────────────────────────────────────────────────────────
 
-export type FoodMeal = "breakfast" | "lunch" | "dinner" | "snack";
+export type FoodMeal = "meal" | "breakfast" | "lunch" | "dinner" | "snack";
 
 export type FoodEntry = {
   id: string;

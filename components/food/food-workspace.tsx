@@ -3,19 +3,10 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
-import type { FoodMeal } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 import { localDateKey } from "@/lib/dates";
 
-const MEALS: { id: FoodMeal; label: string }[] = [
-  { id: "breakfast", label: "Breakfast" },
-  { id: "lunch", label: "Lunch" },
-  { id: "dinner", label: "Dinner" },
-  { id: "snack", label: "Snacks" },
-];
-
 type AddState = {
-  meal: FoodMeal;
   name: string;
   calories: string;
   protein: string;
@@ -71,7 +62,7 @@ function MacroRing({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-base font-semibold text-ink leading-none">{value}</span>
+          <span className="text-base font-semibold leading-none text-ink">{value}</span>
           <span className="text-[10px] text-muted">{unit}</span>
         </div>
       </div>
@@ -85,17 +76,16 @@ export function FoodWorkspace() {
   const foodTargets = useAppStore((s) => s.foodTargets);
   const addFoodEntry = useAppStore((s) => s.addFoodEntry);
   const deleteFoodEntry = useAppStore((s) => s.deleteFoodEntry);
+  const setFoodTargets = useAppStore((s) => s.setFoodTargets);
   const savedFoods = useAppStore((s) => s.savedFoods);
   const addSavedFood = useAppStore((s) => s.addSavedFood);
   const deleteSavedFood = useAppStore((s) => s.deleteSavedFood);
 
   const [dateOffset, setDateOffset] = useState(0);
-  const [adding, setAdding] = useState<FoodMeal | null>(null);
-  const [form, setForm] = useState<AddState>({ meal: "breakfast", name: "", calories: "", protein: "" });
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState<AddState>({ name: "", calories: "", protein: "" });
   const [saveToLibrary, setSaveToLibrary] = useState(false);
 
-  // Library matches for the food-name search: typed query filters by name,
-  // empty query surfaces the most recent saves for one-tap logging
   const libraryMatches = useMemo(() => {
     const q = form.name.trim().toLowerCase();
     const pool = q ? savedFoods.filter((f) => f.name.toLowerCase().includes(q)) : savedFoods;
@@ -116,11 +106,12 @@ export function FoodWorkspace() {
 
   const totalCalories = dayEntries.reduce((s, e) => s + e.calories, 0);
   const totalProtein = dayEntries.reduce((s, e) => s + e.protein, 0);
+  const proteinWidth = foodTargets.protein > 0 ? Math.min(100, (totalProtein / foodTargets.protein) * 100) : 0;
 
-  function openAdd(meal: FoodMeal) {
-    setForm({ meal, name: "", calories: "", protein: "" });
+  function openAdd() {
+    setForm({ name: "", calories: "", protein: "" });
     setSaveToLibrary(false);
-    setAdding(meal);
+    setAdding(true);
   }
 
   function submitEntry() {
@@ -130,39 +121,37 @@ export function FoodWorkspace() {
     addFoodEntry({
       date: viewDate,
       name: form.name.trim(),
-      meal: form.meal,
+      meal: "meal",
       calories,
       protein,
     });
     if (saveToLibrary) {
       addSavedFood({ name: form.name.trim(), calories, protein });
     }
-    setAdding(null);
+    setAdding(false);
   }
 
-  function logSavedFood(meal: FoodMeal, foodId: string) {
+  function logSavedFood(foodId: string) {
     const food = savedFoods.find((f) => f.id === foodId);
     if (!food) return;
     addFoodEntry({
       date: viewDate,
       name: food.name,
-      meal,
+      meal: "meal",
       calories: food.calories,
       protein: food.protein,
     });
-    setAdding(null);
+    setAdding(false);
   }
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <header className="rounded-xl border border-line bg-panel p-5 shadow-glow">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm text-muted">Food</p>
             <h1 className="mt-1 text-3xl font-semibold text-ink">Nutrition log</h1>
           </div>
-          {/* Day nav */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => setDateOffset((o) => o - 1)}
@@ -181,32 +170,65 @@ export function FoodWorkspace() {
           </div>
         </div>
 
-        {/* Macro summary */}
-        <div className="mt-5 flex items-center justify-around">
-          <MacroRing
-            value={totalProtein}
-            target={foodTargets.protein}
-            color="#34d399"
-            label={`/ ${foodTargets.protein}g protein`}
-            unit="g"
-          />
-          <MacroRing
-            value={totalCalories}
-            target={foodTargets.calories}
-            color="#60a5fa"
-            label={`/ ${foodTargets.calories} calories`}
-            unit="cal"
-          />
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex size-20 flex-col items-center justify-center rounded-full border-4 border-line">
-              <span className="text-base font-semibold text-ink">{dayEntries.length}</span>
-              <span className="text-[10px] text-muted">entries</span>
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_260px] lg:items-center">
+          <div className="flex items-center justify-around">
+            <MacroRing
+              value={totalProtein}
+              target={foodTargets.protein}
+              color="#34d399"
+              label={`/ ${foodTargets.protein}g protein`}
+              unit="g"
+            />
+            <MacroRing
+              value={totalCalories}
+              target={foodTargets.calories}
+              color="#60a5fa"
+              label={`/ ${foodTargets.calories} calories`}
+              unit="cal"
+            />
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex size-20 flex-col items-center justify-center rounded-full border-4 border-line">
+                <span className="text-base font-semibold text-ink">{dayEntries.length}</span>
+                <span className="text-[10px] text-muted">meals</span>
+              </div>
+              <p className="text-xs text-muted">logged today</p>
             </div>
-            <p className="text-xs text-muted">logged today</p>
+          </div>
+
+          <div className="rounded-xl border border-line bg-paper p-3">
+            <p className="mb-3 text-sm font-medium text-ink">Daily goals</p>
+            <label className="mb-2 flex items-center justify-between gap-3 text-sm">
+              <span className="text-muted">Protein</span>
+              <span className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min={50}
+                  max={400}
+                  value={foodTargets.protein}
+                  onChange={(e) => setFoodTargets({ protein: Math.max(50, parseInt(e.target.value) || 160) })}
+                  className="w-20 rounded-lg border border-line bg-panel px-2.5 py-1.5 text-right text-sm text-ink outline-none focus:border-blue"
+                />
+                <span className="text-xs text-muted">g</span>
+              </span>
+            </label>
+            <label className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-muted">Calories</span>
+              <span className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min={1000}
+                  max={6000}
+                  step={50}
+                  value={foodTargets.calories}
+                  onChange={(e) => setFoodTargets({ calories: Math.max(1000, parseInt(e.target.value) || 2500) })}
+                  className="w-24 rounded-lg border border-line bg-panel px-2.5 py-1.5 text-right text-sm text-ink outline-none focus:border-blue"
+                />
+                <span className="text-xs text-muted">cal</span>
+              </span>
+            </label>
           </div>
         </div>
 
-        {/* Protein bar */}
         <div className="mt-5">
           <div className="mb-1.5 flex justify-between text-xs text-muted">
             <span>Protein</span>
@@ -215,49 +237,64 @@ export function FoodWorkspace() {
           <div className="h-2.5 overflow-hidden rounded-full bg-line">
             <div
               className="h-full rounded-full bg-mint transition-all duration-500"
-              style={{ width: `${Math.min(100, (totalProtein / foodTargets.protein) * 100)}%` }}
+              style={{ width: `${proteinWidth}%` }}
             />
           </div>
         </div>
       </header>
 
-      {/* Meal sections */}
-      {MEALS.map(({ id: mealId, label }) => {
-        const entries = dayEntries.filter((e) => e.meal === mealId);
-        const mealProtein = entries.reduce((s, e) => s + e.protein, 0);
-        const mealCalories = entries.reduce((s, e) => s + e.calories, 0);
-        const isAdding = adding === mealId;
+      <section className="overflow-hidden rounded-xl border border-line bg-panel">
+        <div className="flex items-center justify-between border-b border-line bg-line/40 px-4 py-2.5">
+          <div className="flex items-center gap-3">
+            <p className="text-sm font-medium text-ink">Meals</p>
+            {dayEntries.length > 0 && (
+              <span className="text-xs text-muted">{totalCalories} cal / {totalProtein}g protein</span>
+            )}
+          </div>
+          <button
+            onClick={openAdd}
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted transition hover:bg-line hover:text-ink"
+          >
+            <Plus className="size-3.5" />
+            Add meal
+          </button>
+        </div>
 
-        return (
-          <div key={mealId} className="rounded-xl border border-line bg-panel overflow-hidden">
-            {/* Meal header */}
-            <div className="flex items-center justify-between border-b border-line bg-line/40 px-4 py-2.5">
-              <div className="flex items-center gap-3">
-                <p className="text-sm font-medium text-ink">{label}</p>
-                {entries.length > 0 && (
-                  <span className="text-xs text-muted">{mealCalories} cal · {mealProtein}g protein</span>
-                )}
+        {dayEntries.length > 0 && (
+          <div className="divide-y divide-line">
+            {dayEntries.map((entry) => (
+              <div key={entry.id} className="group flex items-center gap-3 px-4 py-2.5">
+                <p className="min-w-0 flex-1 truncate text-sm text-ink">{entry.name}</p>
+                <span className="shrink-0 text-xs text-muted">{entry.calories} cal</span>
+                <span className="min-w-[52px] shrink-0 text-right text-xs font-medium text-mint">{entry.protein}g</span>
+                <button
+                  onClick={() => deleteFoodEntry(entry.id)}
+                  className="grid size-6 shrink-0 place-items-center rounded text-muted opacity-100 transition hover:text-red-400 lg:opacity-0 lg:group-hover:opacity-100"
+                >
+                  <Trash2 className="size-3" />
+                </button>
               </div>
-              <button
-                onClick={() => openAdd(mealId)}
-                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted transition hover:bg-line hover:text-ink"
-              >
-                <Plus className="size-3.5" />
-                Add
-              </button>
-            </div>
+            ))}
+          </div>
+        )}
 
-            {/* Entries */}
-            {entries.length > 0 && (
-              <div className="divide-y divide-line">
-                {entries.map((entry) => (
-                  <div key={entry.id} className="group flex items-center gap-3 px-4 py-2.5">
-                    <p className="flex-1 text-sm text-ink">{entry.name}</p>
-                    <span className="text-xs text-muted">{entry.calories} cal</span>
-                    <span className="min-w-[52px] text-right text-xs font-medium text-mint">{entry.protein}g</span>
+        {adding && (
+          <div className="border-t border-blue/30 bg-blue/5 p-3">
+            {libraryMatches.length > 0 && (
+              <div className="mb-2 overflow-hidden rounded-lg border border-line bg-paper">
+                {libraryMatches.map((food) => (
+                  <div key={food.id} className="group/lib flex items-center">
                     <button
-                      onClick={() => deleteFoodEntry(entry.id)}
-                      className="grid size-6 place-items-center rounded text-muted opacity-100 lg:opacity-0 transition hover:text-red-400 lg:group-hover:opacity-100"
+                      onClick={() => logSavedFood(food.id)}
+                      className="flex min-w-0 flex-1 items-baseline justify-between gap-3 px-3 py-2 text-left transition hover:bg-line"
+                    >
+                      <span className="truncate text-sm text-ink">{food.name}</span>
+                      <span className="shrink-0 text-xs text-muted">{food.calories} cal / {food.protein}g protein</span>
+                    </button>
+                    <button
+                      onClick={() => deleteSavedFood(food.id)}
+                      title="Remove from library"
+                      className="grid size-7 shrink-0 place-items-center text-muted opacity-100 transition hover:text-red-400 lg:opacity-0 lg:group-hover/lib:opacity-100"
                     >
                       <Trash2 className="size-3" />
                     </button>
@@ -265,95 +302,66 @@ export function FoodWorkspace() {
                 ))}
               </div>
             )}
-
-            {/* Inline add form */}
-            {isAdding && (
-              <div className="border-t border-blue/30 bg-blue/5 p-3">
-                {/* Library quick-select: search by name, tap to log with saved macros */}
-                {libraryMatches.length > 0 && (
-                  <div className="mb-2 overflow-hidden rounded-lg border border-line bg-paper">
-                    {libraryMatches.map((food) => (
-                      <div key={food.id} className="group/lib flex items-center">
-                        <button
-                          onClick={() => logSavedFood(mealId, food.id)}
-                          className="flex min-w-0 flex-1 items-baseline justify-between gap-3 px-3 py-2 text-left transition hover:bg-line"
-                        >
-                          <span className="truncate text-sm text-ink">{food.name}</span>
-                          <span className="shrink-0 text-xs text-muted">{food.calories} cal · {food.protein}g protein</span>
-                        </button>
-                        <button
-                          onClick={() => deleteSavedFood(food.id)}
-                          title="Remove from library"
-                          className="grid size-7 shrink-0 place-items-center text-muted opacity-100 lg:opacity-0 transition hover:text-red-400 lg:group-hover/lib:opacity-100"
-                        >
-                          <Trash2 className="size-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="grid grid-cols-[1fr_80px_70px] gap-2">
-                  <input
-                    autoFocus
-                    value={form.name}
-                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-                    onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(null); }}
-                    placeholder="Search library or type a new food"
-                    className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.calories}
-                    onChange={(e) => setForm((s) => ({ ...s, calories: e.target.value }))}
-                    onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(null); }}
-                    placeholder="cal"
-                    className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    value={form.protein}
-                    onChange={(e) => setForm((s) => ({ ...s, protein: e.target.value }))}
-                    onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(null); }}
-                    placeholder="g protein"
-                    className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
-                  />
-                </div>
-                <div className="mt-2 flex items-center gap-3">
-                  <button
-                    onClick={submitEntry}
-                    disabled={!form.name.trim() || !form.calories || !form.protein}
-                    className="rounded-lg bg-blue px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
-                  >
-                    Add
-                  </button>
-                  <button
-                    onClick={() => setAdding(null)}
-                    className="text-xs text-muted hover:text-ink"
-                  >
-                    Cancel
-                  </button>
-                  <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-xs text-muted hover:text-ink">
-                    <input
-                      type="checkbox"
-                      checked={saveToLibrary}
-                      onChange={(e) => setSaveToLibrary(e.target.checked)}
-                      className="size-3.5 accent-blue"
-                    />
-                    Save to library
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {entries.length === 0 && !isAdding && (
-              <p className="px-4 py-3 text-xs text-muted">Nothing logged yet.</p>
-            )}
+            <div className="grid gap-2 sm:grid-cols-[1fr_90px_90px]">
+              <input
+                autoFocus
+                value={form.name}
+                onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(false); }}
+                placeholder="Search library or type a meal"
+                className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
+              />
+              <input
+                type="number"
+                min={0}
+                value={form.calories}
+                onChange={(e) => setForm((s) => ({ ...s, calories: e.target.value }))}
+                onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(false); }}
+                placeholder="cal"
+                className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
+              />
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={form.protein}
+                onChange={(e) => setForm((s) => ({ ...s, protein: e.target.value }))}
+                onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(false); }}
+                placeholder="g protein"
+                className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
+              />
+            </div>
+            <div className="mt-2 flex items-center gap-3">
+              <button
+                onClick={submitEntry}
+                disabled={!form.name.trim() || !form.calories || !form.protein}
+                className="rounded-lg bg-blue px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+              >
+                Add meal
+              </button>
+              <button
+                onClick={() => setAdding(false)}
+                className="text-xs text-muted hover:text-ink"
+              >
+                Cancel
+              </button>
+              <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-xs text-muted hover:text-ink">
+                <input
+                  type="checkbox"
+                  checked={saveToLibrary}
+                  onChange={(e) => setSaveToLibrary(e.target.checked)}
+                  className="size-3.5 accent-blue"
+                />
+                Save to library
+              </label>
+            </div>
           </div>
-        );
-      })}
+        )}
+
+        {dayEntries.length === 0 && !adding && (
+          <p className="px-4 py-5 text-sm text-muted">No meals logged for this day.</p>
+        )}
+      </section>
     </div>
   );
 }
