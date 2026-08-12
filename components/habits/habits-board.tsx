@@ -368,35 +368,26 @@ export function HabitsBoard() {
 
   return (
     <div className="space-y-4">
-      <header className="rounded-xl border border-line bg-panel p-4 shadow-glow sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+      <header className="rounded-xl border border-line bg-panel px-4 py-3 shadow-glow sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-sm text-muted">Habits</p>
-            <h1 className="mt-1 text-3xl font-semibold text-ink">
-              {effectiveNow().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-            </h1>
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
+                {effectiveNow().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+              </h1>
+              <p className="text-sm text-muted">
+                <span className="font-medium text-ink">{todayDone}/{habits.length || 0}</span> on track · {habits.length} active · {weekLabel}
+              </p>
+            </div>
           </div>
           <button
             onClick={startNew}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:border-blue/30 hover:bg-line/50"
+            className="flex shrink-0 items-center gap-2 rounded-lg bg-blue px-4 py-2.5 text-sm font-medium text-white shadow-lift transition hover:brightness-110 active:scale-95"
           >
             <Plus className="size-4" />
             Add habit
           </button>
-        </div>
-        <div className="mt-4 grid gap-2 md:grid-cols-3">
-          <div className="rounded-lg border border-line bg-paper px-3 py-2">
-            <p className="text-lg font-semibold text-ink">{todayDone}/{habits.length || 0}</p>
-            <p className="text-[11px] uppercase tracking-wide text-muted">on track today</p>
-          </div>
-          <div className="rounded-lg border border-line bg-paper px-3 py-2">
-            <p className="text-lg font-semibold text-ink">{habits.length}</p>
-            <p className="text-[11px] uppercase tracking-wide text-muted">active habits</p>
-          </div>
-          <div className="rounded-lg border border-line bg-paper px-3 py-2">
-            <p className="text-lg font-semibold text-ink">{weekLabel}</p>
-            <p className="text-[11px] uppercase tracking-wide text-muted">week view</p>
-          </div>
         </div>
       </header>
 
