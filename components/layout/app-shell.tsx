@@ -116,9 +116,9 @@ function TimerDock() {
   const title = timer.title?.trim() || "Timer";
 
   return (
-    <div className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 z-40 lg:bottom-4 lg:left-2 lg:right-auto lg:top-auto">
+    <div className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 z-40 flex flex-col items-end lg:bottom-4 lg:right-4 lg:top-auto">
       {open && (
-        <div className="mb-2 w-[min(calc(100vw-1.5rem),420px)] rounded-xl border border-line bg-panel p-3 shadow-lift lg:ml-14">
+        <div className="mb-2 w-[min(calc(100vw-1.5rem),420px)] rounded-xl border border-line bg-panel p-3 shadow-lift">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="truncate text-xs font-medium text-muted">{title}</p>
             <button
