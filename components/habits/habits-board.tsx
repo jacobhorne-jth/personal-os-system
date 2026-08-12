@@ -126,10 +126,10 @@ function dayStatus(habit: Habit, value: number): "success" | "partial" | "fail" 
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  success: "#34a853",
-  partial: "#4285f4",
-  fail: "#d93025",
-  none: "rgba(255,255,255,0.07)",
+  success: "#58b77a",
+  partial: "#6f9ff6",
+  fail: "#e05b52",
+  none: "rgba(255,255,255,0.055)",
 };
 
 // GitHub-style history: the last `weeks` weeks as columns, Mon→Sun rows
@@ -205,17 +205,17 @@ function HabitCell({
   const failed = habit.type === "avoid" && value === 1;
   const done = habit.type === "avoid" ? !failed : habit.type === "limit" ? false : value >= habit.target;
 
-  let bg = "bg-line border-line";
+  let bg = "bg-paper border-line/70";
   if (!isFuture) {
     if (habit.type === "avoid") {
-      bg = failed ? "bg-red-500/20 border-red-500/40" : "bg-emerald-500/15 border-emerald-500/30";
+      bg = failed ? "bg-red-500/15 border-red-500/35" : "bg-mint/10 border-mint/25";
     } else if (habit.type === "limit") {
-      if (exceeded) bg = "bg-red-500/20 border-red-500/40";
-      else if (value > 0) bg = "bg-emerald-500/15 border-emerald-500/30";
+      if (exceeded) bg = "bg-red-500/15 border-red-500/35";
+      else if (value > 0) bg = "bg-mint/10 border-mint/25";
     } else if (done) {
-      bg = "bg-mint/20 border-mint/40";
+      bg = "bg-mint/15 border-mint/35";
     } else if (value > 0) {
-      bg = "bg-blue/15 border-blue/30";
+      bg = "bg-blue/10 border-blue/25";
     }
   }
 
@@ -224,10 +224,10 @@ function HabitCell({
       onClick={isFuture ? undefined : onClick}
       disabled={isFuture}
       className={cn(
-        "relative flex h-10 w-10 flex-col items-center justify-center rounded-lg border text-[10px] font-medium transition",
+        "relative flex size-9 flex-col items-center justify-center rounded-md border text-[10px] font-semibold transition",
         bg,
-        isFuture ? "cursor-default opacity-30" : "hover:opacity-80 active:scale-95",
-        isToday && "ring-1 ring-blue/50 ring-offset-1 ring-offset-paper"
+        isFuture ? "cursor-default opacity-25" : "hover:border-muted hover:brightness-110 active:scale-95",
+        isToday && "ring-1 ring-blue/70 ring-offset-2 ring-offset-paper"
       )}
     >
       {habit.type === "avoid" ? (
@@ -368,31 +368,49 @@ export function HabitsBoard() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <header className="flex items-start justify-between rounded-xl border border-line bg-panel p-5 shadow-glow">
-        <div>
-          <p className="text-sm text-muted">Habits</p>
-          <h1 className="mt-1 text-3xl font-semibold text-ink">
-            {effectiveNow().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-          </h1>
-          <p className="mt-2 text-sm text-muted">
-            {habits.length > 0 ? `${todayDone} of ${habits.length} on track today` : "Track what you do, what you skip, and what you avoid."}
-          </p>
+      <header className="rounded-xl border border-line bg-panel p-4 shadow-glow sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm text-muted">Habits</p>
+            <h1 className="mt-1 text-3xl font-semibold text-ink">
+              {effectiveNow().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+            </h1>
+          </div>
+          <button
+            onClick={startNew}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:border-blue/30 hover:bg-line/50"
+          >
+            <Plus className="size-4" />
+            Add habit
+          </button>
         </div>
-        <button
-          onClick={startNew}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:bg-panel"
-        >
-          <Plus className="size-4" />
-          Add habit
-        </button>
+        <div className="mt-4 grid gap-2 md:grid-cols-3">
+          <div className="rounded-lg border border-line bg-paper px-3 py-2">
+            <p className="text-lg font-semibold text-ink">{todayDone}/{habits.length || 0}</p>
+            <p className="text-[11px] uppercase tracking-wide text-muted">on track today</p>
+          </div>
+          <div className="rounded-lg border border-line bg-paper px-3 py-2">
+            <p className="text-lg font-semibold text-ink">{habits.length}</p>
+            <p className="text-[11px] uppercase tracking-wide text-muted">active habits</p>
+          </div>
+          <div className="rounded-lg border border-line bg-paper px-3 py-2">
+            <p className="text-lg font-semibold text-ink">{weekLabel}</p>
+            <p className="text-[11px] uppercase tracking-wide text-muted">week view</p>
+          </div>
+        </div>
       </header>
 
       {/* Today: one-tap check-off, like a classic habit tracker */}
       {habits.length > 0 && (
-        <div className="rounded-xl border border-line bg-panel p-4">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">Today</p>
-          <div className="flex flex-wrap gap-4">
+        <section className="overflow-hidden rounded-xl border border-line bg-panel shadow-glow">
+          <div className="flex items-center justify-between border-b border-line bg-line/30 px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-ink">Today</p>
+              <p className="text-xs text-muted">{todayDone} of {habits.length} on track</p>
+            </div>
+            <span className="rounded-full bg-paper px-2.5 py-1 text-xs font-semibold text-muted">{todayDone}/{habits.length}</span>
+          </div>
+          <div className="flex gap-3 overflow-x-auto px-4 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {habits.map((habit) => {
               const value = logValue(habitLogs, habit.id, today);
               const tone = habit.responsibilityId
@@ -416,7 +434,7 @@ export function HabitsBoard() {
                     setNumericValue(String(value));
                     setNumericEntry({ habitId: habit.id, date: today });
                   }}
-                  className="group/today flex w-16 flex-col items-center gap-1.5 transition active:scale-95"
+                  className="group/today flex w-[88px] shrink-0 flex-col items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-3 transition hover:border-blue/25 hover:bg-line/40 active:scale-95"
                   title={habit.title}
                 >
                   <ProgressRing progress={progress} color={ringColor}>
@@ -435,20 +453,20 @@ export function HabitsBoard() {
                       </span>
                     )}
                   </ProgressRing>
-                  <span className="w-full truncate text-center text-[10px] leading-tight text-muted group-hover/today:text-ink">
+                  <span className="w-full truncate text-center text-xs leading-tight text-muted group-hover/today:text-ink">
                     {habit.title}
                   </span>
                 </button>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Add / edit form */}
       {editing && (
-        <div className="rounded-xl border border-blue/40 bg-panel p-4 shadow-glow">
-          <p className="mb-3 text-xs font-medium text-blue">{editing.id === "new" ? "New habit" : "Edit habit"}</p>
+        <section className="rounded-xl border border-blue/40 bg-panel p-4 shadow-glow">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-blue">{editing.id === "new" ? "New habit" : "Edit habit"}</p>
           <div className="space-y-3">
             <input
               autoFocus
@@ -548,19 +566,19 @@ export function HabitsBoard() {
               )}
             </div>
           </div>
-        </div>
+        </section>
       )}
 
       {/* Habit grid */}
       {habits.length === 0 && !editing ? (
-        <div className="rounded-xl border border-line bg-panel p-8 text-center">
+        <div className="rounded-xl border border-line bg-panel p-8 text-center shadow-glow">
           <p className="text-sm text-muted">No habits yet.</p>
           <button onClick={startNew} className="mt-3 text-sm text-blue hover:underline">Add your first habit →</button>
         </div>
       ) : habits.length > 0 && (
-        <div className="rounded-xl border border-line bg-panel overflow-hidden">
+        <section className="overflow-hidden rounded-xl border border-line bg-panel shadow-glow">
           {/* Week navigation */}
-          <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+          <div className="flex items-center justify-between border-b border-line bg-line/30 px-4 py-3">
             <p className="text-sm font-medium text-ink">{weekLabel}</p>
             <div className="flex items-center gap-1">
               {weekOffset !== 0 && (
@@ -593,7 +611,7 @@ export function HabitsBoard() {
           <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="min-w-[544px]">
           {/* Day header */}
-          <div className="grid border-b border-line bg-line px-4 py-2" style={{ gridTemplateColumns: "1fr repeat(7, 44px) 72px" }}>
+          <div className="grid border-b border-line bg-paper px-4 py-2.5" style={{ gridTemplateColumns: "minmax(220px,1fr) repeat(7, 44px) 78px" }}>
             <div />
             {weekDates.map((date, i) => {
               const [y, m, d] = date.split("-").map(Number);
@@ -624,8 +642,8 @@ export function HabitsBoard() {
               return (
                 <div key={habit.id}>
                   <div
-                    className="group grid items-center gap-2 px-4 py-3"
-                    style={{ gridTemplateColumns: "1fr repeat(7, 44px) 72px" }}
+                    className="group grid items-center gap-2 px-4 py-3.5 transition hover:bg-line/20"
+                    style={{ gridTemplateColumns: "minmax(220px,1fr) repeat(7, 44px) 78px" }}
                   >
                     {/* Name column */}
                     <div className="flex min-w-0 items-center gap-2 pr-2">
@@ -640,7 +658,7 @@ export function HabitsBoard() {
                           {habit.title}
                           <ChevronDown className={cn("size-3 shrink-0 text-muted transition-transform", expanded && "rotate-180")} />
                         </p>
-                        <div className="mt-0.5 flex items-center gap-1.5">
+                        <div className="mt-1 flex items-center gap-1.5">
                           <span
                             className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
                             style={{ backgroundColor: `${tone.hex}20`, color: tone.hex }}
@@ -704,7 +722,7 @@ export function HabitsBoard() {
                     })}
 
                     {/* Streak / total column */}
-                    <div className="flex flex-col items-center justify-center gap-0.5 pl-1 text-center">
+                    <div className="flex flex-col items-center justify-center gap-0.5 rounded-lg bg-paper/70 px-2 py-1 text-center">
                       {habit.type === "weekly" ? (
                         <>
                           <span className={cn("text-sm font-semibold", total! >= habit.target ? "text-mint" : "text-ink")}>
@@ -731,7 +749,7 @@ export function HabitsBoard() {
 
                   {/* Expanded stats + history */}
                   {expanded && (
-                    <div className="border-t border-line/60 bg-paper/40 px-4 py-4">
+                    <div className="border-t border-line/60 bg-paper/50 px-4 py-4">
                       <div className="flex flex-wrap items-start gap-x-8 gap-y-4">
                         {(() => {
                           const stats = getStats(habit, habitLogs);
@@ -773,7 +791,7 @@ export function HabitsBoard() {
           </div>
           </div>
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
