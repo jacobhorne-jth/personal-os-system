@@ -602,7 +602,7 @@ export function HabitsBoard() {
           <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="min-w-[544px]">
           {/* Day header */}
-          <div className="grid border-b border-line bg-paper px-4 py-2.5" style={{ gridTemplateColumns: "minmax(220px,1fr) repeat(7, 44px) 78px" }}>
+          <div className="grid gap-2 border-b border-line bg-paper px-4 py-2.5" style={{ gridTemplateColumns: "minmax(220px,1fr) repeat(7, 44px) 78px" }}>
             <div />
             {weekDates.map((date, i) => {
               const [y, m, d] = date.split("-").map(Number);
