@@ -723,6 +723,7 @@ select:focus-visible {
   border: 1px solid color-mix(in srgb, var(--home-day-event-color) 72%, white 28%);
   background: color-mix(in srgb, var(--home-day-event-color) 60%, white 40%);
   color: #111827;
+  container-type: inline-size;
   box-shadow: inset 3px 0 0 var(--home-day-event-color), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
@@ -803,6 +804,41 @@ select:focus-visible {
 
 .home-day-event-card-tiny .home-day-event-time {
   flex-shrink: 0;
+}
+
+
+.home-day-event-overlap .home-day-event-card {
+  padding-left: 8px;
+  padding-right: 6px;
+}
+
+@container (max-width: 116px) {
+  .home-day-event .home-day-event-location {
+    display: none;
+  }
+
+  .home-day-event .home-day-event-time {
+    font-size: 8.5px;
+  }
+}
+
+@container (max-width: 70px) {
+  .home-day-event .home-day-event-card {
+    gap: 0;
+    padding: 2px 4px 2px 6px;
+  }
+
+  .home-day-event .home-day-event-title {
+    display: block;
+    font-size: 9px;
+    line-height: 1.05;
+    white-space: nowrap;
+  }
+
+  .home-day-event .home-day-event-time,
+  .home-day-event .home-day-event-location {
+    display: none;
+  }
 }
 
 .calendar-board .fc-daygrid-event {
