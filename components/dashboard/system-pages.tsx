@@ -464,7 +464,7 @@ export function SettingsWorkspace() {
           <div className="flex items-center justify-between px-5 py-4">
             <div>
               <p className="text-sm text-ink">Daily protein goal</p>
-              <p className="text-xs text-muted">Shown on the food page and progress</p>
+              <p className="text-xs text-muted">Shown on the food page and weekly review</p>
             </div>
             <div className="flex items-center gap-1.5">
               <input

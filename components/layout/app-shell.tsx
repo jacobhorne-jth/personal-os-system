@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Apple,
-  BarChart3,
   CalendarDays,
   CheckCircle2,
   Command,
@@ -43,7 +42,6 @@ const navItems = [
   { href: "/food", label: "Food", icon: Apple },
   { href: "/ideas", label: "Ideas", icon: Lightbulb },
   { href: "/notes", label: "Notes", icon: FileText },
-  { href: "/progress", label: "Progress", icon: BarChart3 },
   { href: "/weekly-review", label: "Weekly Review", icon: ClipboardCheck },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
