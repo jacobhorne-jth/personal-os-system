@@ -5,10 +5,10 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { aiReviewItems, calendarItems, lists, responsibilities, tasks } from "@/lib/data/mock";
+import { aiReviewItems, calendarItems, responsibilities, tasks } from "@/lib/data/mock";
 import { nextOccurrence } from "@/lib/recurrence";
 import { mergeResponsibilities, UNLABELED_RESPONSIBILITY_ID, withUnlabeledResponsibility } from "@/lib/responsibilities";
-import type { ActiveGymSession, CalendarItem, CaptureExtraction, FileAsset, FoodEntry, FoodMeal, Goal, GymDay, GymExercise, GymSession, GymSessionExercise, GymSet, Habit, HabitLog, HabitType, Idea, IdeaStatus, Note, NoteFolder, Responsibility, ResponsibilityColor, SavedFood, SavedList, Task } from "@/lib/types/domain";
+import type { ActiveGymSession, CalendarItem, CaptureExtraction, FileAsset, FoodEntry, FoodMeal, Goal, GymDay, GymExercise, GymSession, GymSessionExercise, GymSet, Habit, HabitLog, HabitType, Idea, IdeaStatus, Note, NoteFolder, Responsibility, ResponsibilityColor, SavedFood, Task } from "@/lib/types/domain";
 import type { Database, Json } from "@/lib/types/database";
 import { localDateKey } from "@/lib/dates";
 
@@ -61,7 +61,6 @@ type DbTask = Database["public"]["Tables"]["tasks"]["Row"];
 type DbCalendarItem = Database["public"]["Tables"]["calendar_items"]["Row"];
 type DbNote = Database["public"]["Tables"]["notes"]["Row"];
 type DbNoteFolder = Database["public"]["Tables"]["note_folders"]["Row"];
-type DbList = Database["public"]["Tables"]["lists"]["Row"];
 type DbResponsibility = Database["public"]["Tables"]["responsibilities"]["Row"];
 
 function dbTaskToDomain(row: DbTask): Task {
@@ -117,16 +116,6 @@ function dbNoteFolderToDomain(row: DbNoteFolder): NoteFolder {
     name: row.name,
     color: row.color as ResponsibilityColor,
     createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
-
-function dbListToDomain(row: DbList): SavedList {
-  return {
-    id: row.id,
-    title: row.title,
-    responsibilityId: row.responsibility_id ?? "",
-    items: (row.items as SavedList["items"]) ?? [],
     updatedAt: row.updated_at,
   };
 }
@@ -351,7 +340,6 @@ type AppState = {
   notes: Note[];
   noteFolders: NoteFolder[];
   files: FileAsset[];
-  lists: SavedList[];
   timer: TimerState;
   timeQuickLabels: TimeQuickLabel[];
 
@@ -399,13 +387,6 @@ type AppState = {
   updateNoteFolder: (folderId: string, input: { name?: string; color?: ResponsibilityColor }) => void;
   deleteNoteFolder: (folderId: string) => void;
 
-  // Lists
-  addList: (input: { title: string; responsibilityId: string }) => void;
-  addListItem: (input: { listId: string; title: string }) => void;
-  toggleListItem: (listId: string, itemId: string) => void;
-  renameList: (listId: string, input: { title?: string; responsibilityId?: string }) => void;
-  deleteList: (listId: string) => void;
-  deleteListItem: (listId: string, itemId: string) => void;
 
   // Files (local only)
   addMockFile: (input: { filename: string; responsibilityId: string }) => void;
@@ -498,7 +479,6 @@ export const useAppStore = create<AppState>()(
       notes: localPreview ? seedNotes : [],
       noteFolders: localPreview ? seedNoteFolders : [],
       files: [],
-      lists: localPreview ? lists : [],
       habits: [],
       habitLogs: [],
       goals: [],
@@ -535,7 +515,6 @@ export const useAppStore = create<AppState>()(
             calendarItems,
             notes: seedNotes,
             noteFolders: seedNoteFolders,
-            lists,
             responsibilities,
             files: seedFiles,
             aiReviewItems: aiReviewItems.map((item) => ({ ...item, status: "pending_review" as const, decisions: {} })),
@@ -557,7 +536,6 @@ export const useAppStore = create<AppState>()(
           { data: dbCalendarItems },
           { data: dbNotes },
           { data: dbNoteFolders },
-          { data: dbLists },
           { data: dbResp },
           { data: dbAppState },
         ] = await Promise.all([
@@ -565,7 +543,6 @@ export const useAppStore = create<AppState>()(
           db.from("calendar_items").select("*").eq("user_id", userId).order("starts_at"),
           db.from("notes").select("*").eq("user_id", userId).order("updated_at", { ascending: false }),
           db.from("note_folders").select("*").eq("user_id", userId).order("sort_order"),
-          db.from("lists").select("*").eq("user_id", userId),
           db.from("responsibilities").select("*").eq("user_id", userId).order("sort_order"),
           db.from("app_state").select("data").eq("user_id", userId).eq("key", "local_slices").maybeSingle(),
         ]);
@@ -574,7 +551,6 @@ export const useAppStore = create<AppState>()(
         const loadedItems = (dbCalendarItems ?? []).map(dbCalendarItemToDomain);
         const loadedNotes = (dbNotes ?? []).map(dbNoteToDomain);
         let loadedNoteFolders = (dbNoteFolders ?? []).map(dbNoteFolderToDomain);
-        const loadedLists = (dbLists ?? []).map(dbListToDomain);
 
         // Seed starter folders/responsibilities only for a genuinely fresh
         // account — an empty table alone just means the user deleted them
@@ -583,7 +559,6 @@ export const useAppStore = create<AppState>()(
           (dbCalendarItems?.length ?? 0) === 0 &&
           (dbNotes?.length ?? 0) === 0 &&
           (dbNoteFolders?.length ?? 0) === 0 &&
-          (dbLists?.length ?? 0) === 0 &&
           (dbResp?.length ?? 0) === 0 &&
           !dbAppState?.data;
 
@@ -629,7 +604,6 @@ export const useAppStore = create<AppState>()(
           calendarItems: loadedItems,
           notes: loadedNotes,
           noteFolders: loadedNoteFolders,
-          lists: loadedLists,
           responsibilities: loadedResp,
           files: [],
         });
@@ -1050,111 +1024,6 @@ export const useAppStore = create<AppState>()(
               .then(({ error }) => { if (error) console.error("deleteNoteFolder notes:", error.message); });
             db.from("note_folders").delete().eq("id", folderId).eq("user_id", userId)
               .then(({ error }) => { if (error) console.error("deleteNoteFolder:", error.message); });
-          }
-        }
-      },
-
-      // ── Lists ─────────────────────────────────────────────────────────────
-
-      addList: (input) => {
-        const listId = id("list");
-        const newList: SavedList = {
-          id: listId,
-          title: input.title,
-          responsibilityId: input.responsibilityId,
-          updatedAt: new Date().toISOString(),
-          items: [],
-        };
-        set((state) => ({ lists: [newList, ...state.lists] }));
-        const { userId } = get();
-        if (userId) {
-          getDb()?.from("lists").insert({ id: listId, user_id: userId, responsibility_id: input.responsibilityId || null, title: input.title, items: [] })
-            .then(({ error }) => { if (error) console.error("addList:", error.message); });
-        }
-      },
-
-      addListItem: (input) => {
-        const itemId = id("list-item");
-        const updatedAt = new Date().toISOString();
-        set((state) => ({
-          lists: state.lists.map((list) =>
-            list.id === input.listId
-              ? { ...list, updatedAt, items: [...list.items, { id: itemId, title: input.title, done: false }] }
-              : list
-          )
-        }));
-        const { userId } = get();
-        if (userId) {
-          const list = get().lists.find((l) => l.id === input.listId);
-          if (list) {
-            getDb()?.from("lists").update({ items: list.items }).eq("id", input.listId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("addListItem:", error.message); });
-          }
-        }
-      },
-
-      toggleListItem: (listId, itemId) => {
-        const updatedAt = new Date().toISOString();
-        set((state) => ({
-          lists: state.lists.map((list) =>
-            list.id === listId
-              ? { ...list, updatedAt, items: list.items.map((item) => (item.id === itemId ? { ...item, done: !item.done } : item)) }
-              : list
-          )
-        }));
-        const { userId } = get();
-        if (userId) {
-          const list = get().lists.find((l) => l.id === listId);
-          if (list) {
-            getDb()?.from("lists").update({ items: list.items }).eq("id", listId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("toggleListItem:", error.message); });
-          }
-        }
-      },
-
-      renameList: (listId, input) => {
-        const updatedAt = new Date().toISOString();
-        set((state) => ({
-          lists: state.lists.map((list) =>
-            list.id === listId
-              ? { ...list, updatedAt, ...(input.title !== undefined && { title: input.title }), ...(input.responsibilityId !== undefined && { responsibilityId: input.responsibilityId }) }
-              : list
-          )
-        }));
-        const { userId } = get();
-        if (userId) {
-          getDb()?.from("lists").update({
-            ...(input.title !== undefined && { title: input.title }),
-            ...(input.responsibilityId !== undefined && { responsibility_id: input.responsibilityId }),
-          }).eq("id", listId).eq("user_id", userId)
-            .then(({ error }) => { if (error) console.error("renameList:", error.message); });
-        }
-      },
-
-      deleteList: (listId) => {
-        set((state) => ({ lists: state.lists.filter((list) => list.id !== listId) }));
-        const { userId } = get();
-        if (userId) {
-          getDb()?.from("lists").delete().eq("id", listId).eq("user_id", userId)
-            .then(({ error }) => { if (error) console.error("deleteList:", error.message); });
-        }
-      },
-
-      deleteListItem: (listId, itemId) => {
-        const updatedAt = new Date().toISOString();
-        set((state) => ({
-          lists: state.lists.map((list) =>
-            list.id === listId
-              ? { ...list, updatedAt, items: list.items.filter((item) => item.id !== itemId) }
-              : list
-          )
-        }));
-        const { userId } = get();
-        if (userId) {
-          const list = get().lists.find((l) => l.id === listId);
-          if (list) {
-            getDb()?.from("lists").update({ items: list.items }).eq("id", listId).eq("user_id", userId)
-              .then(({ error }) => { if (error) console.error("deleteListItem:", error.message); });
           }
         }
       },
@@ -1670,23 +1539,10 @@ export const useAppStore = create<AppState>()(
           id: id("note"), title: note.title, body: note.body, responsibilityId: note.responsibilityId, labels: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), lastOpenedAt: new Date().toISOString()
         }));
 
-        const newListItems = (extraction.proposedListItems ?? []).filter((item) => shouldCommit("list", `${item.listTitle}:${item.itemTitle}`));
-
         set((state) => ({
           tasks: [...newTasks, ...state.tasks],
           calendarItems: [...newEvents, ...state.calendarItems],
           notes: [...newNotes, ...state.notes],
-          lists: newListItems.reduce((currentLists, listItem) => {
-            const existing = currentLists.find((l) => l.title.toLowerCase() === listItem.listTitle.toLowerCase());
-            if (existing) {
-              return currentLists.map((l) =>
-                l.id === existing.id
-                  ? { ...l, updatedAt: new Date().toISOString(), items: [...l.items, { id: id("list-item"), title: listItem.itemTitle, done: false }] }
-                  : l
-              );
-            }
-            return [{ id: id("list"), title: listItem.listTitle, responsibilityId: listItem.responsibilityId, updatedAt: new Date().toISOString(), items: [{ id: id("list-item"), title: listItem.itemTitle, done: false }] }, ...currentLists];
-          }, state.lists),
           aiReviewItems: state.aiReviewItems.map((item) => (item.id === extractionId ? { ...item, status: "approved" as const } : item))
         }));
 
@@ -1848,7 +1704,6 @@ export const useAppStore = create<AppState>()(
           tasks: state.tasks,
           notes: state.notes,
           noteFolders: state.noteFolders,
-          lists: state.lists,
         }),
         timer: state.timer,
         timeQuickLabels: state.timeQuickLabels,

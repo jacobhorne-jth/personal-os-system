@@ -1,4 +1,4 @@
-import type { CalendarItem, CaptureExtraction, Responsibility, SavedList, Task } from "@/lib/types/domain";
+import type { CalendarItem, CaptureExtraction, Responsibility, Task } from "@/lib/types/domain";
 import { UNLABELED_RESPONSIBILITY } from "@/lib/responsibilities";
 
 // Starter data for a brand-new account. Real data lives in Supabase;
@@ -21,7 +21,6 @@ export const responsibilities: Responsibility[] = [
 
 export const calendarItems: CalendarItem[] = [];
 
-export const lists: SavedList[] = [];
 
 export const tasks: Task[] = [];
 
