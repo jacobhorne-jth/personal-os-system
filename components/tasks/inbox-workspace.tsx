@@ -32,7 +32,7 @@ function reviewSource(item: CaptureExtraction) {
 }
 
 function reviewSuggestionCount(item: CaptureExtraction) {
-  return item.proposedTasks.length + item.proposedEvents.length + item.proposedNotes.length + (item.proposedListItems?.length ?? 0);
+  return item.proposedTasks.length + item.proposedEvents.length + item.proposedNotes.length;
 }
 
 function selectedKey(item: SelectedInboxItem) {

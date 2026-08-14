@@ -209,7 +209,6 @@ function extractionProposalIds(item: CaptureExtraction) {
     ...item.proposedTasks.map((task) => `task-${task.title}`),
     ...item.proposedEvents.map((event) => `event-${event.title}`),
     ...item.proposedNotes.map((note) => `note-${note.title}`),
-    ...(item.proposedListItems ?? []).map((listItem) => `list-${listItem.listTitle}:${listItem.itemTitle}`),
   ];
 }
 
@@ -219,10 +218,6 @@ function parseCapture(input: { text: string; source: CaptureExtraction["source"]
   const isTimeLog = lower.includes("log") || lower.includes("pm") || lower.includes("am");
   const isMeeting = lower.includes("meeting") || lower.includes("call");
   const isReminder = lower.includes("remind");
-  const listMatch = lower.match(/add\s+(.+?)\s+to\s+(?:my\s+)?(.+?)\s+list/);
-  const listItemTitle = listMatch?.[1]?.trim();
-  const listTitle = listMatch?.[2]?.trim();
-
   return {
     id: id("cap"),
     source: input.source,
@@ -230,7 +225,7 @@ function parseCapture(input: { text: string; source: CaptureExtraction["source"]
     decisions: {},
     summary: text.slice(0, 72) || "Untitled capture",
     confidence: text.length > 24 ? 0.82 : 0.68,
-    proposedTasks: isTimeLog || Boolean(listMatch)
+    proposedTasks: isTimeLog
       ? []
       : [{
           title: isReminder ? text.replace(/^remind me to /i, "") : text || "New captured task",
@@ -245,9 +240,6 @@ function parseCapture(input: { text: string; source: CaptureExtraction["source"]
         : [],
     proposedNotes: lower.includes("note") || lower.includes("compare")
       ? [{ title: "Captured note", body: text, responsibilityId: input.responsibilityId }]
-      : [],
-    proposedListItems: listMatch && listItemTitle && listTitle
-      ? [{ listTitle: `${listTitle.charAt(0).toUpperCase()}${listTitle.slice(1)}`, itemTitle: `${listItemTitle.charAt(0).toUpperCase()}${listItemTitle.slice(1)}`, responsibilityId: input.responsibilityId }]
       : []
   };
 }
@@ -685,21 +677,6 @@ export const useAppStore = create<AppState>()(
                 ...item,
                 proposedNotes: item.proposedNotes.map((note) =>
                   note.title === title ? updateCommon(note) : note
-                ),
-              };
-            }
-            if (kind === "list") {
-              const [listTitle, itemTitle] = title.split(":");
-              return {
-                ...item,
-                proposedListItems: (item.proposedListItems ?? []).map((listItem) =>
-                  listItem.listTitle === listTitle && listItem.itemTitle === itemTitle
-                    ? {
-                        ...listItem,
-                        ...(input.title !== undefined && { itemTitle: input.title }),
-                        ...(input.responsibilityId !== undefined && { responsibilityId: input.responsibilityId }),
-                      }
-                    : listItem
                 ),
               };
             }

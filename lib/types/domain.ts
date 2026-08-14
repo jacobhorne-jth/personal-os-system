@@ -72,7 +72,6 @@ export type CaptureExtraction = {
   proposedTasks: Pick<Task, "title" | "priority" | "responsibilityId" | "dueAt">[];
   proposedEvents: Pick<CalendarItem, "title" | "type" | "responsibilityId" | "startsAt" | "endsAt" | "location" | "notes">[];
   proposedNotes: { title: string; body: string; responsibilityId: string }[];
-  proposedListItems?: { listTitle: string; itemTitle: string; responsibilityId: string }[];
 };
 
 export type Note = {

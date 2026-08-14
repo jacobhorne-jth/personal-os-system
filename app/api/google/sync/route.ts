@@ -153,7 +153,6 @@ function googleCalendarReviewItem(input: {
       notes: input.notes,
     }],
     proposedNotes: [],
-    proposedListItems: [],
   };
 }
 

@@ -46,9 +46,6 @@ Return ONLY valid JSON (no markdown, no backticks) with this exact shape:
   ],
   "proposedNotes": [
     { "title": "...", "body": "...", "responsibilityId": "${fallbackId}" }
-  ],
-  "proposedListItems": [
-    { "listTitle": "...", "itemTitle": "...", "responsibilityId": "${fallbackId}" }
   ]
 }
 
@@ -91,7 +88,7 @@ Additional rules:
 - For events without an end time, default to 1 hour after start
 - Times without dates: assume the next upcoming occurrence of that day/time from today
 - Keep task titles under 60 characters
-- All 4 arrays must be present (use [] when empty)
+- All 3 arrays must be present (use [] when empty)
 - confidence: 0.9 for clear input, 0.7 for ambiguous`;
 
   try {
@@ -131,7 +128,6 @@ Additional rules:
       proposedTasks: Array.isArray(raw.proposedTasks) ? raw.proposedTasks : [],
       proposedEvents: Array.isArray(raw.proposedEvents) ? raw.proposedEvents : [],
       proposedNotes: Array.isArray(raw.proposedNotes) ? raw.proposedNotes : [],
-      proposedListItems: Array.isArray(raw.proposedListItems) ? raw.proposedListItems : [],
     });
   } catch (err) {
     console.error("capture/parse error:", err);

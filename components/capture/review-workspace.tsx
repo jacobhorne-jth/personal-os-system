@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, FileText, GitPullRequestArrow, ListChecks, ListTodo, Mail, Pencil, X } from "lucide-react";
+import { CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, FileText, GitPullRequestArrow, ListTodo, Mail, Pencil, X } from "lucide-react";
 import { DateTimeRow } from "@/components/calendar/date-time-picker";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { getTone } from "@/lib/theme";
@@ -90,17 +90,6 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
       startsAt: undefined as string | undefined,
       endsAt: undefined as string | undefined,
       detail: note.body,
-    })),
-    ...(item.proposedListItems ?? []).map((listItem) => ({
-      id: `list-${listItem.listTitle}:${listItem.itemTitle}`,
-      kind: "List item",
-      icon: ListChecks,
-      title: `${listItem.itemTitle} -> ${listItem.listTitle}`,
-      editTitle: listItem.itemTitle,
-      meta: listItem.responsibilityId,
-      startsAt: undefined as string | undefined,
-      endsAt: undefined as string | undefined,
-      detail: `Add "${listItem.itemTitle}" to "${listItem.listTitle}".`,
     }))
   ];
 

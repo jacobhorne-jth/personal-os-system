@@ -151,7 +151,6 @@ export function CaptureWorkbench() {
         proposedTasks: data.proposedTasks,
         proposedEvents: data.proposedEvents,
         proposedNotes: data.proposedNotes,
-        proposedListItems: data.proposedListItems,
       });
 
       setText("");

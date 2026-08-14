@@ -115,8 +115,7 @@ Return ONLY JSON with this exact shape:
   "proposedEvents": [
     { "title": "Company interview", "type": "app_event", "responsibilityId": "${fallbackId}", "startsAt": "ISO string", "endsAt": "ISO string" }
   ],
-  "proposedNotes": [],
-  "proposedListItems": []
+  "proposedNotes": []
 }
 
 Rules:
@@ -156,15 +155,13 @@ async function parseEmail(openai: OpenAI, email: ParsedEmail, responsibilities: 
     proposedTasks?: CaptureExtraction["proposedTasks"];
     proposedEvents?: CaptureExtraction["proposedEvents"];
     proposedNotes?: CaptureExtraction["proposedNotes"];
-    proposedListItems?: CaptureExtraction["proposedListItems"];
   };
 
   const proposedTasks = Array.isArray(raw.proposedTasks) ? raw.proposedTasks : [];
   const proposedEvents = Array.isArray(raw.proposedEvents) ? raw.proposedEvents : [];
   const proposedNotes = Array.isArray(raw.proposedNotes) ? raw.proposedNotes : [];
-  const proposedListItems = Array.isArray(raw.proposedListItems) ? raw.proposedListItems : [];
 
-  if (raw.shouldIgnore || (proposedTasks.length === 0 && proposedEvents.length === 0 && proposedNotes.length === 0 && proposedListItems.length === 0)) {
+  if (raw.shouldIgnore || (proposedTasks.length === 0 && proposedEvents.length === 0 && proposedNotes.length === 0)) {
     return null;
   }
 
@@ -188,7 +185,6 @@ async function parseEmail(openai: OpenAI, email: ParsedEmail, responsibilities: 
     proposedTasks: normalizeProposalResponsibilities(email, proposedTasks, responsibilities),
     proposedEvents: normalizeProposalResponsibilities(email, proposedEvents, responsibilities),
     proposedNotes: normalizeProposalResponsibilities(email, proposedNotes, responsibilities),
-    proposedListItems: normalizeProposalResponsibilities(email, proposedListItems, responsibilities),
   };
 }
 
