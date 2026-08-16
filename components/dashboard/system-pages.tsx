@@ -196,7 +196,7 @@ export function SettingsWorkspace() {
         </div>
         <div className="space-y-3 px-5 py-4">
           <p className="text-xs text-muted">
-            Reads recent inbox emails, skips obvious noise, and sends likely actions to Review as proposed tasks or events.
+            Reads recent inbox emails, skips obvious noise, and sends likely actions to Review as proposed tasks, events, or notes.
             Requires <span className="font-mono text-ink">GMAIL_SOURCES_JSON</span> or{" "}
             <span className="font-mono text-ink">GMAIL_REFRESH_TOKEN_PERSONAL/SCHOOL/WORK</span> plus{" "}
             <span className="font-mono text-ink">OPENAI_API_KEY</span>.
