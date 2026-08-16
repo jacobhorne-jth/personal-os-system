@@ -42,6 +42,7 @@ export default function TasksPage() {
   const open = tasks.filter((t) => t.status !== "done");
   const overdueTasks = sortByDue(open.filter((t) => t.dueAt && t.dueAt.slice(0, 10) < today));
   const todayTasks = sortByDue(open.filter((t) => t.dueAt?.startsWith(today)));
+  const todayTotal = overdueTasks.length + todayTasks.length;
   const upcomingTasks = sortByDue(open.filter((t) => t.dueAt && t.dueAt.slice(0, 10) > today));
   const selectedLabel = view.startsWith("label:") ? view.replace("label:", "") : "";
 
@@ -169,7 +170,7 @@ export default function TasksPage() {
         <div className="sticky top-0 z-10 border-b border-line bg-paper/95 backdrop-blur lg:hidden">
           <div className="flex gap-2 overflow-x-auto px-4 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {([
-              ["today", "Today", overdueTasks.length],
+              ["today", "Today", todayTotal],
               ["upcoming", "Upcoming", 0],
               ["all", "All", 0],
             ] as const).map(([v, labelText, badge]) => (
@@ -182,7 +183,11 @@ export default function TasksPage() {
                 )}
               >
                 {labelText}
-                {badge > 0 && <span className="text-xs tabular-nums text-[#cf4444]">{badge}</span>}
+                {badge > 0 && (
+                  <span className={cn("text-xs tabular-nums", v === "today" && overdueTasks.length > 0 ? "text-[#cf4444]" : "text-muted")}>
+                    {badge}
+                  </span>
+                )}
               </button>
             ))}
             {responsibilities.filter((r) => !r.archivedAt).map((r) => (
