@@ -107,6 +107,8 @@ export function FoodWorkspace() {
   const totalCalories = dayEntries.reduce((s, e) => s + e.calories, 0);
   const totalProtein = dayEntries.reduce((s, e) => s + e.protein, 0);
   const proteinWidth = foodTargets.protein > 0 ? Math.min(100, (totalProtein / foodTargets.protein) * 100) : 0;
+  const remainingProtein = Math.max(0, foodTargets.protein - totalProtein);
+  const remainingCalories = Math.max(0, foodTargets.calories - totalCalories);
 
   function openAdd() {
     setForm({ name: "", calories: "", protein: "" });
@@ -197,6 +199,16 @@ export function FoodWorkspace() {
 
           <div className="rounded-xl border border-line bg-paper p-3">
             <p className="mb-3 text-sm font-medium text-ink">Daily goals</p>
+            <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-lg bg-panel px-2.5 py-2">
+                <p className="text-muted">Protein left</p>
+                <p className="mt-0.5 font-semibold text-ink">{remainingProtein}g</p>
+              </div>
+              <div className="rounded-lg bg-panel px-2.5 py-2">
+                <p className="text-muted">Calories left</p>
+                <p className="mt-0.5 font-semibold text-ink">{remainingCalories}</p>
+              </div>
+            </div>
             <label className="mb-2 flex items-center justify-between gap-3 text-sm">
               <span className="text-muted">Protein</span>
               <span className="flex items-center gap-1.5">
