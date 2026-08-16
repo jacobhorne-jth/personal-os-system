@@ -22,6 +22,11 @@
       "name": "Today",
       "short_name": "Today",
       "url": "/home"
+    },
+    {
+      "name": "Tasks",
+      "short_name": "Tasks",
+      "url": "/tasks"
     }
   ],
   "icons": [
