@@ -76,6 +76,10 @@ export default function TasksPage() {
     view === "upcoming" ? "Upcoming" :
     view === "all" ? "All tasks" :
     selectedLabel;
+  const viewCountLabel =
+    view === "today" && overdueTasks.length > 0
+      ? `${overdueTasks.length} overdue / ${todayTasks.length} today`
+      : `${viewTasks.length}`;
 
   return (
     <div className="-mx-4 -mt-4 flex min-h-dvh sm:-mx-6 lg:-ml-[24px] lg:-mr-8 lg:-mt-4">
@@ -202,7 +206,7 @@ export default function TasksPage() {
               <span className="size-3 rounded-full" style={{ backgroundColor: taskLabelColor(selectedLabel, responsibilities) }} />
             )}
             <h1 className="text-xl font-semibold text-ink">{viewLabel}</h1>
-            <span className="text-sm text-muted">{viewTasks.length}</span>
+            <span className="text-sm text-muted">{viewCountLabel}</span>
           </div>
 
           {/* Add task form */}
