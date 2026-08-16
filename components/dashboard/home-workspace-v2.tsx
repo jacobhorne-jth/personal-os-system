@@ -24,7 +24,7 @@ function weekStripDays(dateKey: string) {
     const date = dateFromKey(key);
     return {
       key,
-      label: date.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 1),
+      label: date.toLocaleDateString("en-US", { weekday: "short" }),
       day: date.getDate(),
     };
   });
