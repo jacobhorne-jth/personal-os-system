@@ -25,7 +25,7 @@ function sortByDue(arr: ReturnType<typeof useAppStore.getState>["tasks"]) {
   });
 }
 
-export default function TodosPage() {
+export default function TasksPage() {
   const tasks = useAppStore((s) => s.tasks);
   const responsibilities = useAppStore((s) => s.responsibilities);
   const toggleTask = useAppStore((s) => s.toggleTask);
