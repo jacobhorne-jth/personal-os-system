@@ -100,7 +100,7 @@ function DeviceDateSync() {
 function TimerDock() {
   const timer = useAppStore((state) => state.timer);
   const [open, setOpen] = useState(false);
-  const [tick, setTick] = useState(0);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     if (!timer.running) return;
