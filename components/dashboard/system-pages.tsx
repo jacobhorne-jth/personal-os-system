@@ -15,6 +15,7 @@ export function SettingsWorkspace() {
   const foodTargets = useAppStore((s) => s.foodTargets);
   const setFoodTargets = useAppStore((s) => s.setFoodTargets);
   const responsibilities = useAppStore((s) => s.responsibilities);
+  const activeLabelCount = responsibilities.filter((item) => !item.archivedAt).length;
   const lastGoogleSync = useAppStore((s) => s.lastGoogleSync);
   const syncGoogleCalendar = useAppStore((s) => s.syncGoogleCalendar);
   const lastEmailSync = useAppStore((s) => s.lastEmailSync);
@@ -132,19 +133,19 @@ export function SettingsWorkspace() {
         </div>
       </div>
 
-      {/* Responsibilities */}
+      {/* Labels */}
       <div className="rounded-xl border border-line bg-panel overflow-hidden">
         <div className="border-b border-line bg-line/40 px-5 py-3">
-          <p className="text-sm font-medium text-ink">Responsibilities</p>
+          <p className="text-sm font-medium text-ink">Labels</p>
         </div>
         <div className="px-5 py-4">
-          <p className="mb-3 text-xs text-muted">{responsibilities.length} responsibilities configured</p>
+          <p className="mb-3 text-xs text-muted">{activeLabelCount} labels configured</p>
           <Link
             href="/responsibilities"
             className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:bg-line"
           >
             <Tags className="size-4" />
-            Manage responsibilities
+            Manage labels
           </Link>
         </div>
       </div>
