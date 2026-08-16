@@ -59,7 +59,7 @@ export function GlobalSearch() {
         .filter((item) => item.title.toLowerCase().includes(q))
         .map((item) => ({ id: item.id, title: item.title, href: "/habits", kind: "Habit", responsibilityId: item.responsibilityId })),
       ...responsibilities
-        .filter((item) => item.name.toLowerCase().includes(q))
+        .filter((item) => !item.archivedAt && item.name.toLowerCase().includes(q))
         .map((item) => ({ id: item.id, title: item.name, href: `/r/${item.id}`, kind: "Label", responsibilityId: item.id }))
     ].slice(0, 10);
   }, [calendarItems, goals, habits, ideas, notes, query, responsibilities, tasks]);
