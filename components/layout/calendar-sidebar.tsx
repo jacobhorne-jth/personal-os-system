@@ -10,7 +10,7 @@ import { getTone } from "@/lib/theme";
 import type { CalendarItem, CalendarItemType } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
-const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
+const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 function miniMonthDays(displayMonth: Date, today: Date) {
   const first = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
