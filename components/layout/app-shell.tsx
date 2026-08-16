@@ -249,7 +249,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             : "mx-auto min-h-dvh w-full max-w-[1700px] px-4 pb-24 pt-4 sm:px-6 lg:pb-6 lg:pl-[96px] lg:pr-8 lg:pt-5"
         )}
       >
-        {!pathname.startsWith("/home") && !isCalendarSurface && !pathname.startsWith("/todos") && (
+        {!pathname.startsWith("/home") && !isCalendarSurface && !pathname.startsWith("/tasks") && (
           <div className="sticky top-0 z-20 mb-4 hidden items-center justify-between gap-3 border-b border-line bg-paper/95 py-3 backdrop-blur lg:flex">
             <GlobalSearch />
             <div className="flex items-center gap-2">
