@@ -9,17 +9,17 @@ This is calendar-first personal operations software. The main object is not a pa
 1. Plan the day from `/home`.
 2. Capture anything with the center action from anywhere.
 3. Review AI-suggested changes before committing them.
-4. Work inside a responsibility workspace when focus is needed.
-5. Compare planned vs actual time in analytics.
+4. Work inside a label workspace when focus is needed.
+5. Compare planned vs actual time in weekly review.
 
 ## Route map
 
 - `/login`: magic-link auth. In local prototype mode, this can pass through without Supabase env vars.
-- `/home`: dashboard, today timeline, due tasks, responsibilities, AI review queue, time summary.
+- `/home`: dashboard, today timeline, due tasks, labels, AI review queue, time summary.
 - `/calendar`: day, week, and month planning surface with overlays.
 - `/capture`: typed, voice, upload, paste, quick task, and time log intake.
 - `/inbox`: AI extraction review, approval, rejection, and edits.
-- `/analytics`: planned vs actual time, responsibility trends, deadline pressure.
+- `/weekly-review`: planned vs actual time, label trends, and review history.
 - `/r/[responsibilityId]`: focused workspace with overview, tasks, calendar, notes, files, analytics.
 - `/task/[id]`: task detail, subtasks, attachments, time logs.
 - `/event/[id]`: event detail and Google Calendar handoff when external.
