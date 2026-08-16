@@ -6,8 +6,8 @@ app/
   calendar/             Full calendar planning surface
   capture/              Universal quick capture
   inbox/                AI extraction review queue
-  analytics/            Planned vs actual reporting
-  r/[responsibilityId]/ Responsibility workspace
+  weekly-review/        Weekly planning and review
+  responsibilities/     Label organization workspace
   task/[id]/            Task detail
   event/[id]/           Calendar item detail
 components/

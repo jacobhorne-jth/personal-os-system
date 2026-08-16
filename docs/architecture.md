@@ -20,7 +20,7 @@ This is calendar-first personal operations software. The main object is not a pa
 - `/capture`: typed, voice, upload, paste, quick task, and time log intake.
 - `/inbox`: AI extraction review, approval, rejection, and edits.
 - `/weekly-review`: planned vs actual time, label trends, and review history.
-- `/r/[responsibilityId]`: focused workspace with overview, tasks, calendar, notes, files, analytics.
+- `/r/[responsibilityId]`: focused label workspace with overview, tasks, calendar, notes, and insights.
 - `/task/[id]`: task detail, subtasks, attachments, time logs.
 - `/event/[id]`: event detail and Google Calendar handoff when external.
 
