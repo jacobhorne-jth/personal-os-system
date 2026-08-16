@@ -115,9 +115,9 @@ export function FoodWorkspace() {
   }
 
   function submitEntry() {
-    if (!form.name.trim() || !form.calories || !form.protein) return;
-    const calories = Math.round(parseFloat(form.calories)) || 0;
-    const protein = parseFloat(form.protein) || 0;
+    if (!form.name.trim()) return;
+    const calories = form.calories ? Math.round(parseFloat(form.calories)) || 0 : 0;
+    const protein = form.protein ? parseFloat(form.protein) || 0 : 0;
     addFoodEntry({
       date: viewDate,
       name: form.name.trim(),
@@ -334,7 +334,7 @@ export function FoodWorkspace() {
             <div className="mt-2 flex items-center gap-3">
               <button
                 onClick={submitEntry}
-                disabled={!form.name.trim() || !form.calories || !form.protein}
+                disabled={!form.name.trim()}
                 className="rounded-lg bg-blue px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
               >
                 Add meal
