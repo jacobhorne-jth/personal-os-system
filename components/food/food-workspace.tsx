@@ -285,6 +285,8 @@ export function FoodWorkspace() {
                 <span className="min-w-[52px] shrink-0 text-right text-xs font-medium text-mint">{entry.protein}g</span>
                 <button
                   onClick={() => deleteFoodEntry(entry.id)}
+                  title={`Delete ${entry.name}`}
+                  aria-label={`Delete ${entry.name}`}
                   className="grid size-6 shrink-0 place-items-center rounded text-muted opacity-100 transition hover:text-red-400 lg:opacity-0 lg:group-hover:opacity-100"
                 >
                   <Trash2 className="size-3" />
