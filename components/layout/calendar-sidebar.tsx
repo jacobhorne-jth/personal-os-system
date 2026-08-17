@@ -20,7 +20,7 @@ function miniMonthDays(displayMonth: Date, today: Date) {
     const date = new Date(start);
     date.setDate(start.getDate() + index);
     return {
-      key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+      key: dateKey(date),
       date: new Date(date),
       day: date.getDate(),
       inMonth: date.getMonth() === displayMonth.getMonth(),
@@ -102,6 +102,13 @@ function dateFromKey(dateKey: string) {
 
 function currentDayStamp() {
   return new Date().toDateString();
+}
+
+function dateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function CalendarSidebar() {
