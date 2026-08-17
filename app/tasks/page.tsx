@@ -53,8 +53,13 @@ export default function TasksPage() {
     sortByDue(open.filter((t) => taskLabel(t.labels, t.responsibilityId, responsibilities) === selectedLabel));
 
   function saveEdit() {
-    if (!editing || !editing.title.trim()) return;
-    updateTask(editing.id, { title: editing.title.trim() });
+    if (!editing) return;
+    const title = editing.title.trim();
+    if (!title) {
+      setEditing(null);
+      return;
+    }
+    updateTask(editing.id, { title });
     setEditing(null);
   }
 
