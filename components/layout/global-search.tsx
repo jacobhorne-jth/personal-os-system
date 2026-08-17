@@ -44,7 +44,7 @@ export function GlobalSearch() {
         .filter((item) => `${item.title} ${item.description ?? ""}`.toLowerCase().includes(q))
         .map((item) => ({ id: item.id, title: item.title, href: `/task/${item.id}`, kind: "Task", responsibilityId: item.responsibilityId })),
       ...calendarItems
-        .filter((item) => item.title.toLowerCase().includes(q))
+        .filter((item) => `${item.title} ${item.location ?? ""} ${item.notes ?? ""}`.toLowerCase().includes(q))
         .map((item) => ({ id: item.id, title: item.title, href: `/event/${item.id}`, kind: "Calendar", responsibilityId: item.responsibilityId })),
       ...notes
         .filter((item) => `${item.title} ${item.body}`.toLowerCase().includes(q))
