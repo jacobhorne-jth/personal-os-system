@@ -226,6 +226,8 @@ export function CalendarSidebar() {
             <button
               key={item.id}
               onClick={() => toggleResponsibility(item.id)}
+              aria-pressed={!hidden}
+              aria-label={`${hidden ? "Show" : "Hide"} ${item.name}`}
               className="-mx-3 flex w-[calc(100%+24px)] items-center gap-3 rounded-full px-3 py-1.5 text-left text-sm transition hover:bg-paper"
             >
               <span
