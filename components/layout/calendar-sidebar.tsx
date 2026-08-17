@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { startOfWeek } from "@/lib/calendar-generated";
 import { expandCalendarItems } from "@/lib/recurrence";
@@ -100,13 +100,33 @@ function dateFromKey(dateKey: string) {
   return new Date(year, month - 1, day);
 }
 
+function currentDayStamp() {
+  return new Date().toDateString();
+}
+
 export function CalendarSidebar() {
   const responsibilities = useAppStore((state) => state.responsibilities);
   const calendarItems = useAppStore((state) => state.calendarItems);
   const { calendarView, hiddenResponsibilities, toggleResponsibility, setCalendarGotoDate, selectedDate } = useUiStore();
   const [monthOffset, setMonthOffset] = useState(0);
   const [insightsOpen, setInsightsOpen] = useState(true);
-  const today = useMemo(() => new Date(), []);
+  const [todayStamp, setTodayStamp] = useState(() => currentDayStamp());
+  const today = useMemo(() => new Date(todayStamp), [todayStamp]);
+
+  useEffect(() => {
+    function syncToday() {
+      setTodayStamp(currentDayStamp());
+    }
+
+    const interval = window.setInterval(syncToday, 60_000);
+    window.addEventListener("focus", syncToday);
+    document.addEventListener("visibilitychange", syncToday);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", syncToday);
+      document.removeEventListener("visibilitychange", syncToday);
+    };
+  }, []);
   const selectedDay = useMemo(() => dateFromKey(selectedDate), [selectedDate]);
   const displayMonth = useMemo(() => new Date(selectedDay.getFullYear(), selectedDay.getMonth() + monthOffset, 1), [selectedDay, monthOffset]);
   const monthDays = useMemo(() => miniMonthDays(displayMonth, today), [displayMonth, today]);
