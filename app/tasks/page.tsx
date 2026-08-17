@@ -339,7 +339,8 @@ export default function TasksPage() {
                             ) : (
                               <button
                                 onClick={() => { setRescheduling(task.id); setDeleteConfirm(null); }}
-                                title="Reschedule"
+                                title={`Reschedule ${task.title}`}
+                                aria-label={`Reschedule ${task.title}`}
                                 className="grid size-7 place-items-center rounded text-muted hover:bg-panel hover:text-ink"
                               >
                                 <CalendarRange className="size-3.5" />
@@ -347,14 +348,16 @@ export default function TasksPage() {
                             )}
                             <button
                               onClick={() => { setEditing({ id: task.id, title: task.title }); setDeleteConfirm(null); setRescheduling(null); }}
-                              title="Edit"
+                              title={`Edit ${task.title}`}
+                              aria-label={`Edit ${task.title}`}
                               className="grid size-7 place-items-center rounded text-muted hover:bg-panel hover:text-ink"
                             >
                               <Pencil className="size-3.5" />
                             </button>
                             <button
                               onClick={() => handleDelete(task.id)}
-                              title="Delete"
+                              title={`${deleteConfirm === task.id ? "Confirm deleting" : "Delete"} ${task.title}`}
+                              aria-label={`${deleteConfirm === task.id ? "Confirm deleting" : "Delete"} ${task.title}`}
                               className={cn(
                                 "grid h-7 place-items-center rounded transition",
                                 deleteConfirm === task.id ? "bg-[#cf4444]/15 px-1.5 text-xs text-[#cf4444]" : "size-7 text-muted hover:bg-panel hover:text-[#cf4444]"
