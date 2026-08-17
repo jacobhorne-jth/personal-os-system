@@ -130,6 +130,8 @@ export function FoodWorkspace() {
     if (saveToLibrary) {
       addSavedFood({ name: form.name.trim(), calories, protein });
     }
+    setForm({ name: "", calories: "", protein: "" });
+    setSaveToLibrary(false);
     setAdding(false);
   }
 
@@ -143,6 +145,8 @@ export function FoodWorkspace() {
       calories: food.calories,
       protein: food.protein,
     });
+    setForm({ name: "", calories: "", protein: "" });
+    setSaveToLibrary(false);
     setAdding(false);
   }
 
