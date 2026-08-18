@@ -134,6 +134,7 @@ export function TimerControl({ plain = false, compact = false, minimal = false }
             onClick={timer.running ? pauseTimer : handleStart}
             disabled={!responsibilityId}
             title={timer.running ? "Pause timer" : "Start timer"}
+            aria-label={timer.running ? "Pause timer" : "Start timer"}
             className={cn(
               "flex h-10 items-center justify-center gap-2 rounded-lg bg-ink px-3 text-sm font-medium text-paper transition hover:bg-ink/90 disabled:opacity-40",
               compact && "min-w-24"
@@ -146,6 +147,7 @@ export function TimerControl({ plain = false, compact = false, minimal = false }
             onClick={stopTimer}
             disabled={!timer.startedAt}
             title="Stop timer"
+            aria-label="Stop timer"
             className="flex h-10 items-center justify-center gap-2 rounded-lg border border-line px-3 text-sm text-muted transition hover:border-muted hover:text-ink disabled:opacity-40"
           >
             <Square className="size-4" />
