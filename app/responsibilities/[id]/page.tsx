@@ -1,6 +1,6 @@
 import { ResponsibilityWorkspace } from "@/components/responsibilities/responsibility-workspace";
 
-export default async function ResponsibilityByIdPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function LabelByIdPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return <ResponsibilityWorkspace responsibilityId={id} />;
 }
