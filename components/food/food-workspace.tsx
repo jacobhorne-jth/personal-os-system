@@ -311,7 +311,8 @@ export function FoodWorkspace() {
                     </button>
                     <button
                       onClick={() => deleteSavedFood(food.id)}
-                      title="Remove from library"
+                      title={`Remove ${food.name} from library`}
+                      aria-label={`Remove ${food.name} from library`}
                       className="grid size-7 shrink-0 place-items-center text-muted opacity-100 transition hover:text-red-400 lg:opacity-0 lg:group-hover/lib:opacity-100"
                     >
                       <Trash2 className="size-3" />
