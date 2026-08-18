@@ -302,7 +302,8 @@ export function IdeasWorkspace() {
                           onClick={() => moveIdea(idea, -1)}
                           disabled={statusIdx === 0}
                           className="grid size-5 place-items-center rounded text-muted hover:bg-line hover:text-ink disabled:opacity-30"
-                          title="Move left"
+                          title={`Move ${idea.title} left`}
+                          aria-label={`Move ${idea.title} left`}
                         >
                           <ChevronLeft className="size-3" />
                         </button>
@@ -310,13 +311,16 @@ export function IdeasWorkspace() {
                           onClick={() => moveIdea(idea, 1)}
                           disabled={statusIdx === STATUS_ORDER.length - 1}
                           className="grid size-5 place-items-center rounded text-muted hover:bg-line hover:text-ink disabled:opacity-30"
-                          title="Move right"
+                          title={`Move ${idea.title} right`}
+                          aria-label={`Move ${idea.title} right`}
                         >
                           <ChevronRight className="size-3" />
                         </button>
                         <button
                           onClick={() => startEdit(idea)}
                           className="grid size-5 place-items-center rounded text-muted hover:bg-line hover:text-ink"
+                          title={`Edit ${idea.title}`}
+                          aria-label={`Edit ${idea.title}`}
                         >
                           <Pencil className="size-3" />
                         </button>
