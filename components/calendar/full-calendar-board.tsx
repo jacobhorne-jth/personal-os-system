@@ -1484,7 +1484,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
           style={selectedPanelPos ? { left: selectedPanelPos.left, top: selectedPanelPos.top } : { left: 24, top: 64 }}
         >
           <div className="flex h-10 items-center justify-end gap-0.5 px-2.5 pt-1.5 text-muted">
-            <button type="button" onClick={() => openEditInExpanded(selectedItem)} className="grid size-8 place-items-center rounded-full transition hover:bg-paper" title="Edit">
+            <button type="button" onClick={() => openEditInExpanded(selectedItem)} className="grid size-8 place-items-center rounded-full transition hover:bg-paper" title={`Edit ${selectedItem.title}`} aria-label={`Edit ${selectedItem.title}`}>
               <Pencil className="size-3.5" />
             </button>
             <button
@@ -1500,11 +1500,12 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
                 }
               }}
               className="grid size-8 place-items-center rounded-full transition hover:bg-paper"
-              title="Delete"
+              title={`Delete ${selectedItem.title}`}
+              aria-label={`Delete ${selectedItem.title}`}
             >
               <Trash2 className="size-3.5" />
             </button>
-            <button type="button" onClick={() => { setSelectedItem(null); setDeleteMenuOpen(false); }} className="grid size-8 place-items-center rounded-full transition hover:bg-paper" title="Close">
+            <button type="button" onClick={() => { setSelectedItem(null); setDeleteMenuOpen(false); }} className="grid size-8 place-items-center rounded-full transition hover:bg-paper" title="Close event details" aria-label="Close event details">
               <X className="size-4" />
             </button>
           </div>
