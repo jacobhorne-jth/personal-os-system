@@ -174,7 +174,7 @@ export function HomeWorkspaceV2() {
                         onClick={() => toggleTask(task.id)}
                         className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-[5px] border-[1.5px] transition active:scale-95"
                         style={{ borderColor: color }}
-                        aria-label="Complete task"
+                        aria-label={`Complete ${task.title}`}
                       />
                       <Link href={`/task/${task.id}`} className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-ink">{task.title}</p>
