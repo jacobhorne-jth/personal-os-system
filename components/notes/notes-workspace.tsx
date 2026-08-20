@@ -199,10 +199,10 @@ export function NotesWorkspace() {
                   {isEditing ? (
                     <div className="flex shrink-0 items-center gap-1">
                       <ResponsibilityColorPicker value={folder.color} onChange={(color) => updateNoteFolder(folder.id, { color })} compact />
-                      <button type="button" onClick={saveFolderName} className="grid size-7 place-items-center rounded text-muted hover:bg-paper hover:text-mint" aria-label="Save folder">
+                      <button type="button" onClick={saveFolderName} className="grid size-7 place-items-center rounded text-muted hover:bg-paper hover:text-mint" aria-label={`Save ${folder.name}`}>
                         <Check className="size-3.5" />
                       </button>
-                      <button type="button" onClick={() => setEditingFolderId(null)} className="grid size-7 place-items-center rounded text-muted hover:bg-paper hover:text-ink" aria-label="Cancel rename">
+                      <button type="button" onClick={() => setEditingFolderId(null)} className="grid size-7 place-items-center rounded text-muted hover:bg-paper hover:text-ink" aria-label={`Cancel renaming ${folder.name}`}>
                         <X className="size-3.5" />
                       </button>
                     </div>
@@ -212,10 +212,10 @@ export function NotesWorkspace() {
                       <span className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100">
                         <ResponsibilityColorPicker value={folder.color} onChange={(color) => updateNoteFolder(folder.id, { color })} compact />
                       </span>
-                      <button type="button" onClick={() => startEditingFolder(folder.id, folder.name)} className="grid size-7 place-items-center rounded text-muted opacity-100 hover:bg-paper hover:text-ink lg:opacity-0 lg:group-hover:opacity-100" aria-label="Rename folder">
+                      <button type="button" onClick={() => startEditingFolder(folder.id, folder.name)} className="grid size-7 place-items-center rounded text-muted opacity-100 hover:bg-paper hover:text-ink lg:opacity-0 lg:group-hover:opacity-100" aria-label={`Rename ${folder.name}`}>
                         <Pencil className="size-3.5" />
                       </button>
-                      <button type="button" onClick={() => removeFolder(folder.id)} className={cn("grid h-7 place-items-center rounded px-1.5 text-muted opacity-100 hover:bg-paper hover:text-coral lg:opacity-0 lg:group-hover:opacity-100", deleteConfirmFolderId === folder.id && "text-coral opacity-100")} aria-label="Delete folder">
+                      <button type="button" onClick={() => removeFolder(folder.id)} className={cn("grid h-7 place-items-center rounded px-1.5 text-muted opacity-100 hover:bg-paper hover:text-coral lg:opacity-0 lg:group-hover:opacity-100", deleteConfirmFolderId === folder.id && "text-coral opacity-100")} aria-label={`${deleteConfirmFolderId === folder.id ? "Confirm deleting" : "Delete"} ${folder.name}`}>
                         {deleteConfirmFolderId === folder.id ? <span className="text-[11px] font-medium">Confirm</span> : <Trash2 className="size-3.5" />}
                       </button>
                     </div>
