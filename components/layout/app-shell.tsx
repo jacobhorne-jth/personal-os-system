@@ -120,6 +120,7 @@ function TimerDock() {
             <button
               onClick={() => setOpen(false)}
               title="Close timer"
+              aria-label="Close timer panel"
               className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-line hover:text-ink"
             >
               <X className="size-4" />
@@ -130,7 +131,8 @@ function TimerDock() {
       )}
       <button
         onClick={() => setOpen((value) => !value)}
-        title="Open timer"
+        title={open ? "Close timer" : "Open timer"}
+        aria-label={open ? "Close timer" : "Open timer"}
         className={cn(
           "ml-auto flex h-11 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full border border-line bg-paper/95 px-3 text-sm text-ink shadow-lift backdrop-blur transition hover:border-muted lg:ml-0 lg:size-11 lg:justify-center lg:p-0",
           timer.running && "border-blue/40"
