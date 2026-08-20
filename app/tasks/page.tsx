@@ -281,7 +281,7 @@ export default function TasksPage() {
                     <div className="group flex items-start gap-3 rounded-md px-2 py-2.5 transition hover:bg-panel">
                       <button
                         onClick={() => toggleTask(task.id)}
-                        aria-label="Complete task"
+                        aria-label={`Complete ${task.title}`}
                         className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border-[1.5px] transition hover:opacity-60"
                         style={{ borderColor: color }}
                       />
