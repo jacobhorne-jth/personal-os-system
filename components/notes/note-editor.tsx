@@ -191,7 +191,7 @@ export function NoteEditor({ noteId }: { noteId: string }) {
           type="button"
           onClick={removeNote}
           className="grid size-10 place-items-center rounded-lg text-muted transition hover:bg-paper hover:text-coral"
-          aria-label="Delete note"
+          aria-label={`Delete ${title.trim() || "untitled note"}`}
         >
           <Trash2 className="size-4" />
         </button>
