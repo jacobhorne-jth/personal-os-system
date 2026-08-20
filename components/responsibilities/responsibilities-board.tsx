@@ -374,21 +374,24 @@ export function ResponsibilitiesBoard() {
                         <button
                           onClick={() => startEdit(item)}
                           className="rounded-md p-1.5 text-muted hover:bg-line hover:text-ink"
-                          title="Edit"
+                          title={`Edit ${item.name}`}
+                          aria-label={`Edit ${item.name}`}
                         >
                           <Pencil className="size-4" />
                         </button>
                         <button
                           onClick={() => setResponsibilityArchived(item.id, true)}
                           className="rounded-md p-1.5 text-muted hover:bg-line hover:text-ink"
-                          title="Archive"
+                          title={`Archive ${item.name}`}
+                          aria-label={`Archive ${item.name}`}
                         >
                           <Archive className="size-4" />
                         </button>
                         <button
                           onClick={() => router.push(`/responsibilities/${item.id}`)}
                           className="rounded-md p-1.5 text-muted hover:bg-line hover:text-ink"
-                          title="View"
+                          title={`View ${item.name}`}
+                          aria-label={`View ${item.name}`}
                         >
                           <ArrowRight className="size-4" />
                         </button>
