@@ -436,7 +436,8 @@ export function ResponsibilitiesBoard() {
                       <button
                         onClick={() => setResponsibilityArchived(item.id, false)}
                         className="flex items-center gap-1.5 rounded-md border border-line bg-paper px-2.5 py-1.5 text-xs text-ink transition hover:bg-line"
-                        title="Restore"
+                        title={`Restore ${item.name}`}
+                        aria-label={`Restore ${item.name}`}
                       >
                         <ArchiveRestore className="size-3.5" />
                         Restore
