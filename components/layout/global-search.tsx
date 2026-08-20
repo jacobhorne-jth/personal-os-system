@@ -104,7 +104,7 @@ export function GlobalSearch() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Search tasks, events, notes, goals…"
+          placeholder="Search tasks, events, notes, labels..."
           className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-muted"
         />
         <kbd className="hidden rounded-md border border-line bg-paper px-1.5 py-0.5 text-[10px] text-muted sm:block">⌘K</kbd>
