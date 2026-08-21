@@ -173,7 +173,7 @@ export function TaskDetailClient({ id }: { id: string }) {
             </select>
           </label>
           <label>
-            <span className="mb-1 block text-xs text-muted">Responsibility</span>
+            <span className="mb-1 block text-xs text-muted">Label</span>
             <select
               value={responsibilityId}
               onChange={(e) => setResponsibilityId(e.target.value)}
