@@ -58,7 +58,7 @@ export function WorkspacePanels({ responsibilityId, sections = ["notes", "files"
           {!files.length && <p className="p-4 text-sm text-muted">No files yet.</p>}
         </div>
       </Panel>}
-      {sections.includes("pulse") && <Panel title="Pulse" eyebrow="workspace analytics">
+      {sections.includes("pulse") && <Panel title="Pulse" eyebrow="workspace insights">
         <div className="grid grid-cols-3 gap-2 p-4">
           <div className="rounded-lg border border-line bg-line p-3">
             <TrendingUp className="mb-3 size-4 text-mint" />
