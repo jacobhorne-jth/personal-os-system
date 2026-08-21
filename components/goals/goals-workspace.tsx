@@ -164,7 +164,7 @@ export function GoalsWorkspace() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] text-muted">Responsibility</label>
+                <label className="text-[11px] text-muted">Label</label>
                 <select
                   value={editing.responsibilityId}
                   onChange={(e) => setEditing((s) => s && { ...s, responsibilityId: e.target.value })}
