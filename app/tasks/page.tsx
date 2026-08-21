@@ -252,7 +252,7 @@ export default function TasksPage() {
           {viewTasks.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-sm text-muted">
-                {view === "today" ? "Nothing due today." : view === "upcoming" ? "Nothing upcoming." : "No tasks in this view."}
+                {view === "today" ? "No open tasks due today." : view === "upcoming" ? "No upcoming tasks scheduled." : "No open tasks in this view."}
               </p>
             </div>
           ) : (
