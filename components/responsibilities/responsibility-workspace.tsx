@@ -18,7 +18,7 @@ const tabs = [
   { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "notes", label: "Notes", icon: FileText },
   { id: "files", label: "Files", icon: Upload },
-  { id: "analytics", label: "Analytics", icon: BarChart3 }
+  { id: "analytics", label: "Insights", icon: BarChart3 }
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -189,7 +189,7 @@ export function ResponsibilityWorkspace({ responsibilityId }: { responsibilityId
       )}
 
       {tab === "analytics" && (
-        <Panel title="Analytics" eyebrow="responsibility pulse">
+        <Panel title="Insights" eyebrow="label pulse">
           <div className="grid gap-3 p-4 md:grid-cols-3">
             <div className="rounded-lg border border-line bg-line p-4">
               <p className="text-3xl font-semibold text-ink">{doneTasks}/{tasks.length}</p>
