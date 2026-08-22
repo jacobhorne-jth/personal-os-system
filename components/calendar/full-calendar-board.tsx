@@ -1169,20 +1169,21 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
           <button
             onClick={goToday}
             className="gcal-today-button"
+            aria-label="Go to today"
           >
             Today
           </button>
           <button
             onClick={() => moveDate("prev")}
             className="gcal-icon-button"
-            aria-label="Previous"
+            aria-label="Previous date range"
           >
             <ChevronLeft className="size-5" />
           </button>
           <button
             onClick={() => moveDate("next")}
             className="gcal-icon-button"
-            aria-label="Next"
+            aria-label="Next date range"
           >
             <ChevronRight className="size-5" />
           </button>
