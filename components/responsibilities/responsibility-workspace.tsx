@@ -173,12 +173,12 @@ export function ResponsibilityWorkspace({ responsibilityId }: { responsibilityId
 
       {tab === "files" && (
         <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-          <Panel title="Mock Upload" eyebrow="no storage yet">
+          <Panel title="File Upload" eyebrow="label files">
             <form onSubmit={handleFileSubmit} className="space-y-3 p-4">
               <input value={fileName} onChange={(event) => setFileName(event.target.value)} placeholder="syllabus.pdf" className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-blue" />
               <button className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-blue text-sm font-medium text-white disabled:opacity-50" disabled={!fileName.trim()}>
                 <Upload className="size-4" />
-                Add mock file
+                Add file
               </button>
             </form>
           </Panel>
