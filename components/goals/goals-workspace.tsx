@@ -18,6 +18,13 @@ type EditState = {
 };
 
 const STATUS_TABS = ["active", "paused", "done"] as const;
+type GoalStatusTab = (typeof STATUS_TABS)[number];
+
+function emptyGoalMessage(status: GoalStatusTab) {
+  if (status === "active") return "No active goals yet.";
+  if (status === "paused") return "No paused goals.";
+  return "No completed goals yet.";
+}
 
 function deadlineLabel(deadline?: string): { label: string; urgent: boolean } | null {
   if (!deadline) return null;
@@ -238,7 +245,7 @@ export function GoalsWorkspace() {
       {visibleGoals.length === 0 ? (
         <div className="rounded-xl border border-line bg-panel p-10 text-center">
           <Flag className="mx-auto mb-3 size-8 text-muted opacity-40" />
-          <p className="text-sm text-muted">No {tab} goals.</p>
+          <p className="text-sm text-muted">{emptyGoalMessage(tab)}</p>
           {tab === "active" && (
             <button onClick={startNew} className="mt-3 text-sm text-blue hover:underline">
               Add your first goal →
