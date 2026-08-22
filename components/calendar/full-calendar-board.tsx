@@ -1215,7 +1215,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
             <button
               onClick={openCreateDraft}
               className={cn(homeMode && isMobile ? "gcal-icon-button" : "gcal-create-button")}
-              aria-label="Create event"
+              aria-label="Create calendar event"
             >
               {homeMode && isMobile ? <Plus className="size-5" /> : "Create event"}
             </button>
@@ -1270,7 +1270,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
             <button
               type="button"
               onClick={openCreateDraft}
-              aria-label="Create event"
+              aria-label="Create calendar event"
               className="absolute bottom-24 right-4 z-20 grid size-14 place-items-center rounded-2xl bg-blue text-white shadow-lift transition active:scale-95"
             >
               <Plus className="size-6" />
@@ -1290,7 +1290,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
               type="button"
               onClick={() => closeDraftRef.current()}
               className="absolute right-3 top-3 grid size-8 place-items-center rounded-full text-muted transition hover:bg-paper hover:text-ink"
-              aria-label="Close"
+              aria-label="Close event editor"
             >
               <X className="size-4" />
             </button>
@@ -1384,7 +1384,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
                 type="button"
                 onClick={() => closeDraftRef.current()}
                 className="grid size-10 place-items-center rounded-full text-muted transition hover:bg-panel"
-                aria-label="Close"
+                aria-label="Close event editor"
               >
                 <X className="size-5" />
               </button>
