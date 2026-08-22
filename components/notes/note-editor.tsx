@@ -240,7 +240,7 @@ export function NoteEditor({ noteId }: { noteId: string }) {
           value={body}
           onChange={(event) => setBody(event.target.value)}
           onKeyDown={handleBodyKeyDown}
-          placeholder="Start writing..."
+          placeholder="Start writing notes..."
           className="min-h-[68vh] w-full resize-none bg-transparent font-sans text-[16px] leading-7 text-ink outline-none placeholder:text-muted/55"
           spellCheck
         />
