@@ -155,7 +155,7 @@ export function ResponsibilityWorkspace({ responsibilityId }: { responsibilityId
 
       {tab === "notes" && (
         <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-          <Panel title="New Note" eyebrow="local mock">
+          <Panel title="New Note" eyebrow="label context">
             <form onSubmit={handleNoteSubmit} className="space-y-3 p-4">
               <input value={noteTitle} onChange={(event) => setNoteTitle(event.target.value)} placeholder="Title" className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-blue" />
               <textarea value={noteBody} onChange={(event) => setNoteBody(event.target.value)} placeholder="Write the context once, use it everywhere." className="min-h-32 w-full resize-none rounded-lg border border-line bg-paper p-3 text-sm text-ink outline-none placeholder:text-muted focus:border-blue" />
