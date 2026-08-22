@@ -249,7 +249,8 @@ export function TimerControl({ plain = false, compact = false, minimal = false }
           </p>
           <button
             onClick={() => setLogPastOpen((open) => !open)}
-            title="Log past time"
+            title={logPastOpen ? "Close past time form" : "Log past time"}
+            aria-label={logPastOpen ? "Close past time form" : "Log past time"}
             className={cn(
               "flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs transition",
               logPastOpen ? "border-blue/50 text-blue" : "border-line text-muted hover:border-muted hover:text-ink"
