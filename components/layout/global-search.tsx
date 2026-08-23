@@ -134,7 +134,7 @@ export function GlobalSearch() {
               })}
             </div>
           ) : (
-            <p className="p-3 text-sm text-muted">No results.</p>
+            <p className="p-3 text-sm text-muted">No matching results.</p>
           )}
         </div>
       )}
