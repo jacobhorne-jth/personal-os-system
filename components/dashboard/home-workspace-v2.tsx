@@ -188,7 +188,7 @@ export function HomeWorkspaceV2() {
                 })}
               </div>
             ) : (
-              <div className="rounded-lg bg-paper px-4 py-6 text-center text-sm text-muted">No tasks for this day.</div>
+              <div className="rounded-lg bg-paper px-4 py-6 text-center text-sm text-muted">No tasks scheduled.</div>
             )}
           </div>
 
