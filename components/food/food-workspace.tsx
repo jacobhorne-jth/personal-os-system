@@ -378,7 +378,7 @@ export function FoodWorkspace() {
         )}
 
         {dayEntries.length === 0 && !adding && (
-          <p className="px-4 py-5 text-sm text-muted">No meals logged for this day.</p>
+          <p className="px-4 py-5 text-sm text-muted">No meals logged yet.</p>
         )}
       </section>
     </div>
