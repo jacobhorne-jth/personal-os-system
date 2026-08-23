@@ -176,7 +176,7 @@ export function TimerControl({ plain = false, compact = false, minimal = false }
           </select>
         </label>
         <label>
-          <span className="sr-only">Project</span>
+          <span className="sr-only">Label group</span>
           <select
             value={responsibilityId}
             onChange={(event) => setTimerResponsibility(event.target.value)}
