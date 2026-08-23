@@ -329,8 +329,9 @@ export function GoalsWorkspace() {
                     {goal.status === "active" && percent >= 100 && (
                       <button
                         onClick={() => updateGoal(goal.id, { status: "done" })}
+                        aria-label={`Mark ${goal.title} done`}
                         className="grid size-6 place-items-center rounded-full bg-mint text-white transition hover:bg-mint/80"
-                        title="Mark done"
+                        title={`Mark ${goal.title} done`}
                       >
                         <Check className="size-3.5" />
                       </button>
