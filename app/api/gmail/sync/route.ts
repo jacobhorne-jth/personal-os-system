@@ -88,7 +88,7 @@ function emailPrompt(email: ParsedEmail, responsibilities: Responsibility[], tod
 
   return `Today: ${today}
 
-Responsibilities:
+Labels:
 ${respList}
 
 Email source: ${email.sourceName}
@@ -127,7 +127,7 @@ Rules:
 - For confirmed interviews, also create a prep task when useful.
 - If the email lists multiple possible times, tentative holds, or unconfirmed availability but no confirmed final time, create a task to confirm/schedule, not an event.
 - If an event has no end time, default to 1 hour.
-- Prefer one of the responsibility IDs exactly. Use "${fallbackId}" if unclear.
+- Prefer one of the label IDs exactly. Use "${fallbackId}" if unclear.
 - Do not invent dates or times.
 - Keep task titles under 70 characters.
 - Use the email sender/company in titles when useful.
