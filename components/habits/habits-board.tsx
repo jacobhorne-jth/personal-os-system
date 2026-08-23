@@ -563,8 +563,8 @@ export function HabitsBoard() {
       {/* Habit grid */}
       {habits.length === 0 && !editing ? (
         <div className="rounded-xl border border-line bg-panel p-8 text-center shadow-glow">
-          <p className="text-sm text-muted">No habits yet.</p>
-          <button onClick={startNew} className="mt-3 text-sm text-blue hover:underline">Add your first habit →</button>
+          <p className="text-sm text-muted">No habits added yet.</p>
+          <button onClick={startNew} className="mt-3 text-sm text-blue hover:underline">Create first habit</button>
         </div>
       ) : habits.length > 0 && (
         <section className="overflow-hidden rounded-xl border border-line bg-panel shadow-glow">
