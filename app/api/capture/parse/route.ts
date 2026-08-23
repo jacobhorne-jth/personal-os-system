@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 Today: ${currentDate}
 Today ISO date: ${today}
 
-Jacob's responsibilities — always use one of these IDs exactly:
+Jacob's labels - always use one of these IDs exactly:
 ${respList}
 
 Return ONLY valid JSON (no markdown, no backticks) with this exact shape:
