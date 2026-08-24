@@ -1205,7 +1205,14 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
           ) : (
             <div className="gcal-view-tabs" style={{ gridTemplateColumns: `repeat(${availableViews.length}, minmax(74px, 1fr))` }} aria-label="Calendar view">
               {availableViews.map((view) => (
-                <button key={view} onClick={() => changeView(view)} className={cn(effectiveView === view && "active")}>
+                <button
+                  key={view}
+                  type="button"
+                  onClick={() => changeView(view)}
+                  className={cn(effectiveView === view && "active")}
+                  aria-label={`Switch to ${view} view`}
+                  aria-pressed={effectiveView === view}
+                >
                   {view}
                 </button>
               ))}
