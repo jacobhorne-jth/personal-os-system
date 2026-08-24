@@ -112,7 +112,8 @@ export function NotesWorkspace() {
               onClick={createFolder}
               disabled={!newFolderName.trim()}
               className="grid size-9 place-items-center rounded-lg text-muted transition hover:bg-paper hover:text-ink disabled:opacity-40"
-              aria-label="Create folder"
+              title="Create note folder"
+              aria-label="Create note folder"
             >
               <FolderPlus className="size-4" />
             </button>
