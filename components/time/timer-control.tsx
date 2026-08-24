@@ -172,7 +172,7 @@ export function TimerControl({ plain = false, compact = false, minimal = false }
                 {item.title}
               </option>
             ))}
-            <option value="__other">Other...</option>
+            <option value="__other">New label...</option>
           </select>
         </label>
         <label>
