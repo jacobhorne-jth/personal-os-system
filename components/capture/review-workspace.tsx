@@ -280,6 +280,7 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
                       editingId === row.id && "border-blue text-blue"
                     )}
                     title={editingId === row.id ? "Done editing" : "Edit proposed item"}
+                    aria-label={editingId === row.id ? "Done editing proposed item" : "Edit proposed item"}
                   >
                     <Pencil className="size-4" />
                   </button>
@@ -293,6 +294,7 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
                       isApproved ? "border-mint bg-mint text-white" : "border-line bg-paper text-muted"
                     )}
                     title="Approve suggestion"
+                    aria-label="Approve suggestion"
                   >
                     <Check className="size-4" />
                   </button>
@@ -306,6 +308,7 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
                       isRejected ? "border-coral bg-coral text-white" : "border-line bg-paper text-muted"
                     )}
                     title="Reject suggestion"
+                    aria-label="Reject suggestion"
                   >
                     <X className="size-4" />
                   </button>
