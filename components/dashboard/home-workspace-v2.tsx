@@ -91,6 +91,8 @@ export function HomeWorkspaceV2() {
               <button
                 type="button"
                 onClick={() => setCaptureOpen((open) => !open)}
+                title={captureOpen ? "Close quick capture" : "Open quick capture"}
+                aria-label={captureOpen ? "Close quick capture" : "Open quick capture"}
                 className="flex h-10 items-center gap-3 rounded-xl border border-line bg-paper px-3 text-left text-muted transition hover:bg-hover hover:text-ink"
               >
                 {captureOpen ? <X className="size-5" /> : <Search className="size-5" />}
