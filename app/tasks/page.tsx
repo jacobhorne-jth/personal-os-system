@@ -294,8 +294,8 @@ export default function TasksPage() {
                             onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditing(null); }}
                             className="h-8 min-w-0 flex-1 rounded-md border border-line bg-panel px-2.5 text-sm text-ink outline-none focus:border-blue"
                           />
-                          <button onClick={saveEdit} className="grid size-7 place-items-center rounded text-blue hover:bg-panel"><Check className="size-4" /></button>
-                          <button onClick={() => setEditing(null)} className="grid size-7 place-items-center rounded text-muted hover:bg-panel"><X className="size-4" /></button>
+                          <button onClick={saveEdit} title={`Save ${task.title}`} aria-label={`Save ${task.title}`} className="grid size-7 place-items-center rounded text-blue hover:bg-panel"><Check className="size-4" /></button>
+                          <button onClick={() => setEditing(null)} title={`Cancel editing ${task.title}`} aria-label={`Cancel editing ${task.title}`} className="grid size-7 place-items-center rounded text-muted hover:bg-panel"><X className="size-4" /></button>
                         </div>
                       ) : (
                         <>
