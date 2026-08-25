@@ -154,6 +154,7 @@ export function IdeasWorkspace() {
                 <select
                   value={editing.responsibilityId}
                   onChange={(e) => setEditing((s) => s && { ...s, responsibilityId: e.target.value })}
+                  aria-label="Idea label"
                   className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue"
                 >
                   <option value="">— none —</option>
@@ -167,6 +168,7 @@ export function IdeasWorkspace() {
                 <select
                   value={editing.status}
                   onChange={(e) => setEditing((s) => s && { ...s, status: e.target.value as IdeaStatus })}
+                  aria-label="Idea status"
                   className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue"
                 >
                   {COLUMNS.map((c) => (
