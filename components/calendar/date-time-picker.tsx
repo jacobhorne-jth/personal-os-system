@@ -103,14 +103,14 @@ export function DateTimeRow({
 
   return (
     <div ref={rowRef} className="relative flex flex-wrap items-center gap-2">
-      <button type="button" onClick={() => setOpen(open === "date" ? null : "date")} className={cn(fieldClass, open === "date" && "bg-line/60")}>
+      <button type="button" onClick={() => setOpen(open === "date" ? null : "date")} className={cn(fieldClass, open === "date" && "bg-line/60")} aria-label="Change event date">
         {fmtDate(start)}
       </button>
-      <button type="button" onClick={() => setOpen(open === "start" ? null : "start")} className={cn(fieldClass, open === "start" && "bg-line/60")}>
+      <button type="button" onClick={() => setOpen(open === "start" ? null : "start")} className={cn(fieldClass, open === "start" && "bg-line/60")} aria-label="Change start time">
         {fmtTime(start)}
       </button>
       <span className="text-sm text-muted">–</span>
-      <button type="button" onClick={() => setOpen(open === "end" ? null : "end")} className={cn(fieldClass, open === "end" && "bg-line/60")}>
+      <button type="button" onClick={() => setOpen(open === "end" ? null : "end")} className={cn(fieldClass, open === "end" && "bg-line/60")} aria-label="Change end time">
         {fmtTime(end)}
       </button>
 
