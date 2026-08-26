@@ -303,7 +303,10 @@ export function FoodWorkspace() {
                 {libraryMatches.map((food) => (
                   <div key={food.id} className="group/lib flex items-center">
                     <button
+                      type="button"
                       onClick={() => logSavedFood(food.id)}
+                      title={`Log ${food.name}`}
+                      aria-label={`Log ${food.name}`}
                       className="flex min-w-0 flex-1 items-baseline justify-between gap-3 px-3 py-2 text-left transition hover:bg-line"
                     >
                       <span className="truncate text-sm text-ink">{food.name}</span>
