@@ -214,6 +214,8 @@ export function TaskDetailClient({ id }: { id: string }) {
               <button
                 type="button"
                 onClick={() => toggleTask(task.id)}
+                title={task.status === "done" ? "Reopen task" : "Mark task done"}
+                aria-label={task.status === "done" ? "Reopen task" : "Mark task done"}
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-line px-4 text-sm text-ink transition hover:bg-line"
               >
                 <CheckCircle2 className="size-4" />
