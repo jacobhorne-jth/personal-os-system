@@ -126,6 +126,8 @@ function ActiveExerciseRow({
         <span className="text-xs text-muted">{doneCount}/{sets.length} sets</span>
         <button
           onClick={(e) => { e.stopPropagation(); onOpenHistory(); }}
+          title={`Open ${exercise.name} history`}
+          aria-label={`Open ${exercise.name} history`}
           className="rounded p-1 text-muted hover:bg-line hover:text-ink"
         >
           <History className="size-3.5" />
