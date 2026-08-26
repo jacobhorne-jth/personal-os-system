@@ -42,7 +42,11 @@ function SectionHeader({ title, href, action, count }: { title: string; href?: s
         )}
       </div>
       {href && action && (
-        <Link href={href} className="shrink-0 text-xs font-semibold text-blue transition hover:brightness-110">
+        <Link
+          href={href}
+          aria-label={`${action} ${title}`}
+          className="shrink-0 text-xs font-semibold text-blue transition hover:brightness-110"
+        >
           {action}
         </Link>
       )}
