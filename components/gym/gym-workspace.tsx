@@ -237,6 +237,8 @@ function DayPreview({
             <div key={ex.id} className="grid grid-cols-[1fr_80px_80px] items-center px-4 py-2.5">
               <button
                 onClick={() => onOpenHistory(ex)}
+                title={`Open ${ex.name} history`}
+                aria-label={`Open ${ex.name} history`}
                 className="text-left text-sm text-ink hover:text-blue transition"
               >
                 {ex.name}
