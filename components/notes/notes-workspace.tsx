@@ -296,7 +296,7 @@ export function NotesWorkspace() {
           })}
           {!filteredNotes.length && (
             <div className="px-4 py-10 text-center text-sm text-muted">
-              No notes match this view.
+              No notes match these filters.
             </div>
           )}
         </div>
