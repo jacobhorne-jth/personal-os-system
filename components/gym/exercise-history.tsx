@@ -85,13 +85,13 @@ export function ExerciseHistory({
           <h2 className="text-lg font-semibold text-ink">{exercise.name}</h2>
           <p className="text-xs text-muted capitalize">{exercise.muscleGroup} · last weight: {display(exercise.lastWeight)}</p>
         </div>
-        <button onClick={onClose} className="rounded p-1 text-muted hover:bg-line hover:text-ink">
+        <button onClick={onClose} title="Close exercise history" aria-label="Close exercise history" className="rounded p-1 text-muted hover:bg-line hover:text-ink">
           <X className="size-4" />
         </button>
       </div>
 
       {history.length === 0 ? (
-        <p className="py-4 text-center text-sm text-muted">No logged sessions yet for this exercise.</p>
+        <p className="py-4 text-center text-sm text-muted">No sessions logged for this exercise.</p>
       ) : (
         <>
           {/* Chart */}
