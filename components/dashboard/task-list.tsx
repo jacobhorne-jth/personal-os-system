@@ -76,7 +76,7 @@ export function TaskList({
             </Link>
           );
         })}
-        {!visibleTasks.length && <p className="p-4 text-sm text-muted">No tasks here yet.</p>}
+        {!visibleTasks.length && <p className="p-4 text-sm text-muted">No tasks in this list.</p>}
       </div>
     </div>
   );
