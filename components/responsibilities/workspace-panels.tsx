@@ -34,7 +34,7 @@ export function WorkspacePanels({ responsibilityId, sections = ["notes", "files"
               </div>
             </Link>
           ))}
-          {!notes.length && <p className="p-4 text-sm text-muted">No notes yet.</p>}
+          {!notes.length && <p className="p-4 text-sm text-muted">No notes for this label.</p>}
         </div>
       </Panel>}
       {sections.includes("files") && <Panel title="Files" eyebrow="uploads">
@@ -55,7 +55,7 @@ export function WorkspacePanels({ responsibilityId, sections = ["notes", "files"
               </span>
             </div>
           ))}
-          {!files.length && <p className="p-4 text-sm text-muted">No files yet.</p>}
+          {!files.length && <p className="p-4 text-sm text-muted">No files for this label.</p>}
         </div>
       </Panel>}
       {sections.includes("pulse") && <Panel title="Pulse" eyebrow="workspace insights">
