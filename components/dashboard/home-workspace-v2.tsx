@@ -238,7 +238,7 @@ export function HomeWorkspaceV2() {
                   ))}
                 </div>
               ) : (
-                <p className="rounded-lg bg-paper px-4 py-4 text-sm text-muted">No habits configured.</p>
+                <p className="rounded-lg bg-paper px-4 py-4 text-sm text-muted">No habits to track.</p>
               )}
             </div>
           </aside>
