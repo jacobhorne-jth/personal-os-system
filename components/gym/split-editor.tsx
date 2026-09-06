@@ -106,7 +106,7 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
           {/* Exercise list */}
           <div className="rounded-lg border border-line overflow-hidden">
             {dayExercises.length === 0 ? (
-              <p className="p-4 text-center text-sm text-muted">No exercises — add some below.</p>
+              <p className="p-4 text-center text-sm text-muted">No exercises added yet.</p>
             ) : (
               <div className="divide-y divide-line">
                 {dayExercises.map((ex, i) => ex && (
