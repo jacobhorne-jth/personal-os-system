@@ -952,10 +952,15 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
     const title = event.title || "Untitled";
 
     if (event.allDay || view.type === "dayGridMonth") {
-      const pillColor = event.backgroundColor || event.borderColor || "#4285f4";
+      const pillColor = event.backgroundColor || event.borderColor || "#3a63e0";
+      const startLabel = !event.allDay && event.start
+        ? event.start.toLocaleTimeString([], { hour: "numeric", minute: event.start.getMinutes() ? "2-digit" : undefined }).replace(" ", "").toLowerCase()
+        : null;
       return (
-        <div className="gcal-month-event-pill" style={{ backgroundColor: pillColor, color: "#111827" }}>
+        <div className="gcal-month-event-pill" style={{ "--gcal-event-color": pillColor } as React.CSSProperties}>
+          <span className="gcal-month-event-dot" />
           <span className="gcal-month-event-title">{title}</span>
+          {startLabel && <span className="ml-auto shrink-0 text-[11px] tabular-nums text-subtle">{startLabel}</span>}
         </div>
       );
     }
@@ -969,20 +974,11 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
     const compactEvent = durationMinutes > 0 && durationMinutes <= 45;
     const roomyEvent = durationMinutes >= 75;
 
-    if (tinyEvent) {
+    if (tinyEvent || compactEvent) {
       return (
-        <div className="gcal-event-card gcal-event-card-tiny">
+        <div className={cn("gcal-event-card", tinyEvent ? "gcal-event-card-tiny" : "gcal-event-card-compact")}>
           <span className="gcal-event-title">{title}</span>
-          {startTime && <span className="gcal-event-time">, {startTime}</span>}
-        </div>
-      );
-    }
-
-    if (compactEvent) {
-      return (
-        <div className="gcal-event-card gcal-event-card-compact">
-          <span className="gcal-event-title">{title}</span>
-          {timeRange && <span className="gcal-event-time">{timeRange}</span>}
+          {startTime && <span className="gcal-event-time">{startTime}</span>}
         </div>
       );
     }
@@ -990,7 +986,12 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
     return (
       <div className="gcal-event-card">
         <span className="gcal-event-title">{title}</span>
-        {timeRange && <span className="gcal-event-time">{timeRange}</span>}
+        {timeRange && (
+          <span className="gcal-event-time">
+            <span className="time-full">{timeRange}</span>
+            <span className="time-short">{startTime}</span>
+          </span>
+        )}
         {roomyEvent && location && (
           <span className="gcal-event-location">{location}</span>
         )}
@@ -1187,9 +1188,8 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
           >
             <ChevronRight className="size-5" />
           </button>
+          <h2 className="gcal-title">{calendarTitle}</h2>
         </div>
-
-        <h2 className="gcal-title">{calendarTitle}</h2>
 
         <div className="gcal-actions">
           {!homeMode && (isMobile ? (
@@ -1203,7 +1203,7 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
               {effectiveView === "month" ? <CalendarDays className="size-5" /> : <LayoutGrid className="size-5" />}
             </button>
           ) : (
-            <div className="gcal-view-tabs" style={{ gridTemplateColumns: `repeat(${availableViews.length}, minmax(74px, 1fr))` }} aria-label="Calendar view">
+            <div className="gcal-view-tabs" style={{ gridTemplateColumns: `repeat(${availableViews.length}, auto)` }} aria-label="Calendar view">
               {availableViews.map((view) => (
                 <button
                   key={view}
@@ -1221,10 +1221,10 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
           {allowInlineEditing && (
             <button
               onClick={openCreateDraft}
-              className={cn(homeMode && isMobile ? "gcal-icon-button" : "gcal-create-button")}
+              className={cn(isMobile ? "gcal-icon-button" : "gcal-create-button")}
               aria-label="Create calendar event"
             >
-              {homeMode && isMobile ? <Plus className="size-5" /> : "Create event"}
+              {isMobile ? <Plus className="size-5" /> : <><Plus className="size-4" />Event</>}
             </button>
           )}
         </div>
@@ -1272,17 +1272,6 @@ function FullCalendarBoardInner({ fullChrome = false, homeMode = false }: FullCa
             datesSet={handleDatesSet}
           />
 
-          {/* Mobile create FAB — the header + is hidden on phones for space */}
-          {fullChrome && isMobile && (
-            <button
-              type="button"
-              onClick={openCreateDraft}
-              aria-label="Create calendar event"
-              className="absolute bottom-24 right-4 z-20 grid size-14 place-items-center rounded-2xl bg-blue text-white shadow-lift transition active:scale-95"
-            >
-              <Plus className="size-6" />
-            </button>
-          )}
         </div>
       </div>
 

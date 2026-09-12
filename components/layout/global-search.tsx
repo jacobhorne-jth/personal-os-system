@@ -1,15 +1,36 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { CornerDownLeft, Moon, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ALL_NAV_ITEMS } from "@/components/layout/nav";
+import { useTheme } from "@/components/layout/theme-toggle";
+import { Overlay } from "@/components/ui/overlay";
 import { useAppStore } from "@/lib/stores/app-store";
+import { useUiStore } from "@/lib/stores/ui-store";
 import { getTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-export function GlobalSearch() {
+type PaletteEntry = {
+  id: string;
+  title: string;
+  group: string;
+  hint?: string;
+  color?: string;
+  icon?: React.ElementType;
+  run: () => void;
+};
+
+// ⌘K palette: jump to any section, run a quick action, or search every
+// task, event, note, goal, idea, habit, and label.
+export function CommandPalette() {
   const router = useRouter();
+  const open = useUiStore((state) => state.paletteOpen);
+  const setOpen = useUiStore((state) => state.setPaletteOpen);
+  const setCaptureOpen = useUiStore((state) => state.setCaptureOpen);
+  const { toggleTheme } = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const tasks = useAppStore((state) => state.tasks);
@@ -20,124 +41,175 @@ export function GlobalSearch() {
   const habits = useAppStore((state) => state.habits);
   const responsibilities = useAppStore((state) => state.responsibilities);
 
-  // ⌘K / Ctrl+K focuses search from anywhere
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        inputRef.current?.focus();
-        inputRef.current?.select();
+    function onKey(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setOpen(!useUiStore.getState().paletteOpen);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [setOpen]);
 
-  const results = useMemo(() => {
+  useEffect(() => {
+    if (!open) return;
+    setQuery("");
+    setActiveIdx(0);
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  }, [open]);
+
+  const entries = useMemo<PaletteEntry[]>(() => {
     const q = query.trim().toLowerCase();
-    if (!q) {
-      return [];
-    }
+    const go = (href: string) => () => router.push(href);
+    const colorFor = (responsibilityId?: string) => {
+      const responsibility = responsibilities.find((item) => item.id === responsibilityId);
+      return responsibility ? getTone(responsibility.color).hex : undefined;
+    };
 
+    const navigation: PaletteEntry[] = ALL_NAV_ITEMS.map((item) => ({
+      id: `nav-${item.href}`,
+      title: item.label,
+      group: "Go to",
+      icon: item.icon,
+      run: go(item.href),
+    }));
+    const actions: PaletteEntry[] = [
+      { id: "action-task", title: "New task", group: "Actions", icon: Plus, hint: "C", run: () => setCaptureOpen(true) },
+      { id: "action-capture", title: "Capture for review", group: "Actions", icon: Plus, run: go("/capture") },
+      { id: "action-theme", title: "Toggle dark mode", group: "Actions", icon: Moon, run: toggleTheme },
+    ];
+
+    if (!q) return [...navigation, ...actions];
+
+    const matches = (text: string) => text.toLowerCase().includes(q);
     return [
+      ...navigation.filter((entry) => matches(entry.title)),
+      ...actions.filter((entry) => matches(entry.title)),
       ...tasks
-        .filter((item) => `${item.title} ${item.description ?? ""}`.toLowerCase().includes(q))
-        .map((item) => ({ id: item.id, title: item.title, href: `/task/${item.id}`, kind: "Task", responsibilityId: item.responsibilityId })),
+        .filter((item) => matches(`${item.title} ${item.description ?? ""}`))
+        .slice(0, 6)
+        .map((item) => ({
+          id: `task-${item.id}`,
+          title: item.title,
+          group: "Tasks",
+          hint: item.status === "done" ? "Done" : item.dueAt ? new Date(item.dueAt).toLocaleDateString([], { month: "short", day: "numeric" }) : undefined,
+          color: colorFor(item.responsibilityId),
+          run: go(`/task/${item.id}`),
+        })),
       ...calendarItems
-        .filter((item) => `${item.title} ${item.location ?? ""} ${item.notes ?? ""}`.toLowerCase().includes(q))
-        .map((item) => ({ id: item.id, title: item.title, href: `/event/${item.id}`, kind: "Calendar", responsibilityId: item.responsibilityId })),
+        .filter((item) => matches(`${item.title} ${item.location ?? ""} ${item.notes ?? ""}`))
+        .slice(0, 6)
+        .map((item) => ({
+          id: `event-${item.id}`,
+          title: item.title,
+          group: "Calendar",
+          hint: new Date(item.startsAt).toLocaleDateString([], { month: "short", day: "numeric" }),
+          color: colorFor(item.responsibilityId),
+          run: go(`/event/${item.id}`),
+        })),
       ...notes
-        .filter((item) => `${item.title} ${item.body}`.toLowerCase().includes(q))
-        .map((item) => ({ id: item.id, title: item.title || "Untitled", href: `/notes/${item.id}`, kind: "Note", responsibilityId: item.responsibilityId })),
+        .filter((item) => matches(`${item.title} ${item.body}`))
+        .slice(0, 5)
+        .map((item) => ({ id: `note-${item.id}`, title: item.title || "Untitled", group: "Notes", color: colorFor(item.responsibilityId), run: go(`/notes/${item.id}`) })),
       ...goals
-        .filter((item) => item.title.toLowerCase().includes(q))
-        .map((item) => ({ id: item.id, title: item.title, href: "/goals", kind: "Goal", responsibilityId: item.responsibilityId })),
+        .filter((item) => matches(item.title))
+        .slice(0, 4)
+        .map((item) => ({ id: `goal-${item.id}`, title: item.title, group: "Goals", color: colorFor(item.responsibilityId), run: go("/goals") })),
       ...ideas
-        .filter((item) => `${item.title} ${item.notes ?? ""}`.toLowerCase().includes(q))
-        .map((item) => ({ id: item.id, title: item.title, href: "/ideas", kind: "Idea", responsibilityId: item.responsibilityId })),
+        .filter((item) => matches(`${item.title} ${item.notes ?? ""}`))
+        .slice(0, 4)
+        .map((item) => ({ id: `idea-${item.id}`, title: item.title, group: "Ideas", color: colorFor(item.responsibilityId), run: go("/ideas") })),
       ...habits
-        .filter((item) => item.title.toLowerCase().includes(q))
-        .map((item) => ({ id: item.id, title: item.title, href: "/habits", kind: "Habit", responsibilityId: item.responsibilityId })),
+        .filter((item) => matches(item.title))
+        .slice(0, 4)
+        .map((item) => ({ id: `habit-${item.id}`, title: item.title, group: "Habits", color: colorFor(item.responsibilityId), run: go("/habits") })),
       ...responsibilities
-        .filter((item) => !item.archivedAt && item.name.toLowerCase().includes(q))
-        .map((item) => ({ id: item.id, title: item.name, href: `/r/${item.id}`, kind: "Label", responsibilityId: item.id }))
-    ].slice(0, 10);
-  }, [calendarItems, goals, habits, ideas, notes, query, responsibilities, tasks]);
+        .filter((item) => !item.archivedAt && matches(item.name))
+        .slice(0, 4)
+        .map((item) => ({ id: `label-${item.id}`, title: item.name, group: "Labels", color: getTone(item.color).hex, run: go(`/r/${item.id}`) })),
+    ];
+  }, [calendarItems, goals, habits, ideas, notes, query, responsibilities, router, setCaptureOpen, tasks, toggleTheme]);
 
   useEffect(() => {
     setActiveIdx(0);
   }, [query]);
 
-  function openResult(idx: number) {
-    const result = results[idx];
-    if (!result) return;
-    setQuery("");
-    router.push(result.href);
+  useEffect(() => {
+    listRef.current?.querySelector<HTMLElement>(`[data-idx="${activeIdx}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [activeIdx]);
+
+  function runEntry(idx: number) {
+    const entry = entries[idx];
+    if (!entry) return;
+    setOpen(false);
+    entry.run();
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!results.length) {
-      if (e.key === "Escape") setQuery("");
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIdx((i) => (i + 1) % results.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIdx((i) => (i - 1 + results.length) % results.length);
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      openResult(activeIdx);
-    } else if (e.key === "Escape") {
-      setQuery("");
-      inputRef.current?.blur();
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIdx((i) => (entries.length ? (i + 1) % entries.length : 0));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIdx((i) => (entries.length ? (i - 1 + entries.length) % entries.length : 0));
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      runEntry(activeIdx);
     }
   }
+
+  let lastGroup = "";
 
   return (
-    <div className="relative w-full max-w-2xl">
-      <div className="flex h-11 items-center gap-2 rounded-xl border border-line bg-panel px-3.5 text-sm text-muted shadow-glow transition focus-within:border-blue/50 focus-within:ring-2 focus-within:ring-blue/15">
-        <Search className="size-4" />
+    <Overlay open={open} onClose={() => setOpen(false)} label="Command palette">
+      <div className="flex h-12 items-center gap-3 border-b border-line px-4">
+        <Search className="size-4 shrink-0 text-muted" />
         <input
           ref={inputRef}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Search tasks, events, notes, labels..."
-          className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-muted"
+          placeholder="Search or jump to…"
+          className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-subtle"
+          aria-label="Search"
         />
-        <kbd className="hidden rounded-md border border-line bg-paper px-1.5 py-0.5 text-[10px] text-muted sm:block">⌘K</kbd>
+        <kbd className="hidden rounded border border-line px-1.5 py-0.5 text-[10px] font-medium text-subtle sm:block">Esc</kbd>
       </div>
-      {query.trim() && (
-        <div className="absolute left-0 right-0 top-[52px] z-30 overflow-hidden rounded-xl border border-line bg-panel shadow-lift">
-          {results.length ? (
-            <div className="divide-y divide-line">
-              {results.map((result, idx) => {
-                const responsibility = responsibilities.find((item) => item.id === result.responsibilityId);
-                const tone = responsibility ? getTone(responsibility.color) : getTone("blue");
-                return (
-                  <button
-                    key={`${result.kind}-${result.id}`}
-                    onClick={() => openResult(idx)}
-                    onMouseEnter={() => setActiveIdx(idx)}
-                    className={cn(
-                      "flex w-full items-center gap-3 px-3.5 py-3 text-left transition",
-                      idx === activeIdx ? "bg-paper" : "hover:bg-paper"
-                    )}
-                  >
-                    <span className="size-2 rounded-full" style={{ backgroundColor: tone.hex }} />
-                    <span className="min-w-0 flex-1 truncate text-sm text-ink">{result.title}</span>
-                    <span className="rounded-md bg-paper px-2 py-1 text-[11px] text-muted">{result.kind}</span>
-                  </button>
-                );
-              })}
+      <div ref={listRef} className="max-h-[min(60vh,420px)] overflow-y-auto p-1.5">
+        {entries.length === 0 && <p className="px-3 py-8 text-center text-sm text-muted">No results for &ldquo;{query}&rdquo;</p>}
+        {entries.map((entry, idx) => {
+          const showGroup = entry.group !== lastGroup;
+          lastGroup = entry.group;
+          const Icon = entry.icon;
+          return (
+            <div key={entry.id}>
+              {showGroup && <p className="px-2.5 pb-1 pt-2.5 text-[11px] font-medium text-subtle">{entry.group}</p>}
+              <button
+                type="button"
+                data-idx={idx}
+                onClick={() => runEntry(idx)}
+                onMouseMove={() => setActiveIdx(idx)}
+                className={cn(
+                  "flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-left text-sm transition-colors",
+                  idx === activeIdx ? "bg-hover text-ink" : "text-ink/90"
+                )}
+              >
+                {Icon ? (
+                  <Icon className="size-4 shrink-0 text-muted" />
+                ) : (
+                  <span className="grid size-4 shrink-0 place-items-center">
+                    <span className="size-2 rounded-full" style={{ backgroundColor: entry.color ?? "rgb(var(--color-subtle))" }} />
+                  </span>
+                )}
+                <span className="min-w-0 flex-1 truncate">{entry.title}</span>
+                {entry.hint && <span className="shrink-0 text-xs text-subtle">{entry.hint}</span>}
+                {idx === activeIdx && <CornerDownLeft className="size-3.5 shrink-0 text-subtle" />}
+              </button>
             </div>
-          ) : (
-            <p className="p-3 text-sm text-muted">No matching results.</p>
-          )}
-        </div>
-      )}
-    </div>
+          );
+        })}
+      </div>
+    </Overlay>
   );
 }

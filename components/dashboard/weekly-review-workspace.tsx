@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, CalendarDays, CheckSquare2, Dumbbell, Flame, Inbox, Target, Utensils } from "lucide-react";
+import { ArrowUpRight, CheckSquare2, Inbox, Target, Utensils } from "lucide-react";
+import { Card, CardHeader, Page, PageHeader, ProgressBar, Stat } from "@/components/ui/primitives";
 import {
   activeReviewItems,
   dateKeyOf,
@@ -14,22 +15,10 @@ import {
   taskStatsForWeek,
   weekBounds,
 } from "@/lib/dashboard/summary";
-import { localDateKey } from "@/lib/dates";
+import { dateFromKey, localDateKey } from "@/lib/dates";
 import { useAppStore } from "@/lib/stores/app-store";
 import { getTone } from "@/lib/theme";
-
-function MetricCard({ label, value, detail, icon: Icon }: { label: string; value: string | number; detail: string; icon: React.ElementType }) {
-  return (
-    <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{label}</p>
-        <Icon className="size-4 text-muted" />
-      </div>
-      <p className="mt-3 text-3xl font-semibold text-ink">{value}</p>
-      <p className="mt-1 text-xs text-muted">{detail}</p>
-    </div>
-  );
-}
+import { cn } from "@/lib/utils";
 
 export function WeeklyReviewWorkspace() {
   const tasks = useAppStore((state) => state.tasks);
@@ -75,7 +64,7 @@ export function WeeklyReviewWorkspace() {
 
   const attention = [
     taskStats.overdue > 0 && `${taskStats.overdue} overdue task${taskStats.overdue === 1 ? "" : "s"} need rescheduling.`,
-    reviewItems.length > 0 && `${reviewItems.length} inbox review item${reviewItems.length === 1 ? "" : "s"} still need a decision.`,
+    reviewItems.length > 0 && `${reviewItems.length} inbox item${reviewItems.length === 1 ? "" : "s"} still need a decision.`,
     habitRate !== null && habitRate < 70 && `Habit consistency is ${habitRate}%. Pick the smallest version for next week.`,
     avgProtein !== null && avgProtein < foodTargets.protein * 0.75 && `Protein averaged ${avgProtein}g against a ${foodTargets.protein}g target.`,
     goalStats.active.length > 0 && goalStats.average !== null && goalStats.average < 40 && `Active goals average ${goalStats.average}% progress.`,
@@ -84,161 +73,150 @@ export function WeeklyReviewWorkspace() {
     completedTasks.length > 0 && `Completed ${completedTasks.length} task${completedTasks.length === 1 ? "" : "s"} due this week.`,
     gymThisWeek.length > 0 && `Logged ${gymThisWeek.length} workout${gymThisWeek.length === 1 ? "" : "s"}.`,
     habitRate !== null && habitRate >= 80 && `Hit ${habitRate}% habit consistency.`,
-    reviewItems.length === 0 && "Inbox review queue is clear.",
+    reviewItems.length === 0 && "Inbox is clear.",
     goalStats.average !== null && goalStats.average >= 60 && `Active goals average ${goalStats.average}% progress.`,
   ].filter(Boolean) as string[];
 
+  const fmt = (key: string) => dateFromKey(key).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const maxHours = Math.max(...timeByLabel.map((row) => row.hours), 1);
+
+  const nextSteps = [
+    { href: "/inbox", icon: Inbox, title: "Clear inbox decisions", detail: `${reviewItems.length} waiting` },
+    { href: "/tasks", icon: CheckSquare2, title: "Review task load", detail: `${taskStats.overdue} overdue` },
+    { href: "/goals", icon: Target, title: "Check active goals", detail: `${goalStats.active.length} active` },
+    { href: "/food", icon: Utensils, title: "Review nutrition", detail: avgCalories ? `${avgCalories} avg calories` : "Not logged" },
+  ];
+
   return (
-    <div className="min-h-dvh bg-paper text-ink">
-      <main className="mx-auto max-w-[1500px] space-y-4 px-4 pb-24 pt-4 sm:px-6 lg:px-8 lg:py-6">
-        <header className="rounded-xl border border-line bg-panel p-5 shadow-glow">
-          <p className="text-sm text-muted">Weekly review</p>
-          <h1 className="mt-1 text-3xl font-semibold text-ink">Your week</h1>
-          <p className="mt-2 text-sm text-muted">{keys[0]} to {keys[6]}</p>
-        </header>
+    <Page width="wide">
+      <PageHeader title="Weekly review" description={`${fmt(keys[0])} – ${fmt(keys[6])}`} />
 
-        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Tasks" value={`${taskStats.completed}/${taskStats.due}`} detail={`${completedTasks.length} completed due items`} icon={CheckSquare2} />
-          <MetricCard label="Schedule" value={`${scheduleHours.toFixed(1)}h`} detail={`${meetings.length} calendar blocks`} icon={CalendarDays} />
-          <MetricCard label="Habits" value={habitRate !== null ? `${habitRate}%` : "—"} detail={habits.length ? `${habitHits}/${habitPossible} completions` : "no habits configured"} icon={Flame} />
-          <MetricCard label="Gym" value={gymThisWeek.length} detail="sessions completed" icon={Dumbbell} />
-        </section>
+      <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Tasks done" value={`${taskStats.completed}/${taskStats.due}`} detail={taskStats.overdue ? `${taskStats.overdue} overdue` : "due this week"} />
+        <Stat label="Scheduled" value={`${scheduleHours.toFixed(1)}h`} detail={`${meetings.length} calendar blocks`} />
+        <Stat label="Habits" value={habitRate !== null ? `${habitRate}%` : "—"} detail={habits.length ? `${habitHits}/${habitPossible} check-ins` : "No habits yet"} />
+        <Stat label="Workouts" value={gymThisWeek.length} detail="sessions logged" />
+      </section>
 
-        <section className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-ink">Week at a glance</h2>
-            <p className="text-xs text-muted">Tasks · events · habits</p>
-          </div>
-          <div className="grid gap-2 md:grid-cols-7">
-            {keys.map((key) => {
-              const date = new Date(`${key}T12:00:00`);
-              const due = tasks.filter((task) => task.dueAt && taskDate(task) === key);
-              const done = due.filter((task) => task.status === "done").length;
-              const dayEvents = meetings.filter((item) => dateKeyOf(item.startsAt) === key).length;
-              const dayHabits = habitProgressForDate(habits, habitLogs, key);
-              const habitLabel = dayHabits.total ? `${dayHabits.completed}/${dayHabits.total}` : "—";
-              return (
-                <div key={key} className="rounded-lg border border-line bg-paper p-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                    {date.toLocaleDateString("en-US", { weekday: "short" })}
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-ink">{date.getDate()}</p>
-                  <div className="mt-3 space-y-2 text-xs text-muted">
-                    <div className="flex items-center justify-between gap-2">
-                      <span>Tasks</span>
-                      <span className="font-medium text-ink">{done}/{due.length}</span>
+      <Card className="mb-5 overflow-hidden">
+        <CardHeader title="Day by day" meta="tasks · events · habits" />
+        <div className="grid grid-cols-7 divide-x divide-line">
+          {keys.map((key) => {
+            const date = dateFromKey(key);
+            const due = tasks.filter((task) => task.dueAt && taskDate(task) === key);
+            const done = due.filter((task) => task.status === "done").length;
+            const dayEvents = meetings.filter((item) => dateKeyOf(item.startsAt) === key).length;
+            const dayHabits = habitProgressForDate(habits, habitLogs, key);
+            const isToday = key === today;
+            const future = key > today;
+            return (
+              <div key={key} className={cn("px-2 py-3 sm:px-3", future && "opacity-50")}>
+                <p className="text-[11px] font-medium text-subtle">{date.toLocaleDateString("en-US", { weekday: "short" })}</p>
+                <p className={cn("text-base font-semibold tabular-nums", isToday ? "text-now" : "text-ink")}>{date.getDate()}</p>
+                <dl className="mt-2 space-y-1 text-xs tabular-nums">
+                  <div className="flex justify-between gap-1"><dt className="hidden text-muted sm:block">Tasks</dt><dd className="text-ink">{done}/{due.length}</dd></div>
+                  <div className="flex justify-between gap-1"><dt className="hidden text-muted sm:block">Events</dt><dd className="text-ink">{dayEvents}</dd></div>
+                  <div className="flex justify-between gap-1"><dt className="hidden text-muted sm:block">Habits</dt><dd className="text-ink">{dayHabits.total ? `${dayHabits.completed}/${dayHabits.total}` : "—"}</dd></div>
+                </dl>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="space-y-5">
+          <Card className="overflow-hidden">
+            <CardHeader title="Time by label" meta={timeByLabel.length ? `${timeByLabel.reduce((sum, row) => sum + row.hours, 0).toFixed(1)}h` : undefined} />
+            <div className="space-y-3 p-4">
+              {timeByLabel.slice(0, 8).map(({ responsibility, hours }) => {
+                const tone = getTone(responsibility.color);
+                return (
+                  <Link key={responsibility.id} href={`/r/${responsibility.id}`} className="group grid gap-1.5">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="flex min-w-0 items-center gap-2 text-ink">
+                        <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: tone.hex }} />
+                        <span className="truncate group-hover:underline">{responsibility.name}</span>
+                      </span>
+                      <span className="tabular-nums text-muted">{hours.toFixed(1)}h</span>
                     </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span>Events</span>
-                      <span className="font-medium text-ink">{dayEvents}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span>Habits</span>
-                      <span className="font-medium text-ink">{habitLabel}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="space-y-4">
-            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-              <h2 className="text-sm font-semibold text-ink">Time by label</h2>
-              <div className="mt-4 space-y-3">
-                {timeByLabel.slice(0, 8).map(({ responsibility, hours }) => {
-                  const tone = getTone(responsibility.color);
-                  const max = Math.max(...timeByLabel.map((row) => row.hours), 1);
-                  return (
-                    <Link key={responsibility.id} href={`/r/${responsibility.id}`} className="grid gap-2">
-                      <div className="flex items-center justify-between gap-3 text-sm">
-                        <span className="flex min-w-0 items-center gap-2 text-ink">
-                          <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: tone.hex }} />
-                          <span className="truncate">{responsibility.name}</span>
-                        </span>
-                        <span className="text-muted">{hours.toFixed(1)}h</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-line">
-                        <div className="h-full rounded-full" style={{ width: `${(hours / max) * 100}%`, backgroundColor: tone.hex }} />
-                      </div>
-                    </Link>
-                  );
-                })}
-                {!timeByLabel.length && <p className="rounded-lg bg-paper p-4 text-sm text-muted">No scheduled or logged time this week.</p>}
-              </div>
+                    <ProgressBar value={(hours / maxHours) * 100} color={tone.hex} />
+                  </Link>
+                );
+              })}
+              {!timeByLabel.length && <p className="py-2 text-[13px] text-muted">No scheduled or logged time this week.</p>}
             </div>
+          </Card>
 
-            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-              <h2 className="text-sm font-semibold text-ink">Plan next week</h2>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                <Link href="/inbox" className="rounded-lg bg-paper p-4 transition hover:bg-hover">
-                  <Inbox className="size-4 text-blue" />
-                  <p className="mt-2 text-sm font-medium text-ink">Clear inbox decisions</p>
-                  <p className="mt-1 text-xs text-muted">{reviewItems.length} waiting</p>
-                </Link>
-                <Link href="/tasks" className="rounded-lg bg-paper p-4 transition hover:bg-hover">
-                  <CheckSquare2 className="size-4 text-mint" />
-                  <p className="mt-2 text-sm font-medium text-ink">Review task load</p>
-                  <p className="mt-1 text-xs text-muted">{taskStats.overdue} overdue</p>
-                </Link>
-                <Link href="/goals" className="rounded-lg bg-paper p-4 transition hover:bg-hover">
-                  <Target className="size-4 text-blue" />
-                  <p className="mt-2 text-sm font-medium text-ink">Check active goals</p>
-                  <p className="mt-1 text-xs text-muted">{goalStats.active.length} active</p>
-                </Link>
-                <Link href="/food" className="rounded-lg bg-paper p-4 transition hover:bg-hover">
-                  <Utensils className="size-4 text-muted" />
-                  <p className="mt-2 text-sm font-medium text-ink">Review nutrition</p>
-                  <p className="mt-1 text-xs text-muted">{avgCalories ? `${avgCalories} avg calories` : "not logged"}</p>
-                </Link>
-              </div>
+          <Card className="overflow-hidden">
+            <CardHeader title="Plan next week" />
+            <div className="grid divide-y divide-line sm:grid-cols-2 sm:divide-y-0">
+              {nextSteps.map((step, index) => {
+                const Icon = step.icon;
+                return (
+                  <Link
+                    key={step.href}
+                    href={step.href}
+                    className={cn(
+                      "group flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-hover/50",
+                      index % 2 === 0 && "sm:border-r sm:border-line",
+                      index < 2 && "sm:border-b sm:border-line"
+                    )}
+                  >
+                    <Icon className="size-4 shrink-0 text-muted" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-ink">{step.title}</span>
+                      <span className="block text-xs text-muted">{step.detail}</span>
+                    </span>
+                    <ArrowUpRight className="size-4 shrink-0 text-subtle transition-colors group-hover:text-ink" />
+                  </Link>
+                );
+              })}
             </div>
-          </div>
+          </Card>
+        </div>
 
-          <aside className="space-y-4">
-            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-              <h2 className="text-sm font-semibold text-ink">Highlights</h2>
-              <div className="mt-4 space-y-2">
-                {highlights.length ? highlights.map((item) => (
-                  <p key={item} className="rounded-lg bg-mint/10 p-3 text-sm leading-6 text-ink">{item}</p>
-                )) : (
-                  <p className="rounded-lg bg-paper p-3 text-sm text-muted">No clear highlights yet. A small win next week is enough to start the trail.</p>
-                )}
-              </div>
-            </div>
+        <aside className="space-y-5">
+          <Card className="p-4">
+            <p className="text-[13px] font-semibold text-ink">Highlights</p>
+            <ul className="mt-3 space-y-2">
+              {highlights.length ? highlights.map((item) => (
+                <li key={item} className="flex gap-2.5 text-sm leading-6 text-ink">
+                  <span className="mt-2.5 size-1.5 shrink-0 rounded-full bg-success" />
+                  {item}
+                </li>
+              )) : (
+                <li className="text-[13px] text-muted">No clear wins yet. One small one next week is enough to start.</li>
+              )}
+            </ul>
+          </Card>
 
-            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
-                <AlertCircle className="size-4 text-blue" />
-                Needs attention
-              </h2>
-              <div className="mt-4 space-y-2">
-                {attention.length ? attention.map((item) => (
-                  <p key={item} className="rounded-lg bg-paper p-3 text-sm leading-6 text-muted">{item}</p>
-                )) : (
-                  <p className="rounded-lg bg-paper p-3 text-sm text-muted">No obvious blockers. Keep the next week simple.</p>
-                )}
-              </div>
-            </div>
+          <Card className="p-4">
+            <p className="text-[13px] font-semibold text-ink">Needs attention</p>
+            <ul className="mt-3 space-y-2">
+              {attention.length ? attention.map((item) => (
+                <li key={item} className="flex gap-2.5 text-sm leading-6 text-ink">
+                  <span className="mt-2.5 size-1.5 shrink-0 rounded-full bg-warning" />
+                  {item}
+                </li>
+              )) : (
+                <li className="text-[13px] text-muted">No obvious blockers. Keep next week simple.</li>
+              )}
+            </ul>
+          </Card>
 
-            <div className="rounded-xl border border-line bg-panel p-4 shadow-glow">
-              <h2 className="text-sm font-semibold text-ink">Nutrition average</h2>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <div className="rounded-lg bg-paper p-3">
-                  <p className="text-2xl font-semibold text-ink">{avgCalories ?? "—"}</p>
-                  <p className="text-xs text-muted">calories</p>
-                </div>
-                <div className="rounded-lg bg-paper p-3">
-                  <p className="text-2xl font-semibold text-ink">{avgProtein ?? "—"}g</p>
-                  <p className="text-xs text-muted">protein</p>
-                </div>
-              </div>
+          <Card className="grid grid-cols-2 divide-x divide-line">
+            <div className="p-4">
+              <p className="text-[13px] text-muted">Avg calories</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums text-ink">{avgCalories ?? "—"}</p>
             </div>
-          </aside>
-        </section>
-      </main>
-    </div>
+            <div className="p-4">
+              <p className="text-[13px] text-muted">Avg protein</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums text-ink">{avgProtein !== null ? `${avgProtein}g` : "—"}</p>
+            </div>
+          </Card>
+        </aside>
+      </section>
+    </Page>
   );
 }

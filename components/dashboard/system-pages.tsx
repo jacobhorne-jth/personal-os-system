@@ -1,11 +1,56 @@
 "use client";
 
-import Link from "next/link";
-import { Calendar, LogOut, Mail, RefreshCw, Settings, Tags } from "lucide-react";
-import { useState } from "react";
+import { Calendar, LogOut, Mail, RefreshCw } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { useTheme } from "@/components/layout/theme-toggle";
+import { Button, ButtonLink, Card, Page, PageHeader, Segmented, inputClass } from "@/components/ui/primitives";
 import { useAppStore } from "@/lib/stores/app-store";
 import { createBrowserSupabaseClient, hasSupabaseEnv } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils";
+
+function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mb-8">
+      <h2 className="mb-2 px-1 text-[13px] font-semibold text-ink">{title}</h2>
+      <Card className="divide-y divide-line">{children}</Card>
+    </section>
+  );
+}
+
+function SettingRow({
+  title,
+  description,
+  control,
+  children,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  control?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="px-4 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <p className="text-sm text-ink">{title}</p>
+          {description && <p className="mt-0.5 text-xs leading-5 text-muted">{description}</p>}
+        </div>
+        {control}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function SyncResult({ ok, children }: { ok: boolean; children: ReactNode }) {
+  return (
+    <p className={cn("mt-3 rounded-lg px-3 py-2 text-xs", ok ? "bg-success/10 text-success" : "bg-warning/10 text-warning")}>
+      {children}
+    </p>
+  );
+}
+
+const code = "rounded bg-hover px-1 py-0.5 font-mono text-[11px] text-ink";
 
 // ─── SettingsWorkspace ────────────────────────────────────────────────────────
 
@@ -20,6 +65,7 @@ export function SettingsWorkspace() {
   const syncGoogleCalendar = useAppStore((s) => s.syncGoogleCalendar);
   const lastEmailSync = useAppStore((s) => s.lastEmailSync);
   const syncGmail = useAppStore((s) => s.syncGmail);
+  const { theme, toggleTheme } = useTheme();
 
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ synced: number; errors: string[] } | null>(null);
@@ -49,75 +95,62 @@ export function SettingsWorkspace() {
   }
 
   return (
-    <div className="space-y-4">
-      <header className="flex items-start gap-4 rounded-xl border border-line bg-panel p-5 shadow-glow">
-        <div>
-          <p className="text-sm text-muted">Settings</p>
-          <h1 className="mt-1 text-3xl font-semibold text-ink">Preferences</h1>
-        </div>
-        <span className="ml-auto grid size-11 place-items-center rounded-lg bg-line text-blue">
-          <Settings className="size-5" />
-        </span>
-      </header>
+    <Page width="narrow">
+      <PageHeader title="Settings" />
 
-      {/* Gym */}
-      <div className="rounded-xl border border-line bg-panel overflow-hidden">
-        <div className="border-b border-line bg-line/40 px-5 py-3">
-          <p className="text-sm font-medium text-ink">Gym</p>
-        </div>
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-ink">Weight unit</p>
-              <p className="text-xs text-muted">Used in all workout logging</p>
-            </div>
-            <div className="flex overflow-hidden rounded-lg border border-line text-sm font-medium">
-              {(["lbs", "kg"] as const).map((u) => (
-                <button
-                  key={u}
-                  onClick={() => setGymWeightUnit(u)}
-                  className={cn(
-                    "px-4 py-1.5 transition",
-                    gymWeightUnit === u ? "bg-blue text-white" : "bg-paper text-muted hover:text-ink"
-                  )}
-                >
-                  {u}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <SettingsSection title="Appearance">
+        <SettingRow
+          title="Theme"
+          description="Follows your device until you pick one."
+          control={
+            <Segmented
+              size="sm"
+              label="Theme"
+              value={theme}
+              onChange={(next) => { if (next !== theme) toggleTheme(); }}
+              options={[{ value: "light", label: "Light" }, { value: "dark", label: "Dark" }]}
+            />
+          }
+        />
+      </SettingsSection>
 
-      {/* Food */}
-      <div className="rounded-xl border border-line bg-panel overflow-hidden">
-        <div className="border-b border-line bg-line/40 px-5 py-3">
-          <p className="text-sm font-medium text-ink">Food targets</p>
-        </div>
-        <div className="divide-y divide-line">
-          <div className="flex items-center justify-between px-5 py-4">
-            <div>
-              <p className="text-sm text-ink">Daily protein goal</p>
-              <p className="text-xs text-muted">Shown on the food page and weekly review</p>
-            </div>
-            <div className="flex items-center gap-1.5">
+      <SettingsSection title="Tracking">
+        <SettingRow
+          title="Weight unit"
+          description="Used in all workout logging."
+          control={
+            <Segmented
+              size="sm"
+              label="Weight unit"
+              value={gymWeightUnit}
+              onChange={setGymWeightUnit}
+              options={[{ value: "lbs", label: "lbs" }, { value: "kg", label: "kg" }]}
+            />
+          }
+        />
+        <SettingRow
+          title="Daily protein goal"
+          description="Shown on Food and in the weekly review."
+          control={
+            <span className="flex items-center gap-2">
               <input
                 type="number"
                 min={50}
                 max={400}
                 value={foodTargets.protein}
                 onChange={(e) => setFoodTargets({ protein: Math.max(50, parseInt(e.target.value) || 160) })}
-                className="w-20 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-right text-sm text-ink outline-none focus:border-blue"
+                aria-label="Daily protein goal"
+                className={cn(inputClass, "h-8 w-20 text-right tabular-nums")}
               />
-              <span className="text-xs text-muted">g</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between px-5 py-4">
-            <div>
-              <p className="text-sm text-ink">Daily calorie goal</p>
-              <p className="text-xs text-muted">Shown as the ring on the food page</p>
-            </div>
-            <div className="flex items-center gap-1.5">
+              <span className="w-6 text-xs text-muted">g</span>
+            </span>
+          }
+        />
+        <SettingRow
+          title="Daily calorie goal"
+          description="Shown on Food."
+          control={
+            <span className="flex items-center gap-2">
               <input
                 type="number"
                 min={1000}
@@ -125,149 +158,97 @@ export function SettingsWorkspace() {
                 step={50}
                 value={foodTargets.calories}
                 onChange={(e) => setFoodTargets({ calories: Math.max(1000, parseInt(e.target.value) || 2500) })}
-                className="w-24 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-right text-sm text-ink outline-none focus:border-blue"
+                aria-label="Daily calorie goal"
+                className={cn(inputClass, "h-8 w-20 text-right tabular-nums")}
               />
-              <span className="text-xs text-muted">cal</span>
-            </div>
-          </div>
-        </div>
-      </div>
+              <span className="w-6 text-xs text-muted">cal</span>
+            </span>
+          }
+        />
+        <SettingRow
+          title="Labels"
+          description={`${activeLabelCount} labels color everything in the app.`}
+          control={<ButtonLink href="/responsibilities" size="sm">Manage labels</ButtonLink>}
+        />
+      </SettingsSection>
 
-      {/* Labels */}
-      <div className="rounded-xl border border-line bg-panel overflow-hidden">
-        <div className="border-b border-line bg-line/40 px-5 py-3">
-          <p className="text-sm font-medium text-ink">Labels</p>
-        </div>
-        <div className="px-5 py-4">
-          <p className="mb-3 text-xs text-muted">{activeLabelCount} labels configured</p>
-          <Link
-            href="/responsibilities"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:bg-line"
-          >
-            <Tags className="size-4" />
-            Manage labels
-          </Link>
-        </div>
-      </div>
-
-      {/* Google Calendar */}
-      <div className="rounded-xl border border-line bg-panel overflow-hidden">
-        <div className="border-b border-line bg-line/40 px-5 py-3 flex items-center gap-2">
-          <Calendar className="size-4 text-muted" />
-          <p className="text-sm font-medium text-ink">Google Calendar</p>
-        </div>
-        <div className="px-5 py-4 space-y-3">
-          <p className="text-xs text-muted">
-            Pulls events from configured Google calendars into the calendar (read-only, last 30 days + next 90).
-            Supports <span className="font-mono text-ink">GOOGLE_CALENDAR_SOURCES_JSON</span> or{" "}
-            <span className="font-mono text-ink">GOOGLE_REFRESH_TOKEN_PERSONAL/SCHOOL/WORK</span> in{" "}
-            <span className="font-mono text-ink">.env.local</span>.
-          </p>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleGoogleSync}
-              disabled={syncing}
-              className="flex items-center gap-2 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:bg-line disabled:opacity-50"
-            >
-              <RefreshCw className={cn("size-4", syncing && "animate-spin")} />
+      <SettingsSection title="Connections">
+        <SettingRow
+          title={<span className="flex items-center gap-2"><Calendar className="size-4 text-muted" />Google Calendar</span>}
+          description={
+            <>
+              Read-only import of the last 30 and next 90 days. Configure <span className={code}>GOOGLE_CALENDAR_SOURCES_JSON</span> or{" "}
+              <span className={code}>GOOGLE_REFRESH_TOKEN_*</span>.
+              {lastGoogleSync && ` Last synced ${new Date(lastGoogleSync).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`}
+            </>
+          }
+          control={
+            <Button size="sm" onClick={handleGoogleSync} disabled={syncing}>
+              <RefreshCw className={cn("size-3.5", syncing && "animate-spin")} />
               {syncing ? "Syncing…" : "Sync now"}
-            </button>
-            {lastGoogleSync && (
-              <span className="text-xs text-muted">
-                Last synced {new Date(lastGoogleSync).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
-          </div>
+            </Button>
+          }
+        >
           {syncResult && (
-            <div className={cn("rounded-lg border px-3 py-2 text-xs", syncResult.errors.length > 0 ? "border-amber-500/30 bg-amber-500/10 text-amber-400" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400")}>
+            <SyncResult ok={syncResult.errors.length === 0}>
               {syncResult.errors.length === 0
-                ? `✓ Synced ${syncResult.synced} events`
+                ? `Synced ${syncResult.synced} events.`
                 : `Synced ${syncResult.synced} events · ${syncResult.errors.length} error(s): ${syncResult.errors[0]}`}
-            </div>
+            </SyncResult>
           )}
-        </div>
-      </div>
-
-      {/* Gmail */}
-      <div className="overflow-hidden rounded-xl border border-line bg-panel">
-        <div className="flex items-center gap-2 border-b border-line bg-line/40 px-5 py-3">
-          <Mail className="size-4 text-muted" />
-          <p className="text-sm font-medium text-ink">Gmail</p>
-        </div>
-        <div className="space-y-3 px-5 py-4">
-          <p className="text-xs text-muted">
-            Reads recent inbox emails, skips obvious noise, and sends likely actions to Review as proposed tasks, events, or notes.
-            Requires <span className="font-mono text-ink">GMAIL_SOURCES_JSON</span> or{" "}
-            <span className="font-mono text-ink">GMAIL_REFRESH_TOKEN_PERSONAL/SCHOOL/WORK</span> plus{" "}
-            <span className="font-mono text-ink">OPENAI_API_KEY</span>.
-          </p>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleEmailSync}
-              disabled={emailSyncing}
-              className="flex items-center gap-2 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:bg-line disabled:opacity-50"
-            >
-              <RefreshCw className={cn("size-4", emailSyncing && "animate-spin")} />
+        </SettingRow>
+        <SettingRow
+          title={<span className="flex items-center gap-2"><Mail className="size-4 text-muted" />Gmail</span>}
+          description={
+            <>
+              Turns likely actions in recent email into Inbox suggestions. Needs <span className={code}>GMAIL_SOURCES_JSON</span> or{" "}
+              <span className={code}>GMAIL_REFRESH_TOKEN_*</span> plus <span className={code}>OPENAI_API_KEY</span>.
+              {lastEmailSync && ` Last checked ${new Date(lastEmailSync).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`}
+            </>
+          }
+          control={
+            <Button size="sm" onClick={handleEmailSync} disabled={emailSyncing}>
+              <RefreshCw className={cn("size-3.5", emailSyncing && "animate-spin")} />
               {emailSyncing ? "Checking…" : "Check email"}
-            </button>
-            {lastEmailSync && (
-              <span className="text-xs text-muted">
-                Last checked {new Date(lastEmailSync).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
-          </div>
+            </Button>
+          }
+        >
           {emailSyncResult && (
-            <div className={cn("rounded-lg border px-3 py-2 text-xs", emailSyncResult.errors.length > 0 ? "border-amber-500/30 bg-amber-500/10 text-amber-400" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400")}>
+            <SyncResult ok={emailSyncResult.errors.length === 0}>
               {emailSyncResult.errors.length === 0
-                ? `Processed ${emailSyncResult.processed} emails · ${emailSyncResult.proposed} review item(s)`
+                ? `Processed ${emailSyncResult.processed} emails · ${emailSyncResult.proposed} review item(s).`
                 : `Processed ${emailSyncResult.processed} emails · ${emailSyncResult.errors.length} error(s): ${emailSyncResult.errors[0]}`}
-            </div>
+            </SyncResult>
           )}
           {emailSyncResult && emailSyncResult.proposed > 0 && (
-            <Link href="/inbox" className="inline-flex rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:bg-line">
-              Review proposed actions
-            </Link>
+            <ButtonLink href="/inbox" size="sm" className="mt-3">Review suggestions</ButtonLink>
           )}
-        </div>
-      </div>
+        </SettingRow>
+      </SettingsSection>
 
-      {/* Data */}
-      <div className="rounded-xl border border-line bg-panel overflow-hidden">
-        <div className="border-b border-line bg-line/40 px-5 py-3">
-          <p className="text-sm font-medium text-ink">Data</p>
-        </div>
-        <div className="px-5 py-4 space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted">Tasks, notes, events</span>
-            <span className="text-ink font-medium">Supabase</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted">Habits, gym, goals, food, ideas</span>
-            <span className="text-ink font-medium">Supabase + local cache</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Account */}
-      <div className="rounded-xl border border-line bg-panel overflow-hidden">
-        <div className="border-b border-line bg-line/40 px-5 py-3">
-          <p className="text-sm font-medium text-ink">Account</p>
-        </div>
-        <div className="px-5 py-4">
-          <button
-            onClick={async () => {
-              if (hasSupabaseEnv()) {
-                await createBrowserSupabaseClient().auth.signOut();
-              }
-              window.location.href = "/login";
-            }}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:border-red-500/40 hover:text-red-400"
-          >
-            <LogOut className="size-4" />
-            Sign out
-          </button>
-        </div>
-      </div>
-    </div>
+      <SettingsSection title="Account">
+        <SettingRow title="Tasks, notes, events" control={<span className="text-xs text-muted">Supabase</span>} />
+        <SettingRow title="Habits, gym, goals, food, ideas" control={<span className="text-xs text-muted">Supabase + local cache</span>} />
+        <SettingRow
+          title="Sign out"
+          description="You'll need a magic link to sign back in on this device."
+          control={
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={async () => {
+                if (hasSupabaseEnv()) {
+                  await createBrowserSupabaseClient().auth.signOut();
+                }
+                window.location.href = "/login";
+              }}
+            >
+              <LogOut className="size-3.5" />
+              Sign out
+            </Button>
+          }
+        />
+      </SettingsSection>
+    </Page>
   );
 }
