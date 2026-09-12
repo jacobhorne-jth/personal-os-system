@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clipboard, FileUp, Image, Loader2, Mic, MicOff, Timer, Type, WandSparkles, X } from "lucide-react";
+import { Button, Segmented, textareaClass } from "@/components/ui/primitives";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { cn } from "@/lib/utils";
 import { localDateKey } from "@/lib/dates";
@@ -169,40 +170,32 @@ export function CaptureWorkbench() {
 
   return (
     <div>
-      {/* Mode tabs */}
-      <div className="border-b border-line bg-panel p-3">
-        <div className="grid grid-cols-5 gap-2">
-          {modes.map(({ id: modeId, label, icon: Icon }) => (
-            <button
-              key={modeId}
-              onClick={() => { setMode(modeId); setError(null); }}
-              className={cn(
-                "flex h-16 flex-col items-center justify-center gap-1 rounded-lg border text-[11px] transition sm:text-xs",
-                mode === modeId
-                  ? "border-blue bg-blue text-white shadow-lift"
-                  : "border-line bg-paper text-muted hover:bg-panel hover:text-ink"
-              )}
-            >
-              <Icon className="size-4" />
-              {label}
-            </button>
-          ))}
-        </div>
+      <div className="border-b border-line px-4 py-3">
+        <Segmented
+          label="Capture mode"
+          value={mode}
+          onChange={(modeId) => { setMode(modeId); setError(null); }}
+          options={modes.map(({ id: modeId, label, icon: Icon }) => ({
+            value: modeId,
+            label: <><Icon className="size-3.5" />{label}</>,
+          }))}
+        />
       </div>
 
-      <div className="grid gap-4 p-4 lg:grid-cols-[1fr_260px]">
+      <div className="grid gap-6 p-4 lg:grid-cols-[1fr_240px]">
         <div className="space-y-3">
           <p className="text-xs text-muted">{activeMode.hint}</p>
 
           {/* Pasted image preview */}
           {pastedImage && (
-            <div className="relative overflow-hidden rounded-lg border border-blue/40 bg-line">
+            <div className="relative overflow-hidden rounded-lg border border-line bg-paper">
               <div className="flex items-center gap-2 border-b border-line px-3 py-2">
-                <Image className="size-3.5 text-blue" />
-                <span className="text-xs text-blue">Screenshot attached</span>
+                <Image className="size-3.5 text-muted" />
+                <span className="text-xs text-ink">Screenshot attached</span>
                 <button
                   onClick={() => setPastedImage(null)}
-                  className="ml-auto rounded p-0.5 text-muted hover:text-ink"
+                  aria-label="Remove screenshot"
+                  className="ml-auto grid size-6 place-items-center rounded text-muted hover:bg-hover hover:text-ink"
                 >
                   <X className="size-3.5" />
                 </button>
@@ -231,94 +224,74 @@ export function CaptureWorkbench() {
                   : mode === "time_log" ? "e.g. Worked on DLL poster from 1pm–3pm today"
                   : "What's on your mind? Messy is fine."
               }
-              rows={pastedImage ? 3 : 8}
+              rows={pastedImage ? 3 : 9}
               className={cn(
-                "w-full resize-none rounded-lg border bg-paper p-3 text-sm leading-6 text-ink outline-none placeholder:text-muted",
-                listening ? "border-blue" : "border-line focus:border-blue/60"
+                textareaClass,
+                "resize-none p-3",
+                listening && "border-accent/50 ring-2 ring-accent/10"
               )}
             />
             {listening && (
-              <span className="absolute bottom-3 right-3 flex items-center gap-1.5 text-xs text-blue">
-                <span className="size-1.5 animate-pulse rounded-full bg-blue" />
-                listening
+              <span className="absolute bottom-3 right-3 flex items-center gap-1.5 text-xs text-accent">
+                <span className="size-1.5 animate-pulse rounded-full bg-accent" />
+                Listening
               </span>
             )}
           </div>
 
           {/* Mode-specific controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {mode === "voice" && (
-              <button
-                onClick={toggleVoice}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition",
-                  listening ? "border-blue bg-blue/10 text-blue" : "border-line bg-paper text-ink hover:bg-panel"
-                )}
-              >
+              <Button onClick={toggleVoice} className={cn(listening && "border-accent/40 text-accent")}>
                 {listening ? <MicOff className="size-4" /> : <Mic className="size-4" />}
                 {listening ? "Stop recording" : "Start recording"}
-              </button>
+              </Button>
             )}
 
             {mode === "upload" && (
               <>
                 <input ref={fileInputRef} type="file" accept=".txt,.md,.csv" className="hidden" onChange={handleFileUpload} />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 rounded-lg border border-line bg-paper px-4 py-2 text-sm text-ink hover:bg-panel"
-                >
+                <Button onClick={() => fileInputRef.current?.click()}>
                   <FileUp className="size-4" />
                   Choose file
-                </button>
+                </Button>
               </>
             )}
 
             {mode === "paste" && !pastedImage && (
-              <p className="text-xs text-muted">Tip: Cmd+V a screenshot anywhere on this page to attach it</p>
+              <p className="text-xs text-muted">Tip: ⌘V a screenshot anywhere on this page to attach it.</p>
             )}
 
-            <button
-              onClick={handleParse}
-              disabled={!canParse}
-              className="ml-auto flex items-center gap-2 rounded-lg bg-ink px-5 py-2 text-sm font-medium text-paper transition hover:bg-ink/90 disabled:opacity-40"
-            >
+            <Button variant="primary" onClick={handleParse} disabled={!canParse} className="ml-auto">
               {parsing ? (
                 <><Loader2 className="size-4 animate-spin" /> Parsing…</>
               ) : (
                 <><WandSparkles className="size-4" /> Parse for review</>
               )}
-            </button>
+            </Button>
           </div>
 
           {error && (
-            <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+            <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
               {error}
             </p>
           )}
         </div>
 
-        {/* Sidebar */}
-        <aside className="space-y-3">
-          <div className="rounded-lg bg-mint p-3 text-white">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-              <WandSparkles className="size-4" />
-              Review before committing
-            </div>
-            <p className="text-xs leading-5 text-white/90">
-              Nothing touches your tasks, calendar, or notes until you approve each proposed change.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-line bg-paper p-3">
-            <p className="mb-2 text-xs font-medium text-muted">Try an example</p>
-            <div className="space-y-1.5">
+        <aside className="space-y-4">
+          <p className="text-xs leading-5 text-muted">
+            Nothing touches your tasks, calendar, or notes until you approve each proposed change in the Inbox.
+          </p>
+          <div>
+            <p className="mb-2 text-xs font-medium text-ink">Try an example</p>
+            <div className="-mx-2 space-y-0.5">
               {examples.map((ex) => (
                 <button
                   key={ex.label}
                   onClick={() => { setText(ex.text); setMode("type"); setPastedImage(null); }}
-                  className="flex w-full flex-col gap-0.5 rounded-lg bg-panel px-3 py-2.5 text-left transition hover:bg-paper"
+                  className="flex w-full flex-col gap-0.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-hover"
                 >
-                  <span className="text-[10px] font-medium text-blue">{ex.label}</span>
+                  <span className="text-xs font-medium text-ink">{ex.label}</span>
                   <span className="line-clamp-2 text-xs leading-4 text-muted">{ex.text}</span>
                 </button>
               ))}

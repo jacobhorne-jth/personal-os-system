@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, FileText, GitPullRequestArrow, ListTodo, Mail, Pencil, X } from "lucide-react";
+import { CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, FileText, ListTodo, Mail, Pencil, X } from "lucide-react";
 import { DateTimeRow } from "@/components/calendar/date-time-picker";
+import { Button, Card, iconButtonClass } from "@/components/ui/primitives";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { getTone } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -45,9 +46,9 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
 
   if (!item) {
     return (
-      <div className="rounded-lg border border-line bg-panel p-6 text-sm text-muted">
+      <Card className="p-6 text-sm text-muted">
         No pending captures. New parsed captures will appear here for review.
-      </div>
+      </Card>
     );
   }
 
@@ -121,61 +122,45 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
-      <div className="overflow-hidden rounded-lg border border-line bg-panel shadow-glow">
-        <div className="border-b border-line bg-line px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="grid size-9 place-items-center rounded-lg bg-mint text-white">
-              <GitPullRequestArrow className="size-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-ink">{item.summary}</p>
-              <p className="mt-1 text-xs text-muted">Review proposed changes before anything is committed.</p>
-            </div>
-            {pending.length > 1 && (
-              <div className="flex shrink-0 items-center gap-1 rounded-lg border border-line bg-paper px-1 py-0.5">
-                <button
-                  onClick={() => setPendingIdx((i) => Math.max(0, i - 1))}
-                  disabled={safeIdx === 0}
-                  className="grid size-6 place-items-center rounded text-muted transition hover:text-ink disabled:opacity-30"
-                >
-                  <ChevronLeft className="size-3.5" />
-                </button>
-                <span className="text-xs tabular-nums text-muted">{safeIdx + 1} / {pending.length}</span>
-                <button
-                  onClick={() => setPendingIdx((i) => Math.min(pending.length - 1, i + 1))}
-                  disabled={safeIdx >= pending.length - 1}
-                  className="grid size-6 place-items-center rounded text-muted transition hover:text-ink disabled:opacity-30"
-                >
-                  <ChevronRight className="size-3.5" />
-                </button>
-              </div>
-            )}
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+      <Card className="overflow-hidden">
+        <div className="flex items-start gap-3 border-b border-line px-5 py-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-muted">Proposed changes</p>
+            <h2 className="mt-1 text-lg font-semibold leading-snug text-ink">{item.summary}</h2>
           </div>
+          {pending.length > 1 && (
+            <div className="flex shrink-0 items-center gap-0.5">
+              <button onClick={() => setPendingIdx((i) => Math.max(0, i - 1))} disabled={safeIdx === 0} className={iconButtonClass("size-7")} aria-label="Previous capture">
+                <ChevronLeft className="size-4" />
+              </button>
+              <span className="px-1 text-xs tabular-nums text-muted">{safeIdx + 1} / {pending.length}</span>
+              <button onClick={() => setPendingIdx((i) => Math.min(pending.length - 1, i + 1))} disabled={safeIdx >= pending.length - 1} className={iconButtonClass("size-7")} aria-label="Next capture">
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+          )}
         </div>
+
         {(item.sourceTitle || item.sourceDetail) && (
-          <div className="border-b border-line bg-paper/70">
+          <div className="border-b border-line">
             <button
               type="button"
               onClick={() => setSourceOpen((open) => !open)}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-hover"
+              className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-hover/50"
             >
-              <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-panel text-muted">
-                <Mail className="size-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold uppercase tracking-[0.08em] text-muted">Source</p>
-                <p className="truncate text-sm font-medium text-ink">{item.sourceTitle ?? item.summary}</p>
-              </div>
-              <ChevronDown className={cn("size-4 shrink-0 text-muted transition-transform", sourceOpen && "rotate-180")} />
+              <Mail className="size-4 shrink-0 text-muted" />
+              <span className="min-w-0 flex-1 truncate text-sm text-ink">{item.sourceTitle ?? item.summary}</span>
+              <ChevronDown className={cn("size-4 shrink-0 text-subtle transition-transform", sourceOpen && "rotate-180")} />
             </button>
             {sourceOpen && item.sourceDetail && (
-              <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap border-t border-line px-4 py-3 text-xs leading-5 text-muted">
+              <pre className="mx-5 mb-4 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg bg-paper p-3 font-sans text-xs leading-5 text-muted">
                 {item.sourceDetail}
               </pre>
             )}
           </div>
         )}
+
         <div className="divide-y divide-line">
           {rows.map((row) => {
             const Icon = row.icon;
@@ -187,7 +172,7 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
             const responsibility = responsibilities.find((entry) => entry.id === row.meta);
             const tone = responsibility ? getTone(responsibility.color) : getTone("blue");
             return (
-              <div key={row.id} className={cn("grid gap-3 p-4 transition sm:grid-cols-[1fr_auto]", isApproved ? "bg-mint/5" : "bg-coral/5 opacity-75")}>
+              <div key={row.id} className={cn("grid gap-3 px-5 py-4 transition-opacity sm:grid-cols-[1fr_auto]", isRejected && "opacity-60")}>
                 <div
                   role="button"
                   tabIndex={0}
@@ -200,13 +185,13 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
                   }}
                   className="flex min-w-0 cursor-pointer items-start gap-3 text-left"
                 >
-                  <div className="grid size-9 place-items-center rounded-lg border bg-line text-muted" style={{ borderColor: tone.hex }}>
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: `${tone.hex}1f`, color: tone.hex }}>
                     <Icon className="size-4" />
-                  </div>
+                  </span>
                   <div className="min-w-0 flex-1">
                     {editingId === row.id ? (
                       <div className="space-y-2" onClick={(event) => event.stopPropagation()}>
-                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]">
+                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_160px]">
                           <input
                             value={draftTitle}
                             onChange={(event) => setDraftTitle(event.target.value)}
@@ -217,12 +202,14 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
                                 setDraftTitle("");
                               }
                             }}
-                            className="h-9 rounded-md border border-line bg-paper px-2 text-sm text-ink outline-none focus:border-blue"
+                            aria-label="Proposed title"
+                            className="h-8 rounded-md border border-line bg-panel px-2.5 text-sm text-ink outline-none focus:border-ink/25"
                           />
                           <select
                             value={row.meta ?? ""}
                             onChange={(event) => updateExtractionProposal(item.id, row.id, { responsibilityId: event.target.value })}
-                            className="h-9 rounded-md border border-line bg-paper px-2 text-xs text-ink outline-none focus:border-blue"
+                            aria-label="Proposed label"
+                            className="h-8 rounded-md border border-line bg-panel px-2 text-xs text-ink outline-none focus:border-ink/25"
                           >
                             <option value="">Unsorted</option>
                             {responsibilities.map((entry) => (
@@ -240,32 +227,31 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
                       </div>
                     ) : (
                       <>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <p className={cn("truncate text-sm font-medium text-ink", isRejected && "line-through text-muted")}>{row.title}</p>
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <p className={cn("min-w-0 truncate text-sm font-medium text-ink", isRejected && "text-muted line-through")}>{row.title}</p>
                           <span className={cn(
-                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
-                            isRejected ? "bg-coral/15 text-coral" : explicitApproved ? "bg-mint/15 text-mint" : "bg-blue/15 text-blue"
+                            "inline-flex h-5 shrink-0 items-center rounded-md px-1.5 text-[11px] font-medium",
+                            isRejected ? "bg-danger/10 text-danger" : explicitApproved ? "bg-success/10 text-success" : "bg-hover text-muted"
                           )}>
-                            {isRejected ? "Rejected" : explicitApproved ? "Approved" : "Suggested"}
+                            {isRejected ? "Skipped" : explicitApproved ? "Approved" : "Suggested"}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs text-muted">
-                          {row.kind} - {responsibility?.name ?? "Unsorted"}
+                        <p className="mt-0.5 text-xs text-muted">
+                          {row.kind} · {responsibility?.name ?? "Unsorted"}
                           {row.startsAt && (
                             <> · {new Date(row.startsAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</>
                           )}
                         </p>
                         {expanded && row.detail && (
-                          <pre className="mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg border border-line bg-paper p-3 text-xs leading-5 text-muted">
+                          <pre className="mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg bg-paper p-3 font-sans text-xs leading-5 text-muted">
                             {row.detail}
                           </pre>
                         )}
                       </>
                     )}
                   </div>
-                  <ChevronDown className={cn("mt-2 size-4 shrink-0 text-muted transition-transform", expanded && "rotate-180")} />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1 sm:self-start">
                   <button
                     onClick={(event) => {
                       event.stopPropagation();
@@ -275,14 +261,11 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
                         startEditing(row);
                       }
                     }}
-                    className={cn(
-                      "grid size-9 place-items-center rounded-lg border border-line text-muted transition hover:border-muted hover:text-ink",
-                      editingId === row.id && "border-blue text-blue"
-                    )}
+                    className={iconButtonClass(cn(editingId === row.id && "bg-hover text-ink"))}
                     title={editingId === row.id ? "Done editing" : "Edit proposed item"}
                     aria-label={editingId === row.id ? "Done editing proposed item" : "Edit proposed item"}
                   >
-                    <Pencil className="size-4" />
+                    <Pencil className="size-3.5" />
                   </button>
                   <button
                     onClick={(event) => {
@@ -290,8 +273,8 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
                       setExtractionDecision(item.id, row.id, true);
                     }}
                     className={cn(
-                      "grid size-9 place-items-center rounded-lg border transition hover:brightness-110",
-                      isApproved ? "border-mint bg-mint text-white" : "border-line bg-paper text-muted"
+                      "grid size-8 place-items-center rounded-lg border transition-colors",
+                      isApproved ? "border-success/30 bg-success/10 text-success" : "border-line text-muted hover:text-ink"
                     )}
                     title="Approve suggestion"
                     aria-label="Approve suggestion"
@@ -304,8 +287,8 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
                       setExtractionDecision(item.id, row.id, false);
                     }}
                     className={cn(
-                      "grid size-9 place-items-center rounded-lg border transition hover:brightness-110",
-                      isRejected ? "border-coral bg-coral text-white" : "border-line bg-paper text-muted"
+                      "grid size-8 place-items-center rounded-lg border transition-colors",
+                      isRejected ? "border-danger/30 bg-danger/10 text-danger" : "border-line text-muted hover:text-ink"
                     )}
                     title="Reject suggestion"
                     aria-label="Reject suggestion"
@@ -317,26 +300,25 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
             );
           })}
         </div>
-      </div>
-      <aside className="h-fit rounded-lg border border-line bg-panel p-4 shadow-glow">
-        <p className="text-sm font-medium text-ink">Commit summary</p>
-        <p className="mt-2 text-3xl font-semibold text-ink">{approvedCount}</p>
-        <p className="text-xs text-muted">approved changes</p>
-        <div className="mt-4 space-y-2 rounded-lg border border-line bg-line p-3 text-xs text-muted">
-          <p>Approved items will become real tasks, events, notes, or logs.</p>
-          <p>Rejected items stay attached to the capture for audit.</p>
-        </div>
+      </Card>
+
+      <Card className="p-4 lg:sticky lg:top-8">
+        <p className="text-[13px] text-muted">Ready to commit</p>
+        <p className="mt-1 text-2xl font-semibold tabular-nums text-ink">
+          {approvedCount} <span className="text-sm font-normal text-muted">of {rows.length}</span>
+        </p>
+        <p className="mt-2 text-xs leading-5 text-muted">Approved items become real tasks, events, and notes. Skipped ones stay with the capture.</p>
         <div className="mt-4 grid gap-2">
-          <button
+          <Button
+            variant="primary"
             onClick={() => {
               commitExtraction(item.id);
               onQueueChange?.();
             }}
-            className="w-full rounded-lg bg-ink px-3 py-2 text-sm font-medium text-paper transition hover:bg-ink/90"
           >
-            Commit approved
-          </button>
-          <button
+            Commit {approvedCount} {approvedCount === 1 ? "change" : "changes"}
+          </Button>
+          <Button
             onClick={() => {
               const tomorrow = new Date();
               tomorrow.setDate(tomorrow.getDate() + 1);
@@ -344,22 +326,22 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
               snoozeExtraction(item.id, tomorrow.toISOString());
               onQueueChange?.();
             }}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-medium text-muted transition hover:bg-paper hover:text-ink"
           >
             <Clock className="size-4" />
             Snooze until tomorrow
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            className="text-danger hover:bg-danger/10 hover:text-danger"
             onClick={() => {
               rejectExtraction(item.id);
               onQueueChange?.();
             }}
-            className="w-full rounded-lg border border-coral px-3 py-2 text-sm font-medium text-coral transition hover:bg-coral hover:text-white"
           >
-            Reject capture
-          </button>
+            Discard capture
+          </Button>
         </div>
-      </aside>
+      </Card>
     </div>
   );
 }

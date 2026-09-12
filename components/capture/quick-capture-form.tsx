@@ -5,6 +5,7 @@ import { AlignLeft, AtSign, CalendarDays, Clock, Plus, RefreshCw, Send, Tag, X }
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { nextOccurrence } from "@/lib/recurrence";
 import { parseInput, buildDueAt } from "@/lib/task-parser";
+import { getTone } from "@/lib/theme";
 import type { CaptureExtraction } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 import { localDateKey } from "@/lib/dates";
@@ -36,10 +37,10 @@ type QuickCaptureFormProps = {
 };
 
 const chipColors = {
-  date: "bg-blue/10 text-blue border-blue/20",
-  time: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-  recurrence: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  label: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  date: "bg-accent/10 text-accent",
+  time: "bg-accent/10 text-accent",
+  recurrence: "bg-success/10 text-success",
+  label: "bg-warning/10 text-warning",
 } as const;
 
 const chipIcons = {
@@ -48,6 +49,9 @@ const chipIcons = {
   recurrence: RefreshCw,
   label: AtSign,
 } as const;
+
+const controlChip =
+  "flex h-7 min-w-0 items-center gap-1.5 rounded-md border border-line px-2 text-xs text-muted transition-colors hover:bg-hover hover:text-ink";
 
 function dateFromKey(key: string): Date {
   const [y, m, d] = key.split("-").map(Number);
@@ -178,6 +182,13 @@ export function QuickCaptureForm({
     }
   }
 
+  function resetForm() {
+    updateText("");
+    setDescription("");
+    setShowDescription(false);
+    setManualDate(undefined);
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = text.trim();
@@ -212,14 +223,12 @@ export function QuickCaptureForm({
       });
     }
 
-    updateText("");
-    setDescription("");
-    setShowDescription(false);
-    setManualDate(undefined);
+    resetForm();
     onComplete?.();
   }
 
   const hasChips = intent === "task" && (parsed?.chips.length ?? 0) > 0;
+  const expanded = stackControls || text.trim().length > 0 || showDescription;
 
   // The date shown in the picker: a manual pick wins, else the detected date,
   // else the form's default due date (e.g. today on the home rail)
@@ -227,6 +236,50 @@ export function QuickCaptureForm({
     ? localDateKey(parsed.dueDate)
     : (dueAt ? localDateKey(new Date(dueAt)) : null);
   const effectiveDueDate = manualDate !== undefined ? manualDate : detectedOrDefault;
+  const activeLabel = parsed?.labelHint ?? label;
+  const activeLabelColor = getTone(responsibilities.find((r) => r.name === activeLabel)?.color).hex;
+
+  const mentionMenu = showMention && (
+    <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-line bg-panel p-1 shadow-pop">
+      {mentionOptions.map((r, i) => {
+        const active = i === Math.min(mentionIdx, mentionOptions.length - 1);
+        return (
+          <button
+            key={r.id}
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); selectMention(r.name); }}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors",
+              active ? "bg-hover text-ink" : "text-ink hover:bg-hover"
+            )}
+          >
+            <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: getTone(r.color).hex }} />
+            <span>{r.name}</span>
+            {active && <kbd className="ml-auto text-[10px] text-subtle">↵</kbd>}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const parsedChips = hasChips && (
+    <div className="flex flex-wrap gap-1.5 px-0.5">
+      {parsed!.chips.map((chip, i) => {
+        const Icon = chipIcons[chip.type];
+        return (
+          <span key={i} className={cn("flex h-6 items-center gap-1 rounded-md px-2 text-xs font-medium", chipColors[chip.type])}>
+            <Icon className="size-3" />
+            {chip.label}
+          </span>
+        );
+      })}
+      {parsed!.cleanTitle && parsed!.cleanTitle !== text.trim() && (
+        <span className="flex h-6 items-center rounded-md bg-hover px-2 text-xs text-muted">
+          &ldquo;{parsed!.cleanTitle}&rdquo;
+        </span>
+      )}
+    </div>
+  );
 
   if (intent === "task") {
     return (
@@ -234,64 +287,62 @@ export function QuickCaptureForm({
         <div className="relative">
           <div
             className={cn(
-              "rounded-xl border border-line bg-panel p-2 shadow-glow",
+              "rounded-lg border border-line bg-panel transition focus-within:border-ink/25 focus-within:ring-2 focus-within:ring-ink/[0.06]",
               inputClassName
             )}
           >
-            <div className={cn("flex flex-col gap-2", !stackControls && "xl:flex-row xl:items-center")}>
-              <div className="flex min-w-0 flex-1 items-center gap-2">
+            <div className="flex items-center gap-2 pl-3 pr-1.5">
+              <Plus className="size-4 shrink-0 text-subtle" />
+              <input
+                ref={inputRef}
+                autoFocus={autoFocus}
+                value={text}
+                onChange={(e) => updateText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                aria-label={placeholder}
+                className="h-10 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-subtle"
+              />
+              {(text || description) && !onCancel && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  aria-label="Clear task"
+                  className="grid size-7 shrink-0 place-items-center rounded-md text-subtle transition-colors hover:bg-hover hover:text-ink"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+              {onCancel && (
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  aria-label="Cancel task"
+                  className="grid size-7 shrink-0 place-items-center rounded-md text-subtle transition-colors hover:bg-hover hover:text-ink"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+              {text.trim() && (
                 <button
                   type="submit"
-                  disabled={!text.trim()}
                   aria-label={submitLabel}
-                  className={cn(
-                    "grid size-10 shrink-0 place-items-center rounded-lg bg-hover text-ink transition hover:bg-blue hover:text-white disabled:opacity-45",
-                    buttonClassName
-                  )}
+                  className={cn("h-7 shrink-0 rounded-md bg-ink px-2.5 text-xs font-medium text-paper transition-opacity hover:opacity-85", buttonClassName)}
                 >
-                  <Plus className="size-5" />
+                  {submitLabel}
                 </button>
-                <input
-                  ref={inputRef}
-                  autoFocus={autoFocus}
-                  value={text}
-                  onChange={(e) => updateText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={placeholder}
-                  className="h-10 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
-                />
-                {(text || description || onCancel) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onCancel) {
-                        onCancel();
-                        return;
-                      }
-                      updateText("");
-                      setDescription("");
-                      setShowDescription(false);
-                    }}
-                    aria-label={onCancel ? "Cancel task" : "Clear task"}
-                    className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-paper hover:text-ink"
-                  >
-                    <X className="size-4" />
-                  </button>
-                )}
-              </div>
+              )}
+            </div>
 
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <label
-                  className={cn(
-                    "flex h-9 min-w-0 items-center gap-1.5 rounded-lg border border-line bg-paper px-2.5 text-xs text-muted transition focus-within:border-blue",
-                    selectClassName
-                  )}
-                >
+            {expanded && (
+              <div className="flex flex-wrap items-center gap-1.5 border-t border-line px-2 py-2">
+                <label className={cn(controlChip, "focus-within:border-ink/25", selectClassName)}>
                   <Tag className="size-3.5 shrink-0" />
+                  <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: activeLabelColor }} />
                   <select
-                    value={parsed?.labelHint ?? label}
+                    value={activeLabel}
                     onChange={(e) => setLabel(e.target.value)}
-                    className="min-w-0 max-w-[120px] bg-transparent text-xs text-inherit outline-none"
+                    className="min-w-0 max-w-[120px] cursor-pointer bg-transparent text-xs text-ink outline-none"
                     aria-label="Label"
                   >
                     {labelNames.length === 0 && <option value="">Label</option>}
@@ -300,91 +351,35 @@ export function QuickCaptureForm({
                     ))}
                   </select>
                 </label>
-                <DueDatePicker
-                  value={effectiveDueDate}
-                  onChange={(next) => setManualDate(next)}
-                  className={cn("rounded-lg", dateClassName)}
-                />
+                <DueDatePicker value={effectiveDueDate} onChange={(next) => setManualDate(next)} className={dateClassName} />
                 <button
                   type="button"
                   onClick={() => setShowDescription((open) => !open)}
                   aria-pressed={showDescription}
-                  className={cn(
-                    "flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs transition",
-                    showDescription
-                      ? "border-blue/30 bg-blue/10 text-blue"
-                      : "border-line bg-paper text-muted hover:text-ink"
-                  )}
+                  className={cn(controlChip, showDescription && "border-ink/20 bg-hover text-ink")}
                 >
                   <AlignLeft className="size-3.5 shrink-0" />
-                  Description
+                  Notes
                 </button>
               </div>
-            </div>
+            )}
 
             {showDescription && (
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Description"
+                placeholder="Add notes"
                 rows={3}
                 className={cn(
-                  "mt-2 min-h-20 w-full resize-none rounded-lg border border-line bg-paper p-3 text-sm leading-5 text-ink outline-none placeholder:text-muted focus:border-blue",
+                  "block w-full resize-none border-t border-line bg-transparent px-3 py-2 text-sm leading-6 text-ink outline-none placeholder:text-subtle",
                   descriptionClassName
                 )}
               />
             )}
           </div>
-
-          {showMention && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-line bg-panel shadow-lg">
-              {mentionOptions.map((r, i) => {
-                const active = i === Math.min(mentionIdx, mentionOptions.length - 1);
-                return (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onMouseDown={(e) => { e.preventDefault(); selectMention(r.name); }}
-                    className={cn(
-                      "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors",
-                      active ? "bg-blue/10 text-blue" : "text-ink hover:bg-panel"
-                    )}
-                  >
-                    <AtSign className="size-3.5 shrink-0 text-muted" />
-                    <span>{r.name}</span>
-                    {active && (
-                      <kbd className="ml-auto rounded border border-line bg-panel px-1 py-0.5 font-mono text-[10px] text-muted">
-                        ↵
-                      </kbd>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          {mentionMenu}
         </div>
-
-        {hasChips && (
-          <div className="flex flex-wrap gap-1.5 px-1">
-            {parsed!.chips.map((chip, i) => {
-              const Icon = chipIcons[chip.type];
-              return (
-                <span
-                  key={i}
-                  className={cn("flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium", chipColors[chip.type])}
-                >
-                  <Icon className="size-3" />
-                  {chip.label}
-                </span>
-              );
-            })}
-            {parsed!.cleanTitle && parsed!.cleanTitle !== text.trim() && (
-              <span className="flex items-center rounded-full border border-line bg-panel px-2 py-0.5 text-xs text-muted">
-                Title: &ldquo;{parsed!.cleanTitle}&rdquo;
-              </span>
-            )}
-          </div>
-        )}
+        {parsedChips}
       </form>
     );
   }
@@ -392,15 +387,21 @@ export function QuickCaptureForm({
   return (
     <form onSubmit={handleSubmit} className={cn("grid gap-2", className)}>
       <div className="relative">
-        <div className={cn("flex gap-2 rounded-lg border border-line bg-paper px-3", multiline ? "items-start py-3" : "items-center", inputClassName)}>
-          {intent === "review" ? <Send className="mt-0.5 size-4 shrink-0 text-muted" /> : <Plus className="size-4 shrink-0 text-muted" />}
+        <div
+          className={cn(
+            "flex gap-2 rounded-lg border border-line bg-panel px-3 transition focus-within:border-ink/25 focus-within:ring-2 focus-within:ring-ink/[0.06]",
+            multiline ? "items-start py-3" : "items-center",
+            inputClassName
+          )}
+        >
+          {intent === "review" ? <Send className="mt-0.5 size-4 shrink-0 text-subtle" /> : <Plus className="size-4 shrink-0 text-subtle" />}
           {multiline ? (
             <textarea
               autoFocus={autoFocus}
               value={text}
               onChange={(e) => updateText(e.target.value)}
               placeholder={placeholder}
-              className="min-h-56 min-w-0 flex-1 resize-none bg-transparent text-sm leading-6 text-ink outline-none placeholder:text-muted"
+              className="min-h-56 min-w-0 flex-1 resize-none bg-transparent text-sm leading-6 text-ink outline-none placeholder:text-subtle"
             />
           ) : (
             <input
@@ -410,74 +411,26 @@ export function QuickCaptureForm({
               onChange={(e) => updateText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              className="h-10 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+              className="h-10 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-subtle"
             />
           )}
           {text && (
-            <button type="button" onClick={() => updateText("")} className="shrink-0 text-muted hover:text-ink">
+            <button type="button" onClick={() => updateText("")} aria-label="Clear" className="shrink-0 text-subtle hover:text-ink">
               <X className="size-3.5" />
             </button>
           )}
         </div>
-
-        {/* @mention autocomplete dropdown */}
-        {showMention && (
-          <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-line bg-paper shadow-lg">
-            {mentionOptions.map((r, i) => {
-              const active = i === Math.min(mentionIdx, mentionOptions.length - 1);
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  onMouseDown={(e) => { e.preventDefault(); selectMention(r.name); }}
-                  className={cn(
-                    "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors",
-                    active ? "bg-blue/10 text-blue" : "text-ink hover:bg-panel"
-                  )}
-                >
-                  <AtSign className="size-3.5 shrink-0 text-muted" />
-                  <span>{r.name}</span>
-                  {active && (
-                    <kbd className="ml-auto rounded border border-line bg-panel px-1 py-0.5 font-mono text-[10px] text-muted">
-                      ↵
-                    </kbd>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {mentionMenu}
       </div>
 
-      {/* Parsed chips */}
-      {hasChips && (
-        <div className="flex flex-wrap gap-1.5 px-1">
-          {parsed!.chips.map((chip, i) => {
-            const Icon = chipIcons[chip.type];
-            return (
-              <span
-                key={i}
-                className={cn("flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium", chipColors[chip.type])}
-              >
-                <Icon className="size-3" />
-                {chip.label}
-              </span>
-            );
-          })}
-          {parsed!.cleanTitle && parsed!.cleanTitle !== text.trim() && (
-            <span className="flex items-center rounded-full border border-line bg-panel px-2 py-0.5 text-xs text-muted">
-              Title: &ldquo;{parsed!.cleanTitle}&rdquo;
-            </span>
-          )}
-        </div>
-      )}
+      {parsedChips}
 
       <div className={cn("grid gap-2", inboxOnly || hideResponsibilitySelect ? "grid-cols-1" : "grid-cols-[1fr_auto]")}>
         {!inboxOnly && !hideResponsibilitySelect ? (
           <select
             value={responsibilityId}
             onChange={(e) => setResponsibilityId(e.target.value)}
-            className={cn("h-9 rounded-md border border-line bg-paper px-2 text-xs text-muted outline-none focus:border-blue", selectClassName)}
+            className={cn("h-8 rounded-md border border-line bg-panel px-2 text-xs text-muted outline-none focus:border-ink/25", selectClassName)}
           >
             <option value="">Inbox</option>
             {responsibilities.map((r) => (
@@ -487,7 +440,7 @@ export function QuickCaptureForm({
         ) : null}
         <button
           disabled={!text.trim()}
-          className={cn("h-9 rounded-md bg-blue px-3 text-xs font-medium text-white disabled:opacity-40", (inboxOnly || hideResponsibilitySelect) && "w-full", buttonClassName)}
+          className={cn("h-8 rounded-md bg-ink px-3 text-xs font-medium text-paper transition-opacity hover:opacity-85 disabled:opacity-40", (inboxOnly || hideResponsibilitySelect) && "w-full", buttonClassName)}
         >
           {submitLabel}
         </button>

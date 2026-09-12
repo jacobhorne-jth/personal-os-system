@@ -42,10 +42,13 @@ export function DueDatePicker({
   value,
   onChange,
   className,
+  variant = "chip",
 }: {
   value: string | null;
   onChange: (value: string | null) => void;
   className?: string;
+  // "icon" renders a bare calendar button, for row actions
+  variant?: "chip" | "icon";
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
@@ -111,15 +114,18 @@ export function DueDatePicker({
         ref={triggerRef}
         type="button"
         onClick={toggle}
-        aria-label="Due date"
+        aria-label={variant === "icon" ? "Reschedule" : "Due date"}
+        title={variant === "icon" ? "Reschedule" : undefined}
         className={cn(
-          "flex h-9 items-center gap-1.5 rounded-md border px-2 text-xs outline-none transition",
-          value ? "border-blue/30 bg-blue/5 text-blue" : "border-line bg-paper text-muted hover:text-ink",
+          variant === "icon"
+            ? "grid size-7 place-items-center rounded-md text-muted outline-none transition-colors hover:bg-hover hover:text-ink"
+            : "flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs outline-none transition-colors",
+          variant === "chip" && (value ? "border-accent/25 bg-accent/[0.06] text-accent hover:bg-accent/10" : "border-line text-muted hover:bg-hover hover:text-ink"),
           className
         )}
       >
         <CalendarDays className="size-3.5 shrink-0" />
-        <span className="truncate">{dueDateLabel(value)}</span>
+        {variant === "chip" && <span className="truncate">{dueDateLabel(value)}</span>}
       </button>
 
       {pos &&
@@ -127,7 +133,7 @@ export function DueDatePicker({
           <div
             ref={popRef}
             data-popup-card
-            className="fixed z-[320] w-[280px] rounded-xl border border-line bg-panel p-2 shadow-glow"
+            className="fixed z-[320] w-[280px] rounded-xl border border-line bg-panel p-1.5 shadow-pop animate-pop-in"
             style={pos.drop === "down" ? { left: pos.left, top: pos.top } : { left: pos.left, bottom: window.innerHeight - pos.top }}
           >
             {/* Quick presets */}
@@ -137,19 +143,19 @@ export function DueDatePicker({
                   key={p.label}
                   type="button"
                   onClick={() => pick(p.date)}
-                  className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition hover:bg-paper"
+                  className="flex w-full items-center gap-3 rounded-lg px-2.5 py-1.5 text-left text-sm text-ink transition-colors hover:bg-hover"
                 >
                   <CalendarDays className="size-4 shrink-0 text-muted" />
                   <span className="flex-1">{p.label}</span>
                   <span className="text-xs text-muted">{p.hint}</span>
-                  {value === p.date && <Check className="size-4 text-blue" />}
+                  {value === p.date && <Check className="size-4 text-ink" />}
                 </button>
               ))}
               {value && (
                 <button
                   type="button"
                   onClick={() => pick(null)}
-                  className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition hover:bg-paper"
+                  className="flex w-full items-center gap-3 rounded-lg px-2.5 py-1.5 text-left text-sm text-ink transition-colors hover:bg-hover"
                 >
                   <CalendarX className="size-4 shrink-0 text-muted" />
                   <span className="flex-1">No date</span>
@@ -166,10 +172,10 @@ export function DueDatePicker({
                   {MONTHS[month.getMonth()]} {month.getFullYear()}
                 </span>
                 <div className="flex gap-1">
-                  <button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="grid size-6 place-items-center rounded text-muted transition hover:bg-paper hover:text-ink">
+                  <button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="grid size-6 place-items-center rounded text-muted transition-colors hover:bg-hover hover:text-ink">
                     <ChevronLeft className="size-4" />
                   </button>
-                  <button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="grid size-6 place-items-center rounded text-muted transition hover:bg-paper hover:text-ink">
+                  <button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="grid size-6 place-items-center rounded text-muted transition-colors hover:bg-hover hover:text-ink">
                     <ChevronRight className="size-4" />
                   </button>
                 </div>
@@ -187,12 +193,12 @@ export function DueDatePicker({
                       type="button"
                       onClick={() => pick(key)}
                       className={cn(
-                        "grid size-8 place-items-center rounded-full text-xs transition",
+                        "grid size-8 place-items-center rounded-full text-xs tabular-nums transition-colors",
                         key === value
-                          ? "bg-blue font-semibold text-white"
+                          ? "bg-ink font-semibold text-paper"
                           : key === today
-                          ? "text-blue hover:bg-paper"
-                          : "text-ink hover:bg-paper"
+                          ? "font-semibold text-now hover:bg-hover"
+                          : "text-ink hover:bg-hover"
                       )}
                     >
                       {keyToDate(key).getDate()}

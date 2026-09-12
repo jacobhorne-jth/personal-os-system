@@ -1,22 +1,18 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { AlertCircle, CalendarDays, CalendarRange, Check, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { CalendarDays, CalendarRange, Check, ChevronDown, CheckCircle2, Layers, Pencil, Trash2, X } from "lucide-react";
+import { DueDatePicker } from "@/components/capture/due-date-picker";
 import { QuickCaptureForm } from "@/components/capture/quick-capture-form";
-import { localDateKey } from "@/lib/dates";
+import { TaskRow, dueDayLabel } from "@/components/tasks/task-row";
+import { Card, EmptyState, Page, PageHeader, iconButtonClass } from "@/components/ui/primitives";
+import { addDays, dateFromKey, dateKeyOf, localDateKey } from "@/lib/dates";
 import { useAppStore } from "@/lib/stores/app-store";
 import { taskLabel, taskLabelColor } from "@/lib/task-labels";
+import type { Task } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
-function formatDue(dueAt: string, today: string) {
-  const dateStr = dueAt.slice(0, 10);
-  if (dateStr === today) return "Today";
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString([], { month: "short", day: "numeric" });
-}
-
-function sortByDue(arr: ReturnType<typeof useAppStore.getState>["tasks"]) {
+function sortByDue(arr: Task[]) {
   return [...arr].sort((a, b) => {
     if (!a.dueAt && !b.dueAt) return 0;
     if (!a.dueAt) return 1;
@@ -25,47 +21,85 @@ function sortByDue(arr: ReturnType<typeof useAppStore.getState>["tasks"]) {
   });
 }
 
+type TaskGroup = { key: string; label: string; detail?: string; danger?: boolean; tasks: Task[] };
+
+// Overdue first, then one group per due day, then undated
+function groupByDay(list: Task[], today: string): TaskGroup[] {
+  const groups = new Map<string, TaskGroup>();
+  for (const task of list) {
+    let group: Omit<TaskGroup, "tasks">;
+    if (!task.dueAt) {
+      group = { key: "none", label: "No date" };
+    } else {
+      const day = dateKeyOf(task.dueAt);
+      if (day < today) {
+        group = { key: "overdue", label: "Overdue", danger: true };
+      } else {
+        const date = dateFromKey(day);
+        const nearby = day <= addDays(today, 6);
+        group = {
+          key: day,
+          label: dueDayLabel(task.dueAt, today),
+          detail: nearby ? date.toLocaleDateString("en-US", { weekday: day === today ? "short" : undefined, month: "short", day: "numeric" }) : undefined,
+        };
+      }
+    }
+    const existing = groups.get(group.key) ?? { ...group, tasks: [] };
+    existing.tasks.push(task);
+    groups.set(group.key, existing);
+  }
+  const rank = (key: string) => (key === "overdue" ? 0 : key === "none" ? 2 : 1);
+  return [...groups.values()].sort((a, b) => rank(a.key) - rank(b.key) || a.key.localeCompare(b.key));
+}
+
 export default function TasksPage() {
   const tasks = useAppStore((s) => s.tasks);
   const responsibilities = useAppStore((s) => s.responsibilities);
-  const toggleTask = useAppStore((s) => s.toggleTask);
   const updateTask = useAppStore((s) => s.updateTask);
   const deleteTask = useAppStore((s) => s.deleteTask);
 
   const today = localDateKey();
   const [view, setView] = useState<string>("today");
-  const [addingTask, setAddingTask] = useState(false);
   const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
-  const [rescheduling, setRescheduling] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const open = tasks.filter((t) => t.status !== "done");
-  const overdueTasks = sortByDue(open.filter((t) => t.dueAt && t.dueAt.slice(0, 10) < today));
-  const todayTasks = sortByDue(open.filter((t) => t.dueAt?.startsWith(today)));
+  const overdueTasks = sortByDue(open.filter((t) => t.dueAt && dateKeyOf(t.dueAt) < today));
+  const todayTasks = sortByDue(open.filter((t) => t.dueAt && dateKeyOf(t.dueAt) === today));
   const todayTotal = overdueTasks.length + todayTasks.length;
-  const upcomingTasks = sortByDue(open.filter((t) => t.dueAt && t.dueAt.slice(0, 10) > today));
+  const upcomingTasks = sortByDue(open.filter((t) => t.dueAt && dateKeyOf(t.dueAt) > today));
   const selectedLabel = view.startsWith("label:") ? view.replace("label:", "") : "";
+  const labels = responsibilities.filter((r) => !r.archivedAt);
+  const labelOf = (t: Task) => taskLabel(t.labels, t.responsibilityId, responsibilities);
 
   const viewTasks =
     view === "today" ? [...overdueTasks, ...todayTasks] :
     view === "upcoming" ? upcomingTasks :
     view === "all" ? sortByDue(open) :
-    sortByDue(open.filter((t) => taskLabel(t.labels, t.responsibilityId, responsibilities) === selectedLabel));
+    sortByDue(open.filter((t) => labelOf(t) === selectedLabel));
+
+  const completedTasks = useMemo(() => {
+    const done = tasks.filter((t) => t.status === "done");
+    if (view === "today") return done.filter((t) => t.dueAt && dateKeyOf(t.dueAt) === today);
+    if (view === "upcoming") return [];
+    if (view === "all") return done.slice(0, 30);
+    return done.filter((t) => labelOf(t) === selectedLabel).slice(0, 30);
+    // labelOf closes over responsibilities
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, view, today, selectedLabel, responsibilities]);
+
+  const groups = groupByDay(viewTasks, today);
 
   function saveEdit() {
     if (!editing) return;
     const title = editing.title.trim();
-    if (!title) {
-      setEditing(null);
-      return;
-    }
-    updateTask(editing.id, { title });
+    if (title) updateTask(editing.id, { title });
     setEditing(null);
   }
 
-  function reschedule(taskId: string, date: string) {
-    if (date) updateTask(taskId, { dueAt: `${date}T17:00:00` });
-    setRescheduling(null);
+  function reschedule(taskId: string, date: string | null) {
+    updateTask(taskId, { dueAt: date ? `${date}T17:00:00` : undefined });
   }
 
   function handleDelete(taskId: string) {
@@ -77,305 +111,220 @@ export default function TasksPage() {
     }
   }
 
-  const viewLabel =
+  const views = [
+    { id: "today", label: "Today", icon: CalendarDays, count: todayTotal },
+    { id: "upcoming", label: "Upcoming", icon: CalendarRange, count: upcomingTasks.length },
+    { id: "all", label: "All tasks", icon: Layers, count: open.length },
+  ];
+
+  const viewTitle =
     view === "today" ? "Today" :
     view === "upcoming" ? "Upcoming" :
     view === "all" ? "All tasks" :
     selectedLabel;
-  const viewCountLabel =
-    view === "today" && overdueTasks.length > 0
-      ? `${overdueTasks.length} overdue / ${todayTasks.length} today`
-      : `${viewTasks.length}`;
+  const viewDescription =
+    view === "today"
+      ? overdueTasks.length
+        ? `${todayTasks.length} due today · ${overdueTasks.length} overdue`
+        : `${todayTasks.length} due · ${dateFromKey(today).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`
+      : `${viewTasks.length} open`;
 
-  return (
-    <div className="-mx-4 -mt-4 flex min-h-dvh sm:-mx-6 lg:-ml-[24px] lg:-mr-8 lg:-mt-4">
-      {/* Todoist-style left sidebar */}
-      <aside className="hidden w-[240px] shrink-0 flex-col border-r border-line bg-panel py-3 lg:flex">
-        <div className="mb-2 px-3">
-          <button
-            onClick={() => setAddingTask(true)}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-blue transition hover:bg-paper"
-          >
-            <Plus className="size-4" />
-            Add task
+  function renderRow(task: Task) {
+    if (editing?.id === task.id) {
+      return (
+        <div key={task.id} className="flex items-center gap-2 px-3 py-2">
+          <input
+            autoFocus
+            value={editing.title}
+            onChange={(e) => setEditing((s) => s && { ...s, title: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveEdit();
+              if (e.key === "Escape") setEditing(null);
+            }}
+            aria-label="Task title"
+            className="h-8 min-w-0 flex-1 rounded-md border border-line bg-panel px-2.5 text-sm text-ink outline-none focus:border-ink/25"
+          />
+          <button onClick={saveEdit} title={`Save ${task.title}`} aria-label={`Save ${task.title}`} className={iconButtonClass("size-7 text-ink")}>
+            <Check className="size-4" />
+          </button>
+          <button onClick={() => setEditing(null)} title={`Cancel editing ${task.title}`} aria-label={`Cancel editing ${task.title}`} className={iconButtonClass("size-7")}>
+            <X className="size-4" />
           </button>
         </div>
+      );
+    }
+    return (
+      <TaskRow
+        key={task.id}
+        task={task}
+        showDue={view !== "today" || dateKeyOf(task.dueAt ?? today) < today}
+        actions={
+          // Phones open the task for edit/reschedule/delete instead of a row of icons
+          <div className="hidden shrink-0 items-center gap-0.5 transition-opacity lg:flex lg:opacity-0 lg:focus-within:opacity-100 lg:group-hover:opacity-100">
+            <DueDatePicker variant="icon" value={task.dueAt ? dateKeyOf(task.dueAt) : null} onChange={(date) => reschedule(task.id, date)} />
+            <button
+              onClick={() => { setEditing({ id: task.id, title: task.title }); setDeleteConfirm(null); }}
+              title={`Edit ${task.title}`}
+              aria-label={`Edit ${task.title}`}
+              className={iconButtonClass("size-7")}
+            >
+              <Pencil className="size-3.5" />
+            </button>
+            <button
+              onClick={() => handleDelete(task.id)}
+              title={`${deleteConfirm === task.id ? "Confirm deleting" : "Delete"} ${task.title}`}
+              aria-label={`${deleteConfirm === task.id ? "Confirm deleting" : "Delete"} ${task.title}`}
+              className={
+                deleteConfirm === task.id
+                  ? "h-7 rounded-md bg-danger/10 px-2 text-xs font-medium text-danger"
+                  : iconButtonClass("size-7 hover:text-danger")
+              }
+            >
+              {deleteConfirm === task.id ? "Delete?" : <Trash2 className="size-3.5" />}
+            </button>
+          </div>
+        }
+      />
+    );
+  }
 
-        <nav className="space-y-0.5 px-2">
-          <button
-            onClick={() => setView("today")}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition",
-              view === "today" ? "bg-paper font-medium text-ink" : "text-muted hover:bg-paper hover:text-ink"
-            )}
-          >
-            <CalendarDays className="size-4 shrink-0 text-blue" />
-            <span className="flex-1 text-left">Today</span>
-            {overdueTasks.length > 0 && (
-              <span className="flex items-center gap-0.5 text-xs tabular-nums text-[#cf4444]">
-                <AlertCircle className="size-3" />
-                {overdueTasks.length}
-              </span>
-            )}
-            {todayTasks.length > 0 && <span className="text-xs tabular-nums text-muted">{todayTasks.length}</span>}
-          </button>
-          <button
-            onClick={() => setView("upcoming")}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition",
-              view === "upcoming" ? "bg-paper font-medium text-ink" : "text-muted hover:bg-paper hover:text-ink"
-            )}
-          >
-            <CalendarRange className="size-4 shrink-0 text-[#7b68ee]" />
-            <span className="flex-1 text-left">Upcoming</span>
-            {upcomingTasks.length > 0 && <span className="text-xs tabular-nums text-muted">{upcomingTasks.length}</span>}
-          </button>
-          <button
-            onClick={() => setView("all")}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition",
-              view === "all" ? "bg-paper font-medium text-ink" : "text-muted hover:bg-paper hover:text-ink"
-            )}
-          >
-            <Plus className="size-4 shrink-0 text-muted" />
-            <span className="flex-1 text-left">All</span>
-            {open.length > 0 && <span className="text-xs tabular-nums text-muted">{open.length}</span>}
-          </button>
-        </nav>
-
-        <div className="my-3 mx-4 h-px bg-line" />
-
-        <p className="mb-1 px-5 text-[11px] font-semibold uppercase tracking-widest text-muted">Labels</p>
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2">
-          {responsibilities.filter((r) => !r.archivedAt).map((r) => {
-            const label = r.name;
-            const color = taskLabelColor(label, responsibilities);
-            const count = open.filter((t) => taskLabel(t.labels, t.responsibilityId, responsibilities) === label).length;
+  return (
+    <div className="flex min-h-dvh">
+      <aside className="sticky top-0 hidden h-dvh w-[220px] shrink-0 flex-col overflow-y-auto border-r border-line px-3 py-8 lg:flex">
+        <p className="mb-1 px-2.5 text-[11px] font-medium text-subtle">Views</p>
+        <div className="space-y-0.5">
+          {views.map((item) => {
+            const Icon = item.icon;
+            const active = view === item.id;
             return (
               <button
-                key={r.id}
-                onClick={() => setView(`label:${label}`)}
+                key={item.id}
+                onClick={() => setView(item.id)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition",
-                  view === `label:${label}` ? "bg-paper font-medium text-ink" : "text-muted hover:bg-paper hover:text-ink"
+                  "flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-colors",
+                  active ? "bg-hover font-medium text-ink" : "text-muted hover:bg-hover/70 hover:text-ink"
                 )}
               >
-                <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-                <span className="flex-1 truncate text-left">{label}</span>
-                {count > 0 && <span className="text-xs tabular-nums text-muted">{count}</span>}
+                <Icon className="size-4 shrink-0" />
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.id === "today" && overdueTasks.length > 0 && <span className="size-1.5 rounded-full bg-danger" title={`${overdueTasks.length} overdue`} />}
+                {item.count > 0 && <span className="text-xs tabular-nums text-subtle">{item.count}</span>}
               </button>
             );
           })}
-        </nav>
-      </aside>
+        </div>
 
-      {/* Main content */}
-      <main className="flex min-w-0 flex-1 flex-col bg-paper">
-        {/* Mobile view switcher — the sidebar's filters, as a scrollable row */}
-        <div className="sticky top-0 z-10 border-b border-line bg-paper/95 backdrop-blur lg:hidden">
-          <div className="flex gap-2 overflow-x-auto px-4 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {([
-              ["today", "Today", todayTotal],
-              ["upcoming", "Upcoming", 0],
-              ["all", "All", 0],
-            ] as const).map(([v, labelText, badge]) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition",
-                  view === v ? "border-blue bg-blue/15 text-blue" : "border-line text-muted"
-                )}
-              >
-                {labelText}
-                {badge > 0 && (
-                  <span className={cn("text-xs tabular-nums", v === "today" && overdueTasks.length > 0 ? "text-[#cf4444]" : "text-muted")}>
-                    {badge}
-                  </span>
-                )}
-              </button>
-            ))}
-            {responsibilities.filter((r) => !r.archivedAt).map((r) => (
+        <p className="mb-1 mt-6 px-2.5 text-[11px] font-medium text-subtle">Labels</p>
+        <div className="space-y-0.5">
+          {labels.map((r) => {
+            const color = taskLabelColor(r.name, responsibilities);
+            const count = open.filter((t) => labelOf(t) === r.name).length;
+            const active = view === `label:${r.name}`;
+            return (
               <button
                 key={r.id}
                 onClick={() => setView(`label:${r.name}`)}
                 className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition",
-                  view === `label:${r.name}` ? "border-blue bg-blue/15 text-blue" : "border-line text-muted"
+                  "flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-colors",
+                  active ? "bg-hover font-medium text-ink" : "text-muted hover:bg-hover/70 hover:text-ink"
                 )}
               >
-                <span className="size-2.5 rounded-full" style={{ backgroundColor: taskLabelColor(r.name, responsibilities) }} />
-                {r.name}
+                <span className="grid size-4 shrink-0 place-items-center">
+                  <span className="size-2 rounded-full" style={{ backgroundColor: color }} />
+                </span>
+                <span className="flex-1 truncate text-left">{r.name}</span>
+                {count > 0 && <span className="text-xs tabular-nums text-subtle">{count}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      <div className="min-w-0 flex-1">
+        <Page width="narrow">
+          {/* Phone: the sidebar's views as a scrollable chip row */}
+          <div className="-mx-4 mb-5 flex gap-1.5 overflow-x-auto px-4 no-scrollbar sm:-mx-6 sm:px-6 lg:hidden">
+            {[...views.map((item) => ({ id: item.id, label: item.label, count: item.count, color: undefined as string | undefined })),
+              ...labels.map((r) => ({ id: `label:${r.name}`, label: r.name, count: 0, color: taskLabelColor(r.name, responsibilities) }))].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setView(item.id)}
+                className={cn(
+                  "flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors",
+                  view === item.id ? "border-ink bg-ink text-paper" : "border-line text-muted"
+                )}
+              >
+                {item.color && <span className="size-2 rounded-full" style={{ backgroundColor: item.color }} />}
+                {item.label}
+                {item.count > 0 && <span className="tabular-nums opacity-60">{item.count}</span>}
               </button>
             ))}
           </div>
-        </div>
-        <div className="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 sm:py-7">
-          <div className="mb-6 flex items-center gap-3">
-            {selectedLabel && (
-              <span className="size-3 rounded-full" style={{ backgroundColor: taskLabelColor(selectedLabel, responsibilities) }} />
-            )}
-            <h1 className="text-xl font-semibold text-ink">{viewLabel}</h1>
-            <span className="text-sm text-muted">{viewCountLabel}</span>
-          </div>
 
-          {/* Add task form */}
-          {addingTask ? (
-            <div className="mb-4">
-              <QuickCaptureForm
-                key={view}
-                autoFocus
-                defaultLabel={selectedLabel || undefined}
-                dueAt={view === "today" ? `${today}T17:00:00` : undefined}
-                placeholder="Task name"
-                onComplete={() => setAddingTask(false)}
-                onCancel={() => setAddingTask(false)}
-                inputClassName="border-line bg-panel [&_input]:text-ink [&_input::placeholder]:text-muted"
-                selectClassName="border-line bg-paper text-muted"
-                dateClassName="border-line bg-paper text-muted"
-                descriptionClassName="border-line bg-paper text-ink placeholder:text-muted"
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => setAddingTask(true)}
-              className="group mb-4 flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-sm text-muted transition hover:text-ink"
-            >
-              <span className="grid size-5 place-items-center rounded-full border-[1.5px] border-line text-muted transition group-hover:border-muted group-hover:text-ink">
-                <Plus className="size-3" />
+          <PageHeader
+            title={
+              <span className="flex items-center gap-2.5">
+                {selectedLabel && <span className="size-3 rounded-full" style={{ backgroundColor: taskLabelColor(selectedLabel, responsibilities) }} />}
+                {viewTitle}
               </span>
-              Add task
-            </button>
-          )}
+            }
+            description={viewDescription}
+            className="mb-5"
+          />
 
-          {/* Task list */}
-          {viewTasks.length === 0 ? (
-            <div className="py-16 text-center">
-              <p className="text-sm text-muted">
-                {view === "today" ? "No open tasks due today." : view === "upcoming" ? "No upcoming tasks scheduled." : "No open tasks in this view."}
-              </p>
-            </div>
+          <QuickCaptureForm
+            key={view}
+            defaultLabel={selectedLabel || undefined}
+            dueAt={view === "today" ? `${today}T17:00:00` : undefined}
+            placeholder={view === "today" ? "Add a task for today" : selectedLabel ? `Add a task to ${selectedLabel}` : "Add a task"}
+            className="mb-6"
+          />
+
+          {groups.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon={CheckCircle2}
+                title={view === "today" ? "You're clear for today" : view === "upcoming" ? "Nothing scheduled ahead" : "No open tasks here"}
+                description={view === "today" ? "Add something above, or pull a task forward from Upcoming." : "Tasks you add will show up here."}
+              />
+            </Card>
           ) : (
-            <div>
-              {viewTasks.map((task, idx) => {
-                const label = taskLabel(task.labels, task.responsibilityId, responsibilities);
-                const color = taskLabelColor(label, responsibilities);
-                const isToday = task.dueAt?.startsWith(today);
-                const isOverdue = task.dueAt && task.dueAt.slice(0, 10) < today;
-                const isEditing = editing?.id === task.id;
-
-                // Section headers when Today view mixes overdue + today
-                const showOverdueHeader = view === "today" && overdueTasks.length > 0 && idx === 0;
-                const showTodayHeader = view === "today" && overdueTasks.length > 0 && idx === overdueTasks.length;
-
-                return (
-                  <div key={task.id}>
-                    {showOverdueHeader && (
-                      <p className="flex items-center gap-1.5 px-2 pb-1 pt-2 text-xs font-semibold text-[#cf4444]">
-                        <AlertCircle className="size-3.5" /> Overdue
-                      </p>
-                    )}
-                    {showTodayHeader && (
-                      <p className="px-2 pb-1 pt-3 text-xs font-semibold text-muted">Today</p>
-                    )}
-                    <div className="group flex items-start gap-3 rounded-md px-2 py-2.5 transition hover:bg-panel">
-                      <button
-                        onClick={() => toggleTask(task.id)}
-                        aria-label={`Complete ${task.title}`}
-                        className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border-[1.5px] transition hover:opacity-60"
-                        style={{ borderColor: color }}
-                      />
-                      {isEditing ? (
-                        <div className="flex min-w-0 flex-1 items-center gap-2">
-                          <input
-                            autoFocus
-                            value={editing?.title ?? ""}
-                            onChange={(e) => setEditing((s) => s && { ...s, title: e.target.value })}
-                            onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditing(null); }}
-                            className="h-8 min-w-0 flex-1 rounded-md border border-line bg-panel px-2.5 text-sm text-ink outline-none focus:border-blue"
-                          />
-                          <button onClick={saveEdit} title={`Save ${task.title}`} aria-label={`Save ${task.title}`} className="grid size-7 place-items-center rounded text-blue hover:bg-panel"><Check className="size-4" /></button>
-                          <button onClick={() => setEditing(null)} title={`Cancel editing ${task.title}`} aria-label={`Cancel editing ${task.title}`} className="grid size-7 place-items-center rounded text-muted hover:bg-panel"><X className="size-4" /></button>
-                        </div>
-                      ) : (
-                        <>
-                          <Link href={`/task/${task.id}`} className="min-w-0 flex-1">
-                            <p className="text-sm text-ink">{task.title}</p>
-                            {task.description && (
-                              <p className="mt-0.5 line-clamp-1 text-xs text-muted">{task.description}</p>
-                            )}
-                            <div className="mt-1 flex items-center gap-2.5">
-                              {task.dueAt && (
-                                <span className={cn("flex items-center gap-1 text-xs",
-                                  isOverdue ? "text-[#cf4444]" : isToday ? "text-[#cc9a2a]" : "text-muted"
-                                )}>
-                                  <CalendarDays className="size-3" />
-                                  {formatDue(task.dueAt, today)}
-                                </span>
-                              )}
-                              {task.recurrence && (
-                                <span className="flex items-center gap-1 text-xs text-muted">
-                                  <RefreshCw className="size-3" />
-                                  {task.recurrence}
-                                </span>
-                              )}
-                              <span className="flex items-center gap-1 text-xs text-muted">
-                                <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
-                                {label}
-                              </span>
-                            </div>
-                          </Link>
-                          {/* Hover actions */}
-                          <div className="flex shrink-0 items-center gap-0.5 opacity-100 lg:opacity-0 transition lg:group-hover:opacity-100">
-                            {rescheduling === task.id ? (
-                              <input
-                                autoFocus
-                                type="date"
-                                defaultValue={task.dueAt?.slice(0, 10) ?? today}
-                                onChange={(e) => reschedule(task.id, e.target.value)}
-                                onBlur={() => setRescheduling(null)}
-                                className="h-7 rounded-md border border-line bg-panel px-1.5 text-xs text-ink outline-none"
-                              />
-                            ) : (
-                              <button
-                                onClick={() => { setRescheduling(task.id); setDeleteConfirm(null); }}
-                                title={`Reschedule ${task.title}`}
-                                aria-label={`Reschedule ${task.title}`}
-                                className="grid size-7 place-items-center rounded text-muted hover:bg-panel hover:text-ink"
-                              >
-                                <CalendarRange className="size-3.5" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => { setEditing({ id: task.id, title: task.title }); setDeleteConfirm(null); setRescheduling(null); }}
-                              title={`Edit ${task.title}`}
-                              aria-label={`Edit ${task.title}`}
-                              className="grid size-7 place-items-center rounded text-muted hover:bg-panel hover:text-ink"
-                            >
-                              <Pencil className="size-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(task.id)}
-                              title={`${deleteConfirm === task.id ? "Confirm deleting" : "Delete"} ${task.title}`}
-                              aria-label={`${deleteConfirm === task.id ? "Confirm deleting" : "Delete"} ${task.title}`}
-                              className={cn(
-                                "grid h-7 place-items-center rounded transition",
-                                deleteConfirm === task.id ? "bg-[#cf4444]/15 px-1.5 text-xs text-[#cf4444]" : "size-7 text-muted hover:bg-panel hover:text-[#cf4444]"
-                              )}
-                            >
-                              {deleteConfirm === task.id ? "Confirm" : <Trash2 className="size-3.5" />}
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
+            <div className="space-y-5">
+              {groups.map((group) => (
+                <section key={group.key}>
+                  <div className="mb-2 flex items-baseline gap-2 px-1">
+                    <h2 className={cn("text-[13px] font-semibold", group.danger ? "text-danger" : "text-ink")}>{group.label}</h2>
+                    {group.detail && <span className="text-xs text-muted">{group.detail}</span>}
+                    <span className="ml-auto text-xs tabular-nums text-subtle">{group.tasks.length}</span>
                   </div>
-                );
-              })}
+                  <Card className="divide-y divide-line overflow-hidden">{group.tasks.map(renderRow)}</Card>
+                </section>
+              ))}
             </div>
           )}
-        </div>
-      </main>
+
+          {completedTasks.length > 0 && (
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => setShowCompleted((value) => !value)}
+                aria-expanded={showCompleted}
+                className="flex h-8 items-center gap-1.5 px-1 text-[13px] font-medium text-muted transition-colors hover:text-ink"
+              >
+                <ChevronDown className={cn("size-3.5 transition-transform", !showCompleted && "-rotate-90")} />
+                Completed · {completedTasks.length}
+              </button>
+              {showCompleted && (
+                <Card className="mt-2 divide-y divide-line overflow-hidden">
+                  {completedTasks.map((task) => (
+                    <TaskRow key={task.id} task={task} />
+                  ))}
+                </Card>
+              )}
+            </div>
+          )}
+        </Page>
+      </div>
     </div>
   );
 }
