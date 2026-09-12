@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BarChart3, CalendarDays, FileText, FolderOpen, ListTodo, Plus, Upload } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, BarChart3, CalendarDays, FileText, FolderOpen, ListTodo, Plus, Tags, Upload } from "lucide-react";
 import { DayTimeline } from "@/components/calendar/day-timeline";
 import { TaskList } from "@/components/dashboard/task-list";
-import { ResponsibilityHeading } from "@/components/responsibilities/responsibility-heading";
 import { ResponsibilityColorPicker } from "@/components/responsibilities/color-picker";
 import { WorkspacePanels } from "@/components/responsibilities/workspace-panels";
-import { Panel } from "@/components/ui/panel";
+import { Button, ButtonLink, Card, CardHeader, EmptyState, Page, ProgressBar, Segmented, Stat, inputClass, textareaClass } from "@/components/ui/primitives";
 import { useAppStore } from "@/lib/stores/app-store";
 import { getTone } from "@/lib/theme";
 import { cn, formatTime } from "@/lib/utils";
@@ -34,19 +34,23 @@ export function ResponsibilityWorkspace({ responsibilityId }: { responsibilityId
   const addMockFile = useAppStore((state) => state.addMockFile);
   const allTasks = useAppStore((state) => state.tasks);
   const allCalendarItems = useAppStore((state) => state.calendarItems);
-  const allNotes = useAppStore((state) => state.notes);
-  const allFiles = useAppStore((state) => state.files);
   const tasks = useMemo(() => allTasks.filter((task) => task.responsibilityId === responsibilityId), [allTasks, responsibilityId]);
   const calendarItems = useMemo(() => allCalendarItems.filter((item) => item.responsibilityId === responsibilityId), [allCalendarItems, responsibilityId]);
-  const notes = useMemo(() => allNotes.filter((note) => note.responsibilityId === responsibilityId), [allNotes, responsibilityId]);
-  const files = useMemo(() => allFiles.filter((file) => file.responsibilityId === responsibilityId), [allFiles, responsibilityId]);
 
   if (!responsibility) {
-    return null;
+    return (
+      <Page width="narrow">
+        <EmptyState icon={Tags} title="Label not found" description="It may have been deleted." action={<ButtonLink href="/responsibilities" size="sm">All labels</ButtonLink>} />
+      </Page>
+    );
   }
 
   const tone = getTone(responsibility.color);
   const doneTasks = tasks.filter((task) => task.status === "done").length;
+  const openTasks = tasks.length - doneTasks;
+  const goalPercent = responsibility.weeklyGoalHours
+    ? Math.round((responsibility.actualHoursThisWeek / responsibility.weeklyGoalHours) * 100)
+    : null;
 
   function handleNoteSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,154 +71,139 @@ export function ResponsibilityWorkspace({ responsibilityId }: { responsibilityId
     setFileName("");
   }
 
+  const timelineCard = (
+    <Card className="flex h-[620px] flex-col overflow-hidden">
+      <CardHeader title="Today" meta={responsibility.name} />
+      <DayTimeline filteredResponsibilityId={responsibility.id} className="min-h-0 flex-1" />
+    </Card>
+  );
+
+  const tasksCard = (
+    <Card className="overflow-hidden">
+      <CardHeader title="Tasks" meta={openTasks ? `${openTasks} open` : undefined} />
+      <TaskList responsibilityId={responsibility.id} quickAdd />
+    </Card>
+  );
+
   return (
-    <div className="space-y-4">
-      <header className="relative overflow-visible rounded-xl border border-line bg-panel p-4 sm:p-5">
-        <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: tone.hex }} />
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 flex-1">
-            <ResponsibilityHeading responsibilityId={responsibility.id} />
-            <div className="mt-4 max-w-sm">
-              <p className="mb-2 text-xs text-muted">Color</p>
-              <ResponsibilityColorPicker value={responsibility.color} onChange={(color) => updateResponsibilityColor(responsibility.id, color)} />
-            </div>
+    <Page width="wide">
+      <Link href="/responsibilities" className="-ml-2 mb-6 inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] text-muted transition-colors hover:bg-hover hover:text-ink">
+        <ArrowLeft className="size-4" />
+        Labels
+      </Link>
+
+      <header className="mb-7 flex flex-wrap items-end justify-between gap-6">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="pt-1">
+            <ResponsibilityColorPicker value={responsibility.color} onChange={(color) => updateResponsibilityColor(responsibility.id, color)} />
           </div>
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="rounded-lg border border-line bg-line p-3">
-              <p className="text-2xl font-semibold text-ink">{tasks.length}</p>
-              <p className="text-muted">tasks</p>
-            </div>
-            <div className="rounded-lg border border-line bg-line p-3">
-              <p className="text-2xl font-semibold text-ink">{calendarItems.length}</p>
-              <p className="text-muted">calendar</p>
-            </div>
-            <div className="rounded-lg border border-line bg-line p-3">
-              <p className="text-2xl font-semibold text-ink">{responsibility.actualHoursThisWeek}h</p>
-              <p className="text-muted">tracked</p>
-            </div>
+          <div className="min-w-0">
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-ink">{responsibility.name}</h1>
+            {responsibility.description && <p className="mt-1 max-w-2xl text-sm text-muted">{responsibility.description}</p>}
           </div>
         </div>
-        <div className="mt-4 flex max-w-full overflow-x-auto rounded-lg border border-line bg-line p-1 text-sm no-scrollbar">
-          {tabs.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setTab(item.id)}
-                className={cn(
-                  "flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-muted transition hover:text-ink",
-                  tab === item.id && "bg-blue text-white shadow-lift"
-                )}
-              >
-                <Icon className="size-4" />
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
+        <dl className="flex gap-8">
+          {[
+            ["Open tasks", openTasks],
+            ["Calendar items", calendarItems.length],
+            ["Tracked this week", `${responsibility.actualHoursThisWeek}h`],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <dt className="text-xs text-muted">{label}</dt>
+              <dd className="mt-0.5 text-lg font-semibold tabular-nums text-ink">{value}</dd>
+            </div>
+          ))}
+        </dl>
       </header>
 
+      <Segmented
+        label="Label sections"
+        value={tab}
+        onChange={setTab}
+        className="mb-5"
+        options={tabs.map((item) => {
+          const Icon = item.icon;
+          return { value: item.id, label: <><Icon className="size-3.5" />{item.label}</> };
+        })}
+      />
+
       {tab === "overview" && (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <Panel title="Filtered Calendar" eyebrow={responsibility.name}>
-            <div className="p-3">
-              <DayTimeline filteredResponsibilityId={responsibility.id} />
-            </div>
-          </Panel>
-          <div className="space-y-4">
-            <Panel title="Tasks" eyebrow="open loops">
-              <TaskList responsibilityId={responsibility.id} quickAdd />
-            </Panel>
-            <Panel title="Weekly Time" eyebrow="actuals">
-              <div className="p-4">
-                <p className="text-3xl font-semibold text-ink">{responsibility.actualHoursThisWeek}h</p>
-                <p className="text-sm text-muted">Actual against {responsibility.plannedHoursThisWeek}h planned</p>
-                <div className="mt-4 h-2 rounded-full bg-line p-0.5">
-                  <div className="h-full rounded-full" style={{ backgroundColor: tone.hex, width: `${Math.min(100, (responsibility.actualHoursThisWeek / responsibility.weeklyGoalHours) * 100)}%` }} />
-                </div>
-              </div>
-            </Panel>
-            <WorkspacePanels responsibilityId={responsibility.id} />
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+          {timelineCard}
+          <div className="space-y-5">
+            {tasksCard}
+            <Card className="p-4">
+              <p className="text-[13px] text-muted">Weekly time</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums text-ink">
+                {responsibility.actualHoursThisWeek}h
+                <span className="text-sm font-normal text-muted"> of {responsibility.plannedHoursThisWeek}h planned</span>
+              </p>
+              {goalPercent !== null && <ProgressBar value={goalPercent} color={tone.hex} className="mt-3" />}
+            </Card>
+            <WorkspacePanels responsibilityId={responsibility.id} sections={["notes", "files"]} />
           </div>
         </div>
       )}
 
-      {tab === "tasks" && (
-        <Panel title="Tasks" eyebrow="simple local list">
-          <TaskList responsibilityId={responsibility.id} quickAdd />
-        </Panel>
-      )}
+      {tab === "tasks" && tasksCard}
 
-      {tab === "calendar" && (
-        <Panel title="Calendar" eyebrow="filtered schedule">
-          <div className="p-3">
-            <DayTimeline filteredResponsibilityId={responsibility.id} />
-          </div>
-        </Panel>
-      )}
+      {tab === "calendar" && timelineCard}
 
       {tab === "notes" && (
-        <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-          <Panel title="New Note" eyebrow="label context">
-            <form onSubmit={handleNoteSubmit} className="space-y-3 p-4">
-              <input value={noteTitle} onChange={(event) => setNoteTitle(event.target.value)} placeholder="Title" className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-blue" />
-              <textarea value={noteBody} onChange={(event) => setNoteBody(event.target.value)} placeholder="Write the context once, use it everywhere." className="min-h-32 w-full resize-none rounded-lg border border-line bg-paper p-3 text-sm text-ink outline-none placeholder:text-muted focus:border-blue" />
-              <button className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-blue text-sm font-medium text-white disabled:opacity-50" disabled={!noteTitle.trim() || !noteBody.trim()}>
+        <div className="grid items-start gap-5 lg:grid-cols-[340px_1fr]">
+          <Card className="p-4">
+            <p className="mb-3 text-[13px] font-semibold text-ink">New note</p>
+            <form onSubmit={handleNoteSubmit} className="space-y-3">
+              <input value={noteTitle} onChange={(event) => setNoteTitle(event.target.value)} placeholder="Title" aria-label="Note title" className={inputClass} />
+              <textarea value={noteBody} onChange={(event) => setNoteBody(event.target.value)} placeholder="Write the context once, use it everywhere." aria-label="Note body" className={cn(textareaClass, "min-h-32 resize-none")} />
+              <Button type="submit" variant="primary" className="w-full" disabled={!noteTitle.trim() || !noteBody.trim()}>
                 <Plus className="size-4" />
                 Add note
-              </button>
+              </Button>
             </form>
-          </Panel>
-          <Panel title="Notes" eyebrow={`${notes.length} saved`}>
-            <WorkspacePanels responsibilityId={responsibility.id} sections={["notes"]} />
-          </Panel>
+          </Card>
+          <WorkspacePanels responsibilityId={responsibility.id} sections={["notes"]} />
         </div>
       )}
 
       {tab === "files" && (
-        <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-          <Panel title="File Upload" eyebrow="label files">
-            <form onSubmit={handleFileSubmit} className="space-y-3 p-4">
-              <input value={fileName} onChange={(event) => setFileName(event.target.value)} placeholder="syllabus.pdf" className="h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-blue" />
-              <button className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-blue text-sm font-medium text-white disabled:opacity-50" disabled={!fileName.trim()}>
+        <div className="grid items-start gap-5 lg:grid-cols-[340px_1fr]">
+          <Card className="p-4">
+            <p className="mb-3 text-[13px] font-semibold text-ink">Add a file</p>
+            <form onSubmit={handleFileSubmit} className="space-y-3">
+              <input value={fileName} onChange={(event) => setFileName(event.target.value)} placeholder="syllabus.pdf" aria-label="File name" className={inputClass} />
+              <Button type="submit" variant="primary" className="w-full" disabled={!fileName.trim()}>
                 <Upload className="size-4" />
                 Add file
-              </button>
+              </Button>
             </form>
-          </Panel>
-          <Panel title="Files" eyebrow={`${files.length} saved`}>
-            <WorkspacePanels responsibilityId={responsibility.id} sections={["files"]} />
-          </Panel>
+          </Card>
+          <WorkspacePanels responsibilityId={responsibility.id} sections={["files"]} />
         </div>
       )}
 
       {tab === "analytics" && (
-        <Panel title="Insights" eyebrow="label pulse">
-          <div className="grid gap-3 p-4 md:grid-cols-3">
-            <div className="rounded-lg border border-line bg-line p-4">
-              <p className="text-3xl font-semibold text-ink">{doneTasks}/{tasks.length}</p>
-              <p className="mt-1 text-sm text-muted">tasks complete</p>
-            </div>
-            <div className="rounded-lg border border-line bg-line p-4">
-              <p className="text-3xl font-semibold text-ink">{responsibility.plannedHoursThisWeek}h</p>
-              <p className="mt-1 text-sm text-muted">planned this week</p>
-            </div>
-            <div className="rounded-lg border border-line bg-line p-4">
-              <p className="text-3xl font-semibold text-ink">{Math.round((responsibility.actualHoursThisWeek / responsibility.weeklyGoalHours) * 100)}%</p>
-              <p className="mt-1 text-sm text-muted">of weekly goal</p>
-            </div>
+        <div className="space-y-5">
+          <div className="grid gap-3 md:grid-cols-3">
+            <Stat label="Tasks complete" value={`${doneTasks}/${tasks.length}`} />
+            <Stat label="Planned this week" value={`${responsibility.plannedHoursThisWeek}h`} />
+            <Stat label="Of weekly goal" value={goalPercent !== null ? `${goalPercent}%` : "—"} detail={responsibility.weeklyGoalHours ? `${responsibility.weeklyGoalHours}h goal` : "No goal set"} />
           </div>
-          <div className="divide-y divide-line">
-            {calendarItems.map((item) => (
-              <div key={item.id} className="grid gap-3 px-4 py-3 sm:grid-cols-[100px_1fr_110px] sm:items-center">
-                <p className="text-xs text-muted">{formatTime(item.startsAt)} - {formatTime(item.endsAt)}</p>
-                <p className="text-sm text-ink">{item.title}</p>
-                <span className="rounded-md bg-paper px-2 py-1 text-center text-xs text-muted">{item.type.replace("_", " ")}</span>
-              </div>
-            ))}
-          </div>
-        </Panel>
+          <Card className="overflow-hidden">
+            <CardHeader title="Calendar items" meta={calendarItems.length} />
+            <div className="divide-y divide-line">
+              {calendarItems.map((item) => (
+                <div key={item.id} className="grid gap-1 px-4 py-2.5 sm:grid-cols-[140px_1fr_100px] sm:items-center sm:gap-3">
+                  <p className="text-xs tabular-nums text-muted">{formatTime(item.startsAt)} – {formatTime(item.endsAt)}</p>
+                  <p className="truncate text-sm text-ink">{item.title}</p>
+                  <span className="text-xs capitalize text-subtle sm:text-right">{item.type.replace("_", " ")}</span>
+                </div>
+              ))}
+              {calendarItems.length === 0 && <p className="px-4 py-6 text-center text-[13px] text-muted">Nothing on the calendar for this label.</p>}
+            </div>
+          </Card>
+        </div>
       )}
-    </div>
+    </Page>
   );
 }

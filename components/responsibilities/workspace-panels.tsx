@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { FileText, Paperclip, TrendingUp } from "lucide-react";
+import { FileText, Paperclip } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
 import { Panel } from "@/components/ui/panel";
 
@@ -19,12 +19,12 @@ export function WorkspacePanels({ responsibilityId, sections = ["notes", "files"
 
   return (
     <div className="space-y-4">
-      {sections.includes("notes") && <Panel title="Notes" eyebrow="context">
+      {sections.includes("notes") && <Panel title="Notes" >
         <div className="divide-y divide-line">
           {notes.map((note) => (
-            <Link key={note.id} href={`/notes/${note.id}`} className="block px-4 py-3 transition hover:bg-line">
+            <Link key={note.id} href={`/notes/${note.id}`} className="block px-4 py-3 transition-colors hover:bg-hover/50">
               <div className="flex items-start gap-3">
-                <div className="grid size-8 place-items-center rounded-lg bg-line text-muted">
+                <div className="grid size-8 place-items-center rounded-lg bg-hover text-muted">
                   <FileText className="size-4" />
                 </div>
                 <div>
@@ -37,12 +37,12 @@ export function WorkspacePanels({ responsibilityId, sections = ["notes", "files"
           {!notes.length && <p className="p-4 text-sm text-muted">No notes for this label.</p>}
         </div>
       </Panel>}
-      {sections.includes("files") && <Panel title="Files" eyebrow="uploads">
+      {sections.includes("files") && <Panel title="Files" >
         <div className="divide-y divide-line">
           {files.map((file) => (
             <div key={file.id} className="flex items-center justify-between gap-3 px-4 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="grid size-8 place-items-center rounded-lg bg-line text-muted">
+                <div className="grid size-8 place-items-center rounded-lg bg-hover text-muted">
                   <Paperclip className="size-4" />
                 </div>
                 <div className="min-w-0">
@@ -50,7 +50,7 @@ export function WorkspacePanels({ responsibilityId, sections = ["notes", "files"
                   <p className="text-xs text-muted">{file.sizeLabel}</p>
                 </div>
               </div>
-              <span className="rounded-md border border-line bg-line px-2 py-1 text-xs text-muted">
+              <span className="rounded-md bg-hover px-2 py-0.5 text-xs text-muted">
                 file
               </span>
             </div>
@@ -58,20 +58,20 @@ export function WorkspacePanels({ responsibilityId, sections = ["notes", "files"
           {!files.length && <p className="p-4 text-sm text-muted">No files for this label.</p>}
         </div>
       </Panel>}
-      {sections.includes("pulse") && <Panel title="Pulse" eyebrow="workspace insights">
+      {sections.includes("pulse") && <Panel title="Pulse" >
         <div className="grid grid-cols-3 gap-2 p-4">
-          <div className="rounded-lg border border-line bg-line p-3">
-            <TrendingUp className="mb-3 size-4 text-mint" />
+          <div className="rounded-lg bg-paper p-3">
+            
             <p className="text-xl font-semibold text-ink">{calendarItems.length}</p>
             <p className="text-xs text-muted">calendar items</p>
           </div>
-          <div className="rounded-lg border border-line bg-line p-3">
+          <div className="rounded-lg bg-paper p-3">
             <p className="text-xl font-semibold text-ink">{tasks.length}</p>
-            <p className="mt-3 text-xs text-muted">open loops</p>
+            <p className="text-xs text-muted">open loops</p>
           </div>
-          <div className="rounded-lg border border-line bg-line p-3">
+          <div className="rounded-lg bg-paper p-3">
             <p className="text-xl font-semibold text-ink">{doneTasks}</p>
-            <p className="mt-3 text-xs text-muted">completed</p>
+            <p className="text-xs text-muted">completed</p>
           </div>
         </div>
       </Panel>}

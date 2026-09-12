@@ -3,15 +3,25 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, FileText, Folder, FolderPlus, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Check, FileText, Folder, FolderPlus, Inbox, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { noteLabels } from "@/lib/note-labels";
 import { ResponsibilityColorPicker } from "@/components/responsibilities/color-picker";
+import { Button, Card, EmptyState, Page, PageHeader, iconButtonClass, inputClass } from "@/components/ui/primitives";
 import { useActiveResponsibilities, useAppStore } from "@/lib/stores/app-store";
 import { getTone } from "@/lib/theme";
 import type { ResponsibilityColor } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
 type FolderFilter = "all" | "unfiled" | string;
+
+function relativeDate(value: string) {
+  const date = new Date(value);
+  const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return date.toLocaleDateString([], { weekday: "long" });
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+}
 
 export function NotesWorkspace() {
   const router = useRouter();
@@ -101,80 +111,58 @@ export function NotesWorkspace() {
     setDeleteConfirmFolderId(null);
   }
 
+  const navRow = (active: boolean) =>
+    cn(
+      "flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] transition-colors",
+      active ? "bg-hover font-medium text-ink" : "text-muted hover:bg-hover/70 hover:text-ink"
+    );
+
   return (
-    <main className="grid min-h-[calc(100dvh-96px)] min-w-0 overflow-hidden rounded-xl border border-line bg-panel shadow-glow lg:grid-cols-[300px_minmax(0,1fr)]">
-      <aside className="border-b border-line bg-panel lg:border-b-0 lg:border-r">
-        <div className="border-b border-line px-4 py-3">
-          <div className="flex items-center justify-between gap-2">
-            <h1 className="text-base font-medium text-ink">Notes</h1>
-            <button
-              type="button"
-              onClick={createFolder}
-              disabled={!newFolderName.trim()}
-              className="grid size-9 place-items-center rounded-lg text-muted transition hover:bg-paper hover:text-ink disabled:opacity-40"
-              title="Create note folder"
-              aria-label="Create note folder"
-            >
-              <FolderPlus className="size-4" />
+    <Page width="wide">
+      <PageHeader
+        title="Notes"
+        description={`${notes.length} ${notes.length === 1 ? "note" : "notes"}`}
+        actions={
+          <Button variant="primary" onClick={createBlankNote}>
+            <Plus className="size-4" />
+            New note
+          </Button>
+        }
+      />
+
+      <div className="grid items-start gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <aside className="lg:sticky lg:top-8">
+          <div className="space-y-0.5">
+            <button type="button" onClick={() => setFolderFilter("all")} className={navRow(folderFilter === "all")}>
+              <FileText className="size-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate">All notes</span>
+              <span className="text-xs tabular-nums text-subtle">{notes.length}</span>
+            </button>
+            <button type="button" onClick={() => setFolderFilter("unfiled")} className={navRow(folderFilter === "unfiled")}>
+              <Inbox className="size-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate">Unfiled</span>
+              <span className="text-xs tabular-nums text-subtle">{unfiledCount}</span>
             </button>
           </div>
-          <div className="mt-3 flex h-10 items-center gap-2 rounded-lg border border-line bg-paper px-3">
-            <FolderPlus className="size-4 text-muted" />
-            <input
-              value={newFolderName}
-              onChange={(event) => setNewFolderName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") createFolder();
-              }}
-              placeholder="New folder"
-              className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
-            />
-            <ResponsibilityColorPicker value={newFolderColor} onChange={setNewFolderColor} compact />
-          </div>
-        </div>
 
-        <div className="max-h-[34dvh] overflow-y-auto p-2 lg:max-h-none">
-          <button
-            type="button"
-            onClick={() => setFolderFilter("all")}
-            className={cn(
-              "flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm transition",
-              folderFilter === "all" ? "bg-paper text-ink shadow-glow" : "text-muted hover:bg-paper hover:text-ink"
-            )}
-          >
-            <FileText className="size-4" />
-            <span className="min-w-0 flex-1 truncate">All notes</span>
-            <span className="text-xs text-muted">{notes.length}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setFolderFilter("unfiled")}
-            className={cn(
-              "mt-1 flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm transition",
-              folderFilter === "unfiled" ? "bg-paper text-ink shadow-glow" : "text-muted hover:bg-paper hover:text-ink"
-            )}
-          >
-            <Folder className="size-4" />
-            <span className="min-w-0 flex-1 truncate">Unfiled</span>
-            <span className="text-xs text-muted">{unfiledCount}</span>
-          </button>
-
-          <div className="mt-3 space-y-1">
+          <p className="mb-1 mt-5 px-2.5 text-[11px] font-medium text-subtle">Folders</p>
+          <div className="space-y-0.5">
             {noteFolders.map((folder) => {
               const tone = getTone(folder.color) ?? getTone("blue");
               const count = notes.filter((note) => note.folderId === folder.id).length;
               const isEditing = editingFolderId === folder.id;
+              const active = folderFilter === folder.id;
               return (
                 <div
                   key={folder.id}
                   className={cn(
-                    "group flex min-h-11 items-center gap-2 rounded-lg px-3 transition",
-                    folderFilter === folder.id ? "bg-paper text-ink shadow-glow" : "text-muted hover:bg-paper hover:text-ink"
+                    "group flex h-8 items-center gap-1 rounded-lg pl-2.5 pr-1 transition-colors",
+                    active ? "bg-hover text-ink" : "text-muted hover:bg-hover/70 hover:text-ink"
                   )}
                 >
+                  <Folder className="size-4 shrink-0" style={{ color: tone.hex }} />
                   {isEditing ? (
-                    <div className="flex min-w-0 flex-1 items-center gap-3 py-2">
-                      <Folder className="size-4 shrink-0" style={{ color: tone.hex }} />
+                    <>
                       <input
                         value={editingFolderName}
                         onChange={(event) => setEditingFolderName(event.target.value)}
@@ -182,72 +170,77 @@ export function NotesWorkspace() {
                           if (event.key === "Enter") saveFolderName();
                           if (event.key === "Escape") setEditingFolderId(null);
                         }}
-                        onClick={(event) => event.stopPropagation()}
                         autoFocus
-                        className="h-7 min-w-0 flex-1 rounded border border-line bg-paper px-2 text-sm text-ink outline-none focus:border-blue"
+                        aria-label="Folder name"
+                        className="ml-1.5 h-6 min-w-0 flex-1 rounded border border-line bg-panel px-1.5 text-[13px] text-ink outline-none focus:border-ink/25"
                       />
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setFolderFilter(folder.id)}
-                      className="flex min-w-0 flex-1 items-center gap-3 py-2 text-left"
-                    >
-                      <Folder className="size-4 shrink-0" style={{ color: tone.hex }} />
-                      <span className="min-w-0 flex-1 truncate text-sm">{folder.name}</span>
-                    </button>
-                  )}
-                  {isEditing ? (
-                    <div className="flex shrink-0 items-center gap-1">
-                      <ResponsibilityColorPicker value={folder.color} onChange={(color) => updateNoteFolder(folder.id, { color })} compact />
-                      <button type="button" onClick={saveFolderName} className="grid size-7 place-items-center rounded text-muted hover:bg-paper hover:text-mint" aria-label={`Save ${folder.name}`}>
+                      <button type="button" onClick={saveFolderName} className={iconButtonClass("size-6")} aria-label={`Save ${folder.name}`}>
                         <Check className="size-3.5" />
                       </button>
-                      <button type="button" onClick={() => setEditingFolderId(null)} className="grid size-7 place-items-center rounded text-muted hover:bg-paper hover:text-ink" aria-label={`Cancel renaming ${folder.name}`}>
+                      <button type="button" onClick={() => setEditingFolderId(null)} className={iconButtonClass("size-6")} aria-label={`Cancel renaming ${folder.name}`}>
                         <X className="size-3.5" />
                       </button>
-                    </div>
+                    </>
                   ) : (
-                    <div className="flex shrink-0 items-center gap-1">
-                      <span className="w-5 text-right text-xs text-muted">{count}</span>
-                      <span className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100">
+                    <>
+                      <button type="button" onClick={() => setFolderFilter(folder.id)} className={cn("ml-1.5 min-w-0 flex-1 truncate text-left text-[13px]", active && "font-medium")}>
+                        {folder.name}
+                      </button>
+                      <span className="text-xs tabular-nums text-subtle group-hover:hidden">{count}</span>
+                      <span className="hidden items-center group-hover:flex">
                         <ResponsibilityColorPicker value={folder.color} onChange={(color) => updateNoteFolder(folder.id, { color })} compact />
+                        <button type="button" onClick={() => startEditingFolder(folder.id, folder.name)} className={iconButtonClass("size-6")} aria-label={`Rename ${folder.name}`}>
+                          <Pencil className="size-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeFolder(folder.id)}
+                          className={cn(iconButtonClass("size-6 hover:text-danger"), deleteConfirmFolderId === folder.id && "w-auto px-1.5 text-danger")}
+                          aria-label={`${deleteConfirmFolderId === folder.id ? "Confirm deleting" : "Delete"} ${folder.name}`}
+                        >
+                          {deleteConfirmFolderId === folder.id ? <span className="text-[11px] font-medium">Delete?</span> : <Trash2 className="size-3" />}
+                        </button>
                       </span>
-                      <button type="button" onClick={() => startEditingFolder(folder.id, folder.name)} className="grid size-7 place-items-center rounded text-muted opacity-100 hover:bg-paper hover:text-ink lg:opacity-0 lg:group-hover:opacity-100" aria-label={`Rename ${folder.name}`}>
-                        <Pencil className="size-3.5" />
-                      </button>
-                      <button type="button" onClick={() => removeFolder(folder.id)} className={cn("grid h-7 place-items-center rounded px-1.5 text-muted opacity-100 hover:bg-paper hover:text-coral lg:opacity-0 lg:group-hover:opacity-100", deleteConfirmFolderId === folder.id && "text-coral opacity-100")} aria-label={`${deleteConfirmFolderId === folder.id ? "Confirm deleting" : "Delete"} ${folder.name}`}>
-                        {deleteConfirmFolderId === folder.id ? <span className="text-[11px] font-medium">Confirm</span> : <Trash2 className="size-3.5" />}
-                      </button>
-                    </div>
+                    </>
                   )}
                 </div>
               );
             })}
           </div>
-        </div>
-      </aside>
 
-      <section className="min-w-0">
-        <div className="border-b border-line px-4 py-3">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="min-w-0">
-              <h2 className="truncate text-base font-medium text-ink">{heading}</h2>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label className="flex h-11 min-w-0 items-center gap-2 rounded-xl border border-line bg-paper px-3 text-sm text-muted sm:w-[340px]">
-              <Search className="size-4" />
+          <div className="mt-1 flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-muted focus-within:bg-hover/70">
+            <FolderPlus className="size-4 shrink-0" />
+            <input
+              value={newFolderName}
+              onChange={(event) => setNewFolderName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") createFolder();
+              }}
+              placeholder="New folder"
+              aria-label="New folder name"
+              className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-subtle"
+            />
+            {newFolderName.trim() && <ResponsibilityColorPicker value={newFolderColor} onChange={setNewFolderColor} compact />}
+          </div>
+        </aside>
+
+        <section className="min-w-0">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <h2 className="mr-auto text-[13px] font-semibold text-ink">{heading}</h2>
+            <label className="relative sm:w-64">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-subtle" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search notes"
-                className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-muted"
+                aria-label="Search notes"
+                className={cn(inputClass, "pl-9")}
               />
             </label>
             <select
               value={labelFilter}
               onChange={(event) => setLabelFilter(event.target.value)}
-              className="h-11 rounded-xl border border-line bg-paper px-3 text-sm text-ink outline-none focus:border-blue sm:w-[190px]"
+              className={cn(inputClass, "sm:w-40")}
               aria-label="Filter by label"
             >
               <option value="all">All labels</option>
@@ -257,50 +250,54 @@ export function NotesWorkspace() {
                 </option>
               ))}
             </select>
-            <button
-              type="button"
-              onClick={createBlankNote}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue px-5 text-sm font-medium text-white shadow-lift transition hover:brightness-110"
-            >
-              <Plus className="size-4" />
-              New
-            </button>
-            </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_150px_150px_110px] gap-3 border-b border-line px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-muted max-md:grid-cols-[auto_minmax(0,1fr)_84px]">
-          <span />
-          <span>Name</span>
-          <span className="max-md:hidden">Folder</span>
-          <span>Label</span>
-          <span className="max-md:hidden">Opened</span>
-        </div>
-        <div className="divide-y divide-line">
-          {filteredNotes.map((note) => {
-            const primaryLabel = note.labels?.[0] ?? "No label";
-            const folder = noteFolders.find((item) => item.id === note.folderId);
-            return (
-              <Link key={note.id} href={`/notes/${note.id}`} className="grid min-h-12 grid-cols-[auto_minmax(0,1fr)_150px_150px_110px] items-center gap-3 px-4 py-2 transition hover:bg-paper max-md:grid-cols-[auto_minmax(0,1fr)_84px]">
-                <FileText className="size-4 text-[#8ab4f8]" />
-                <p className={cn("truncate text-sm font-medium", note.title ? "text-ink" : "text-muted")}>
-                  {note.title || "Untitled"}
-                </p>
-                <span className="truncate text-xs text-muted max-md:hidden">{folder?.name ?? "Unfiled"}</span>
-                <span className="truncate text-xs text-muted">{primaryLabel}</span>
-                <p className="shrink-0 text-xs text-muted max-md:hidden">
-                  {new Date(note.lastOpenedAt ?? note.updatedAt ?? note.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
-                </p>
-              </Link>
-            );
-          })}
-          {!filteredNotes.length && (
-            <div className="px-4 py-10 text-center text-sm text-muted">
-              No notes match these filters.
-            </div>
-          )}
-        </div>
-      </section>
-    </main>
+          <Card className="overflow-hidden">
+            {filteredNotes.length > 0 ? (
+              <div className="divide-y divide-line">
+                {filteredNotes.map((note) => {
+                  const folder = noteFolders.find((item) => item.id === note.folderId);
+                  const snippet = note.body.split("\n").find((line) => line.trim())?.trim();
+                  return (
+                    <Link
+                      key={note.id}
+                      href={`/notes/${note.id}`}
+                      className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-hover/50"
+                    >
+                      <FileText className="mt-0.5 size-4 shrink-0 text-subtle" />
+                      <div className="min-w-0 flex-1">
+                        <p className={cn("truncate text-sm font-medium", note.title ? "text-ink" : "text-muted")}>
+                          {note.title || "Untitled"}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted">{snippet || "Empty note"}</p>
+                      </div>
+                      <div className="hidden shrink-0 flex-col items-end gap-0.5 text-xs text-subtle sm:flex">
+                        <span>{relativeDate(note.lastOpenedAt ?? note.updatedAt ?? note.createdAt)}</span>
+                        <span className="flex items-center gap-1.5">
+                          {folder && (
+                            <>
+                              <span className="size-1.5 rounded-full" style={{ backgroundColor: getTone(folder.color).hex }} />
+                              {folder.name}
+                            </>
+                          )}
+                          {note.labels?.[0] && <span>{folder ? " · " : ""}{note.labels[0]}</span>}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyState
+                icon={FileText}
+                title={notes.length ? "No notes match" : "No notes yet"}
+                description={notes.length ? "Try a different search, folder, or label." : "Write down anything worth keeping."}
+                action={!notes.length ? <Button size="sm" variant="primary" onClick={createBlankNote}><Plus className="size-3.5" />New note</Button> : undefined}
+              />
+            )}
+          </Card>
+        </section>
+      </div>
+    </Page>
   );
 }

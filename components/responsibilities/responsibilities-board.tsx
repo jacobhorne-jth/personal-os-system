@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { DragEvent } from "react";
-import { Archive, ArchiveRestore, ArrowRight, CalendarDays, CheckCircle2, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { ResponsibilityColorPicker } from "@/components/responsibilities/color-picker";
+import { Button, Card, Page, PageHeader, iconButtonClass, inputClass } from "@/components/ui/primitives";
 import { useAppStore } from "@/lib/stores/app-store";
 import { getTone } from "@/lib/theme";
 import type { Responsibility, ResponsibilityColor } from "@/lib/types/domain";
@@ -208,129 +209,75 @@ export function ResponsibilitiesBoard() {
     }
   }
 
-  return (
-    <div className="space-y-4">
-      <header className="flex items-start justify-between rounded-xl border border-line bg-panel p-5 shadow-glow">
-        <div>
-          <h1 className="text-3xl font-semibold text-ink">Labels</h1>
+  function renderEditor(isNew: boolean) {
+    if (!editing) return null;
+    return (
+      <div className="rounded-lg border border-line bg-panel p-3 shadow-glow">
+        <div className="flex items-center gap-2">
+          <ResponsibilityColorPicker value={editing.color} onChange={(color) => setEditing((s) => s && { ...s, color })} />
+          <input
+            autoFocus
+            value={editing.name}
+            onChange={(e) => setEditing((s) => s && { ...s, name: e.target.value })}
+            onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
+            placeholder="Label name"
+            aria-label="Label name"
+            className={inputClass}
+          />
         </div>
-        <button
-          onClick={startNew}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:bg-panel"
-        >
-          <Plus className="size-4" />
-          New label
-        </button>
-      </header>
+        <div className="mt-3 flex items-center gap-2">
+          {!isNew && (
+            <Button variant="danger" size="sm" onClick={() => handleDelete(editing.id as string)}>
+              {deleteConfirm === editing.id ? "Confirm delete" : <Trash2 className="size-3.5" />}
+            </Button>
+          )}
+          <div className="ml-auto flex gap-2">
+            <Button size="sm" onClick={cancelEdit}>Cancel</Button>
+            <Button size="sm" variant="primary" onClick={saveEdit} disabled={!editing.name.trim()}>
+              {isNew ? "Create" : "Save"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      <div className="grid gap-4 xl:grid-cols-3">
+  return (
+    <Page width="wide">
+      <PageHeader
+        title="Labels"
+        description="Labels color your calendar, tasks, and habits. Drag to organize."
+        actions={
+          <Button variant="primary" onClick={startNew}>
+            <Plus className="size-4" />
+            New label
+          </Button>
+        }
+      />
+
+      <div className="grid gap-4 lg:grid-cols-3">
         {groupedItems.map((pillar) => (
           <section
             key={pillar.id}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => dropOnPillar(e, pillar.id)}
             className={cn(
-              "min-h-[360px] rounded-xl border border-line bg-panel/70 p-3 shadow-glow transition",
-              dragId && "border-blue/30 bg-panel"
+              "min-h-[260px] rounded-xl bg-hover/50 p-2 transition-shadow",
+              dragId && "ring-1 ring-inset ring-ink/10"
             )}
           >
-            <div className="mb-3 flex items-center justify-between px-1">
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">{pillar.name}</h2>
-              <span className="rounded-full bg-line px-2 py-0.5 text-xs font-semibold text-muted">{pillar.items.length}</span>
+            <div className="flex items-baseline gap-2 px-2 pb-2 pt-1">
+              <h2 className="text-[13px] font-semibold text-ink">{pillar.name}</h2>
+              <span className="text-xs tabular-nums text-subtle">{pillar.items.length}</span>
             </div>
 
-            <div className="space-y-3">
-              {pillar.id === "personal" && editing?.id === "new" && (
-                <div className="relative overflow-hidden rounded-lg border border-blue/40 bg-panel p-3.5 shadow-glow">
-                  <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: getTone(editing.color).hex }} />
-                  <div className="mt-1.5 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <input
-                        autoFocus
-                        value={editing.name}
-                        onChange={(e) => setEditing((s) => s && { ...s, name: e.target.value })}
-                        onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
-                        placeholder="Label name"
-                        className="min-w-0 flex-1 rounded-md border border-line bg-paper px-3 py-2 text-base font-medium text-ink outline-none focus:border-blue placeholder:text-muted"
-                      />
-                      <ResponsibilityColorPicker
-                        value={editing.color}
-                        onChange={(color) => setEditing((s) => s && { ...s, color })}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={saveEdit}
-                        disabled={!editing.name.trim()}
-                        className="flex-1 rounded-md bg-blue py-2 text-sm font-medium text-white disabled:opacity-40"
-                      >
-                        Create label
-                      </button>
-                      <button
-                        onClick={cancelEdit}
-                        className="rounded-md border border-line bg-paper px-4 py-2 text-sm text-muted hover:text-ink"
-                      >
-                        <X className="size-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+            <div className="space-y-2">
+              {pillar.id === "personal" && editing?.id === "new" && renderEditor(true)}
 
               {pillar.items.map((item) => {
-                const isEditing = editing?.id === item.id;
-                const tone = getTone(isEditing ? editing!.color : item.color);
-
-                if (isEditing) {
-                  return (
-                    <div key={item.id} className="relative overflow-hidden rounded-lg border border-blue/40 bg-paper p-4 shadow-glow">
-                      <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: tone.hex }} />
-                      <div className="mt-1.5 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <input
-                            autoFocus
-                            value={editing!.name}
-                            onChange={(e) => setEditing((s) => s && { ...s, name: e.target.value })}
-                            onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
-                            placeholder="Label name"
-                            className="min-w-0 flex-1 rounded-md border border-line bg-paper px-3 py-2 text-base font-medium text-ink outline-none focus:border-blue placeholder:text-muted"
-                          />
-                          <ResponsibilityColorPicker
-                            value={editing!.color}
-                            onChange={(color) => setEditing((s) => s && { ...s, color })}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={saveEdit}
-                            disabled={!editing!.name.trim()}
-                            className="flex-1 rounded-md bg-blue py-2 text-sm font-medium text-white disabled:opacity-40"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={cancelEdit}
-                            className="rounded-md border border-line bg-paper px-4 py-2 text-sm text-muted hover:text-ink"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className={cn(
-                              "rounded-md border px-4 py-2 text-sm transition",
-                              deleteConfirm === item.id
-                                ? "border-red-500/40 bg-red-500/10 text-red-400"
-                                : "border-line bg-paper text-muted hover:border-red-500/40 hover:text-red-400"
-                            )}
-                          >
-                            {deleteConfirm === item.id ? "Confirm delete" : <Trash2 className="size-4" />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
+                if (editing?.id === item.id) {
+                  return <div key={item.id}>{renderEditor(false)}</div>;
                 }
-
                 return (
                   <div
                     key={item.id}
@@ -344,123 +291,84 @@ export function ResponsibilitiesBoard() {
                     onDragOver={(e) => e.preventDefault()}
                     onDragEnd={() => setDragId(null)}
                     className={cn(
-                      "group relative z-0 cursor-grab overflow-hidden rounded-xl border border-line bg-paper p-4 shadow-glow transition duration-200 hover:z-20 hover:-translate-y-0.5 hover:border-blue/30 active:cursor-grabbing",
+                      "group cursor-grab rounded-lg border border-line bg-panel p-3 shadow-glow transition-opacity active:cursor-grabbing",
                       dragId === item.id && "opacity-40"
                     )}
                   >
-                    <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: tone.hex }} />
-                    <div className="flex items-center justify-between gap-3 pt-1.5">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <GripVertical className="size-4 shrink-0 text-muted opacity-60" />
-                        <p className="min-w-0 truncate text-lg font-semibold text-ink">{item.name}</p>
-                      </div>
-                      <ResponsibilityColorPicker
-                        value={item.color}
-                        onChange={(color) => updateResponsibilityColor(item.id, color)}
-                      />
-                    </div>
-                    <div className="mt-3 flex items-center justify-between gap-3">
-                      <p className="flex items-center gap-3 text-xs text-muted">
-                        <span className="flex items-center gap-1.5">
-                          <CheckCircle2 className="size-4 text-mint" />
-                          {item.taskCount} tasks
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <CalendarDays className="size-4 text-blue" />
-                          {item.upcomingCount} upcoming
-                        </span>
-                      </p>
-                      <div className="flex shrink-0 items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
-                        <button
-                          onClick={() => startEdit(item)}
-                          className="rounded-md p-1.5 text-muted hover:bg-line hover:text-ink"
-                          title={`Edit ${item.name}`}
-                          aria-label={`Edit ${item.name}`}
-                        >
-                          <Pencil className="size-4" />
+                    <div className="flex items-center gap-2">
+                      <ResponsibilityColorPicker value={item.color} onChange={(color) => updateResponsibilityColor(item.id, color)} />
+                      <button
+                        onClick={() => router.push(`/responsibilities/${item.id}`)}
+                        className="min-w-0 flex-1 truncate text-left text-sm font-medium text-ink hover:underline"
+                        title={`Open ${item.name}`}
+                      >
+                        {item.name}
+                      </button>
+                      <div className="flex shrink-0 items-center transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+                        <button onClick={() => startEdit(item)} className={iconButtonClass("size-7")} title={`Edit ${item.name}`} aria-label={`Edit ${item.name}`}>
+                          <Pencil className="size-3.5" />
                         </button>
-                        <button
-                          onClick={() => setResponsibilityArchived(item.id, true)}
-                          className="rounded-md p-1.5 text-muted hover:bg-line hover:text-ink"
-                          title={`Archive ${item.name}`}
-                          aria-label={`Archive ${item.name}`}
-                        >
-                          <Archive className="size-4" />
-                        </button>
-                        <button
-                          onClick={() => router.push(`/responsibilities/${item.id}`)}
-                          className="rounded-md p-1.5 text-muted hover:bg-line hover:text-ink"
-                          title={`View ${item.name}`}
-                          aria-label={`View ${item.name}`}
-                        >
-                          <ArrowRight className="size-4" />
+                        <button onClick={() => setResponsibilityArchived(item.id, true)} className={iconButtonClass("size-7")} title={`Archive ${item.name}`} aria-label={`Archive ${item.name}`}>
+                          <Archive className="size-3.5" />
                         </button>
                       </div>
                     </div>
+                    <p className="mt-1 pl-9 text-xs text-muted">
+                      {item.taskCount} open {item.taskCount === 1 ? "task" : "tasks"} · {item.upcomingCount} upcoming
+                    </p>
                   </div>
                 );
               })}
+
+              {pillar.items.length === 0 && !(pillar.id === "personal" && editing?.id === "new") && (
+                <p className="px-2 py-6 text-center text-xs text-subtle">Drag a label here</p>
+              )}
             </div>
           </section>
         ))}
       </div>
 
       {archivedItems.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-line bg-panel">
+        <Card className="mt-6 overflow-hidden">
           <button
             onClick={() => setShowArchived((s) => !s)}
-            className="flex w-full items-center justify-between px-5 py-3 text-left transition hover:bg-line/40"
+            aria-expanded={showArchived}
+            className="flex h-12 w-full items-center gap-2 px-4 text-left text-[13px] font-medium text-muted transition-colors hover:text-ink"
           >
-            <span className="flex items-center gap-2 text-sm font-medium text-muted">
-              <Archive className="size-4" />
-              Archived ({archivedItems.length})
-            </span>
-            <span className="text-xs text-muted">{showArchived ? "Hide" : "Show"}</span>
+            <ChevronDown className={cn("size-3.5 transition-transform", !showArchived && "-rotate-90")} />
+            Archived · {archivedItems.length}
           </button>
           {showArchived && (
             <div className="divide-y divide-line border-t border-line">
               {archivedItems.map((item) => {
                 const tone = getTone(item.color);
                 return (
-                  <div key={item.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div key={item.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="size-2.5 shrink-0 rounded-full opacity-60" style={{ backgroundColor: tone.hex }} />
+                      <span className="size-2 shrink-0 rounded-full opacity-60" style={{ backgroundColor: tone.hex }} />
                       <div className="min-w-0">
                         <p className="truncate text-sm text-ink">{item.name}</p>
-                        <p className="text-[11px] text-muted">
-                          archived {item.archivedAt ? new Date(item.archivedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : ""}
+                        <p className="text-xs text-muted">
+                          Archived {item.archivedAt ? new Date(item.archivedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : ""}
                         </p>
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        onClick={() => setResponsibilityArchived(item.id, false)}
-                        className="flex items-center gap-1.5 rounded-md border border-line bg-paper px-2.5 py-1.5 text-xs text-ink transition hover:bg-line"
-                        title={`Restore ${item.name}`}
-                        aria-label={`Restore ${item.name}`}
-                      >
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <Button size="sm" onClick={() => setResponsibilityArchived(item.id, false)} title={`Restore ${item.name}`} aria-label={`Restore ${item.name}`}>
                         <ArchiveRestore className="size-3.5" />
                         Restore
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className={cn(
-                          "rounded-md border px-2.5 py-1.5 text-xs transition",
-                          deleteConfirm === item.id
-                            ? "border-red-500/40 bg-red-500/10 text-red-400"
-                            : "border-line bg-paper text-muted hover:text-red-400"
-                        )}
-                      >
+                      </Button>
+                      <Button size="sm" variant="danger" onClick={() => handleDelete(item.id)} aria-label={`${deleteConfirm === item.id ? "Confirm deleting" : "Delete"} ${item.name}`}>
                         {deleteConfirm === item.id ? "Confirm" : <Trash2 className="size-3.5" />}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
-        </div>
+        </Card>
       )}
-    </div>
+    </Page>
   );
 }

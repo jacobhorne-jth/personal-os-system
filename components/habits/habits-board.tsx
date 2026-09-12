@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Pencil, Plus, Repeat2, Trash2, X } from "lucide-react";
+import { Button, Card, CardHeader, EmptyState, Field, Page, PageHeader, Segmented, iconButtonClass, inputClass } from "@/components/ui/primitives";
 import { addDays, effectiveDateKey, effectiveDateKeyOf, effectiveNow, localDateKey } from "@/lib/dates";
 import { useAppStore } from "@/lib/stores/app-store";
 import { getTone } from "@/lib/theme";
@@ -126,10 +127,10 @@ function dayStatus(habit: Habit, value: number): "success" | "partial" | "fail" 
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  success: "#58b77a",
-  partial: "#6f9ff6",
-  fail: "#e05b52",
-  none: "rgba(255,255,255,0.055)",
+  success: "rgb(var(--color-success))",
+  partial: "rgb(var(--color-accent) / 0.55)",
+  fail: "rgb(var(--color-danger))",
+  none: "rgb(var(--color-hover))",
 };
 
 // GitHub-style history: the last `weeks` weeks as columns, Mon→Sun rows
@@ -152,7 +153,7 @@ function HistoryHeatmap({ habit, logs, weeks = 13 }: { habit: Habit; logs: Habit
                 key={d}
                 title={`${dateStr}`}
                 className="size-2.5 rounded-[3px]"
-                style={{ backgroundColor: STATUS_COLORS[status], opacity: beforeCreation ? 0.35 : 1 }}
+                style={{ backgroundColor: STATUS_COLORS[status], opacity: beforeCreation ? 0.5 : 1 }}
               />
             );
           })}
@@ -162,21 +163,21 @@ function HistoryHeatmap({ habit, logs, weeks = 13 }: { habit: Habit; logs: Habit
   );
 }
 
-// Circular progress ring used by the Today check-off row
+// Circular progress ring used by the Today check-off tiles
 function ProgressRing({ progress, color, children }: { progress: number; color: string; children: React.ReactNode }) {
-  const R = 20;
+  const R = 16;
   const C = 2 * Math.PI * R;
   return (
-    <span className="relative grid size-12 place-items-center">
-      <svg viewBox="0 0 48 48" className="absolute inset-0 -rotate-90">
-        <circle cx="24" cy="24" r={R} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3.5" />
+    <span className="relative grid size-10 shrink-0 place-items-center">
+      <svg viewBox="0 0 40 40" className="absolute inset-0 -rotate-90">
+        <circle cx="20" cy="20" r={R} fill="none" stroke="rgb(var(--color-line))" strokeWidth="3" />
         <circle
-          cx="24"
-          cy="24"
+          cx="20"
+          cy="20"
           r={R}
           fill="none"
           stroke={color}
-          strokeWidth="3.5"
+          strokeWidth="3"
           strokeLinecap="round"
           strokeDasharray={C}
           strokeDashoffset={C * (1 - Math.min(1, progress))}
@@ -203,19 +204,24 @@ function HabitCell({
 }) {
   const exceeded = habit.type === "limit" && value > habit.target;
   const failed = habit.type === "avoid" && value === 1;
-  const done = habit.type === "avoid" ? !failed : habit.type === "limit" ? false : value >= habit.target;
+  // A weekly habit's day cell is one occurrence toward the weekly target
+  const done =
+    habit.type === "avoid" ? !failed :
+    habit.type === "limit" ? false :
+    habit.type === "weekly" ? value > 0 :
+    value >= habit.target;
 
-  let bg = "bg-paper border-line/70";
+  let tone = "bg-hover/70 text-muted hover:bg-hover";
   if (!isFuture) {
     if (habit.type === "avoid") {
-      bg = failed ? "bg-red-500/15 border-red-500/35" : "bg-mint/10 border-mint/25";
+      tone = failed ? "bg-danger/15 text-danger" : "bg-success/10 text-success";
     } else if (habit.type === "limit") {
-      if (exceeded) bg = "bg-red-500/15 border-red-500/35";
-      else if (value > 0) bg = "bg-mint/10 border-mint/25";
+      if (exceeded) tone = "bg-danger/15 text-danger";
+      else if (value > 0) tone = "bg-success/10 text-success";
     } else if (done) {
-      bg = "bg-mint/15 border-mint/35";
+      tone = "bg-success/15 text-success";
     } else if (value > 0) {
-      bg = "bg-blue/10 border-blue/25";
+      tone = "bg-accent/10 text-accent";
     }
   }
 
@@ -224,26 +230,20 @@ function HabitCell({
       onClick={isFuture ? undefined : onClick}
       disabled={isFuture}
       className={cn(
-        "relative flex size-9 flex-col items-center justify-center rounded-md border text-[10px] font-semibold transition",
-        bg,
-        isFuture ? "cursor-default opacity-25" : "hover:border-muted hover:brightness-110 active:scale-95",
-        isToday && "ring-1 ring-blue/70 ring-offset-2 ring-offset-paper"
+        "grid size-8 place-items-center rounded-lg text-[10px] font-semibold tabular-nums transition-colors",
+        tone,
+        isFuture ? "cursor-default opacity-30" : "active:scale-95",
+        isToday && "ring-1 ring-inset ring-ink/25"
       )}
     >
       {habit.type === "avoid" ? (
-        failed ? <X className="size-3.5 text-red-400" /> : <Check className="size-3.5 text-emerald-400 opacity-60" />
+        failed ? <X className="size-3.5" strokeWidth={2.5} /> : <Check className="size-3.5 opacity-70" strokeWidth={2.5} />
       ) : habit.type === "limit" ? (
-        value === 0 ? null : (
-          <span className={cn("leading-none", exceeded ? "text-red-400" : "text-emerald-400")}>
-            {value}/{habit.target}
-          </span>
-        )
-      ) : habit.target === 1 ? (
-        done ? <Check className="size-3.5 text-mint" /> : null
+        value === 0 ? null : <span className="leading-none">{value}/{habit.target}</span>
+      ) : habit.target === 1 || habit.type === "weekly" ? (
+        done ? <Check className="size-3.5" strokeWidth={2.5} /> : null
       ) : (
-        <span className={cn("leading-none", done ? "text-mint" : value > 0 ? "text-blue" : "text-muted")}>
-          {value}/{habit.target}
-        </span>
+        <span className="leading-none">{value}/{habit.target}</span>
       )}
     </button>
   );
@@ -366,424 +366,347 @@ export function HabitsBoard() {
     return h.type === "weekly" ? weeklyTotal(h) >= h.target : dayCounts(h, v) && (h.type !== "daily" || v >= h.target);
   }).length;
 
-  return (
-    <div className="space-y-4">
-      <header className="rounded-xl border border-line bg-panel px-4 py-3 shadow-glow sm:px-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm text-muted">Habits</p>
-            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
-                {effectiveNow().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-              </h1>
-              <p className="text-sm text-muted">
-                <span className="font-medium text-ink">{todayDone}/{habits.length || 0}</span> on track · {habits.length} active · {weekLabel}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={startNew}
-            className="flex shrink-0 items-center gap-2 rounded-lg bg-blue px-4 py-2.5 text-sm font-medium text-white shadow-lift transition hover:brightness-110 active:scale-95"
-          >
-            <Plus className="size-4" />
-            Add habit
-          </button>
-        </div>
-      </header>
+  const gridColumns = "minmax(200px,1fr) repeat(7, 36px) 64px";
 
-      {/* Today: one-tap check-off, like a classic habit tracker */}
-      {habits.length > 0 && (
-        <section className="overflow-hidden rounded-xl border border-line bg-panel shadow-glow">
-          <div className="flex items-center justify-between border-b border-line bg-line/30 px-4 py-3">
-            <div>
-              <p className="text-sm font-semibold text-ink">Today</p>
-              <p className="text-xs text-muted">{todayDone} of {habits.length} on track</p>
-            </div>
-            <span className="rounded-full bg-paper px-2.5 py-1 text-xs font-semibold text-muted">{todayDone}/{habits.length}</span>
-          </div>
-          <div className="flex gap-3 overflow-x-auto px-4 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {habits.map((habit) => {
-              const value = logValue(habitLogs, habit.id, today);
-              const tone = habit.responsibilityId
-                ? getTone(responsibilities.find((r) => r.id === habit.responsibilityId)?.color ?? "graphite")
-                : getTone("mint");
-              const failed = habit.type === "avoid" && value === 1;
-              const exceeded = habit.type === "limit" && value > habit.target;
-              const isWeekly = habit.type === "weekly";
-              const current = isWeekly ? weeklyTotal(habit) : value;
-              const target = habit.type === "avoid" ? 1 : habit.target;
-              const complete = habit.type === "avoid" ? !failed : habit.type === "limit" ? !exceeded && value > 0 : current >= target;
-              const progress = habit.type === "avoid" ? (failed ? 0 : 1) : habit.type === "limit" ? (value > 0 ? 1 : 0) : current / target;
-              const ringColor = failed || exceeded ? "#d93025" : complete ? tone.hex : "#4285f4";
-              return (
-                <button
-                  key={habit.id}
-                  onClick={() => handleCellClick(habit, today)}
-                  onContextMenu={(e) => {
-                    if (habit.type !== "daily" && habit.type !== "limit") return;
-                    e.preventDefault();
-                    setNumericValue(String(value));
-                    setNumericEntry({ habitId: habit.id, date: today });
-                  }}
-                  className="group/today flex w-[88px] shrink-0 flex-col items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-3 transition hover:border-blue/25 hover:bg-line/40 active:scale-95"
-                  title={habit.title}
-                >
-                  <ProgressRing progress={progress} color={ringColor}>
-                    {failed || exceeded ? (
-                      <X className="size-4 text-red-400" />
-                    ) : (habit.type === "daily" || habit.type === "weekly") && target > 1 ? (
-                      // Counting habits keep showing the number past the target
-                      <span className="text-[10px] font-semibold" style={{ color: complete ? ringColor : undefined }}>
-                        <span className={cn(!complete && "text-ink")}>{current}/{target}</span>
-                      </span>
-                    ) : complete ? (
-                      <Check className="size-4" style={{ color: ringColor }} />
-                    ) : (
-                      <span className="text-[11px] font-semibold text-ink">
-                        {habit.type === "avoid" ? <Check className="size-4 opacity-40" /> : ""}
-                      </span>
-                    )}
-                  </ProgressRing>
-                  <span className="w-full truncate text-center text-xs leading-tight text-muted group-hover/today:text-ink">
-                    {habit.title}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
+  return (
+    <Page width="wide">
+      <PageHeader
+        title="Habits"
+        description={habits.length ? `${todayDone} of ${habits.length} on track today` : "Small things, every day."}
+        actions={
+          <Button variant="primary" onClick={startNew}>
+            <Plus className="size-4" />
+            New habit
+          </Button>
+        }
+      />
 
       {/* Add / edit form */}
       {editing && (
-        <section className="rounded-xl border border-blue/40 bg-panel p-4 shadow-glow">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-blue">{editing.id === "new" ? "New habit" : "Edit habit"}</p>
-          <div className="space-y-3">
+        <Card className="mb-6 p-4">
+          <p className="mb-3 text-sm font-semibold text-ink">{editing.id === "new" ? "New habit" : "Edit habit"}</p>
+          <div className="space-y-4">
             <input
               autoFocus
               value={editing.title}
               onChange={(e) => setEditing((s) => s && { ...s, title: e.target.value })}
               onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
               placeholder="Habit name (e.g. Drink enough water)"
-              className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
+              aria-label="Habit name"
+              className={inputClass}
             />
 
-            {/* Type selector */}
-            <div className="grid grid-cols-4 gap-2">
-              {(["daily", "weekly", "avoid", "limit"] as HabitType[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setEditing((s) => s && { ...s, type: t, target: t === "avoid" ? 0 : 1 })}
-                  className={cn(
-                    "rounded-lg border px-2 py-2 text-xs font-medium transition",
-                    editing.type === t
-                      ? "border-blue bg-blue/10 text-blue"
-                      : "border-line bg-paper text-muted hover:text-ink"
-                  )}
-                >
-                  {typeLabels[t]}
-                </button>
-              ))}
+            <div>
+              <Segmented
+                label="Habit type"
+                value={editing.type}
+                onChange={(t) => setEditing((s) => s && { ...s, type: t, target: t === "avoid" ? 0 : 1 })}
+                options={(["daily", "weekly", "avoid", "limit"] as HabitType[]).map((t) => ({ value: t, label: typeLabels[t] }))}
+              />
+              <p className="mt-2 text-xs leading-5 text-muted">{typeHints[editing.type]}</p>
             </div>
-            <p className="text-[11px] text-muted">{typeHints[editing.type]}</p>
 
-            {/* Target + unit (not for avoid) */}
-            {editing.type !== "avoid" && (
-              <div className="flex items-center gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] text-muted">{editing.type === "limit" ? "Max per day" : "Target"}</label>
+            <div className="grid gap-3 sm:grid-cols-[100px_1fr_1fr]">
+              {editing.type !== "avoid" && (
+                <Field label={editing.type === "limit" ? "Max per day" : "Target"}>
                   <input
                     type="number"
                     min={1}
                     max={99}
                     value={editing.target}
                     onChange={(e) => setEditing((s) => s && { ...s, target: Math.max(1, Number(e.target.value)) })}
-                    className="w-20 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue"
+                    className={inputClass}
                   />
-                </div>
-                <div className="flex flex-1 flex-col gap-1">
-                  <label className="text-[11px] text-muted">Unit (optional)</label>
+                </Field>
+              )}
+              {editing.type !== "avoid" && (
+                <Field label="Unit (optional)">
                   <input
                     value={editing.unit}
                     onChange={(e) => setEditing((s) => s && { ...s, unit: e.target.value })}
                     placeholder="oz, pages, times…"
-                    className="w-full rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
+                    className={inputClass}
                   />
+                </Field>
+              )}
+              <Field label="Label (optional)" className={editing.type === "avoid" ? "sm:col-span-3" : undefined}>
+                <select
+                  value={editing.responsibilityId}
+                  onChange={(e) => setEditing((s) => s && { ...s, responsibilityId: e.target.value })}
+                  className={inputClass}
+                >
+                  <option value="">None</option>
+                  {responsibilities.filter((resp) => !resp.archivedAt).map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+
+            <div className="flex items-center gap-2 border-t border-line pt-4">
+              {editing.id !== "new" && (
+                <Button variant="danger" size="sm" onClick={() => handleDelete(editing.id as string)}>
+                  {deleteConfirm === editing.id ? "Confirm delete" : <><Trash2 className="size-3.5" />Delete</>}
+                </Button>
+              )}
+              <div className="ml-auto flex gap-2">
+                <Button size="sm" onClick={cancelEdit}>Cancel</Button>
+                <Button variant="primary" size="sm" onClick={saveEdit} disabled={!editing.title.trim()}>
+                  {editing.id === "new" ? "Create habit" : "Save"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {habits.length === 0 && !editing ? (
+        <Card>
+          <EmptyState
+            icon={Repeat2}
+            title="No habits yet"
+            description="Track something small you want to do — or avoid — every day."
+            action={<Button variant="primary" onClick={startNew}><Plus className="size-4" />Create a habit</Button>}
+          />
+        </Card>
+      ) : habits.length > 0 && (
+        <>
+          {/* Today: one-tap check-off */}
+          <section className="mb-8">
+            <h2 className="mb-2.5 px-1 text-[13px] font-semibold text-ink">Today</h2>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {habits.map((habit) => {
+                const value = logValue(habitLogs, habit.id, today);
+                const tone = habit.responsibilityId
+                  ? getTone(responsibilities.find((r) => r.id === habit.responsibilityId)?.color ?? "graphite")
+                  : null;
+                const failed = habit.type === "avoid" && value === 1;
+                const exceeded = habit.type === "limit" && value > habit.target;
+                const isWeekly = habit.type === "weekly";
+                const current = isWeekly ? weeklyTotal(habit) : value;
+                const target = habit.type === "avoid" ? 1 : habit.target;
+                const complete = habit.type === "avoid" ? !failed : habit.type === "limit" ? !exceeded && value > 0 : current >= target;
+                const progress = habit.type === "avoid" ? (failed ? 0 : 1) : habit.type === "limit" ? (value > 0 ? 1 : 0) : current / target;
+                const ringColor = failed || exceeded ? "rgb(var(--color-danger))" : complete ? "rgb(var(--color-success))" : "rgb(var(--color-accent))";
+                const detail =
+                  isWeekly ? `${current}/${target} this week`
+                  : habit.type === "avoid" ? (failed ? "Slipped" : "Clean")
+                  : habit.type === "limit" ? `${value}/${habit.target} max`
+                  : target > 1 ? `${current}/${target}${habit.unit ? ` ${habit.unit}` : ""}`
+                  : complete ? "Done" : "Not yet";
+                return (
+                  <button
+                    key={habit.id}
+                    onClick={() => handleCellClick(habit, today)}
+                    onContextMenu={(e) => {
+                      if (habit.type !== "daily" && habit.type !== "limit") return;
+                      e.preventDefault();
+                      setNumericValue(String(value));
+                      setNumericEntry({ habitId: habit.id, date: today });
+                    }}
+                    className="flex items-center gap-3 rounded-xl border border-line bg-panel p-3 text-left transition-colors hover:bg-hover/50 active:scale-[0.99]"
+                    title={habit.title}
+                  >
+                    <ProgressRing progress={progress} color={ringColor}>
+                      {failed || exceeded ? (
+                        <X className="size-4 text-danger" strokeWidth={2.5} />
+                      ) : complete ? (
+                        <Check className="size-4 text-success" strokeWidth={2.5} />
+                      ) : null}
+                    </ProgressRing>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-ink">{habit.title}</span>
+                      <span className={cn("flex items-center gap-1.5 text-xs", failed || exceeded ? "text-danger" : "text-muted")}>
+                        {tone && <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: tone.hex }} />}
+                        {detail}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <Card className="overflow-hidden">
+            <CardHeader
+              title="This week"
+              meta={weekLabel}
+              actions={
+                <>
+                  {weekOffset !== 0 && (
+                    <Button size="sm" variant="ghost" onClick={() => setWeekOffset(0)}>This week</Button>
+                  )}
+                  <button onClick={() => setWeekOffset((w) => w - 1)} className={iconButtonClass()} aria-label="Previous week">
+                    <ChevronLeft className="size-4" />
+                  </button>
+                  <button onClick={() => setWeekOffset((w) => w + 1)} disabled={weekOffset >= 0} className={iconButtonClass()} aria-label="Next week">
+                    <ChevronRight className="size-4" />
+                  </button>
+                </>
+              }
+            />
+
+            {/* Grid scrolls horizontally on narrow screens so columns stay tappable */}
+            <div className="overflow-x-auto no-scrollbar">
+              <div className="min-w-[520px]">
+                <div className="grid items-end gap-2 border-b border-line px-4 py-2" style={{ gridTemplateColumns: gridColumns }}>
+                  <div />
+                  {weekDates.map((date, i) => {
+                    const [y, m, d] = date.split("-").map(Number);
+                    const isT = date === today;
+                    return (
+                      <div key={date} className="flex flex-col items-center text-center">
+                        <span className="text-[10px] font-medium text-subtle">{DAY_LABELS[i]}</span>
+                        <span className={cn("text-xs font-semibold tabular-nums", isT ? "text-now" : "text-ink")}>
+                          {new Date(y, m - 1, d).getDate()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <span className="text-center text-[10px] font-medium text-subtle">Streak</span>
+                </div>
+
+                <div className="divide-y divide-line">
+                  {habits.map((habit) => {
+                    const responsibility = responsibilities.find((r) => r.id === habit.responsibilityId);
+                    const tone = responsibility ? getTone(responsibility.color) : null;
+                    const streak = getStreak(habit, habitLogs);
+                    const total = habit.type === "weekly" ? weeklyTotal(habit) : null;
+                    const todayValue = logValue(habitLogs, habit.id, today);
+                    const expanded = expandedId === habit.id;
+
+                    return (
+                      <div key={habit.id}>
+                        <div className="group grid items-center gap-2 px-4 py-2.5" style={{ gridTemplateColumns: gridColumns }}>
+                          <div className="flex min-w-0 items-center gap-1 pr-2">
+                            <button onClick={() => setExpandedId(expanded ? null : habit.id)} className="flex min-w-0 flex-1 items-start gap-1.5 text-left">
+                              <ChevronDown className={cn("mt-1 size-3.5 shrink-0 text-subtle transition-transform", !expanded && "-rotate-90")} />
+                              <span className="min-w-0">
+                                <span className="block truncate text-sm font-medium text-ink">{habit.title}</span>
+                                <span className="flex items-center gap-1.5 text-xs text-muted">
+                                  {tone && <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: tone.hex }} />}
+                                  {habit.type === "avoid" ? "Avoid" : habit.type === "limit" ? `≤ ${habit.target}/day` : habit.type === "weekly" ? `${habit.target}× a week` : habit.target === 1 ? "Daily" : `${habit.target}× a day`}
+                                  {habit.unit ? ` · ${habit.unit}` : ""}
+                                </span>
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => startEdit(habit)}
+                              aria-label={`Edit ${habit.title}`}
+                              className={iconButtonClass("size-7 transition-opacity lg:opacity-0 lg:group-hover:opacity-100")}
+                            >
+                              <Pencil className="size-3.5" />
+                            </button>
+                          </div>
+
+                          {weekDates.map((date) => {
+                            const value = logValue(habitLogs, habit.id, date);
+                            const isFuture = date > today;
+                            const countable = habit.type === "daily" || habit.type === "limit";
+                            const isNumericTarget = numericEntry?.habitId === habit.id && numericEntry?.date === date;
+                            return (
+                              <div
+                                key={date}
+                                className="flex justify-center"
+                                onContextMenu={(e) => {
+                                  if (!countable || isFuture) return;
+                                  e.preventDefault();
+                                  setNumericValue(String(value));
+                                  setNumericEntry({ habitId: habit.id, date });
+                                }}
+                              >
+                                {isNumericTarget ? (
+                                  <input
+                                    autoFocus
+                                    type="number"
+                                    min={0}
+                                    max={999}
+                                    value={numericValue}
+                                    onChange={(e) => setNumericValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") commitNumericEntry(habit, date);
+                                      if (e.key === "Escape") setNumericEntry(null);
+                                    }}
+                                    onBlur={() => commitNumericEntry(habit, date)}
+                                    className="h-8 w-11 rounded-lg border border-ink/25 bg-panel text-center text-xs text-ink outline-none"
+                                  />
+                                ) : (
+                                  <HabitCell
+                                    habit={habit}
+                                    value={value}
+                                    isFuture={isFuture}
+                                    isToday={date === today}
+                                    onClick={() => handleCellClick(habit, date)}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          <div className="flex items-center justify-center gap-1 text-center">
+                            {habit.type === "weekly" ? (
+                              <span className={cn("text-sm font-semibold tabular-nums", total! >= habit.target ? "text-success" : "text-ink")}>
+                                {total}/{habit.target}
+                              </span>
+                            ) : habit.type === "limit" ? (
+                              <span className={cn("text-sm font-semibold tabular-nums", todayValue > habit.target ? "text-danger" : "text-ink")}>
+                                {todayValue}/{habit.target}
+                              </span>
+                            ) : (
+                              <>
+                                {streak > 0 && <Flame className="size-3.5 text-warning" />}
+                                <span className={cn("text-sm font-semibold tabular-nums", streak > 0 ? "text-ink" : "text-subtle")}>{streak}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {expanded && (
+                          <div className="border-t border-line bg-paper/60 px-4 py-4 pl-10">
+                            <div className="flex flex-wrap items-start gap-x-10 gap-y-4">
+                              {(() => {
+                                const stats = getStats(habit, habitLogs);
+                                const statItems: Array<[string, string]> =
+                                  habit.type === "weekly"
+                                    ? [
+                                        ["This week", `${total}/${habit.target}`],
+                                        ["Total logged", `${stats.totalDone}${habit.unit ? ` ${habit.unit}` : ""}`],
+                                      ]
+                                    : [
+                                        ["Current streak", `${streak}d`],
+                                        ["Best streak", `${stats.best}d`],
+                                        ["Last 30 days", `${stats.rate30}%`],
+                                        habit.type === "avoid"
+                                          ? ["Clean days", `${stats.successDays}`]
+                                          : ["Total logged", `${stats.totalDone}${habit.unit ? ` ${habit.unit}` : ""}`],
+                                      ];
+                                return (
+                                  <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-4">
+                                    {statItems.map(([label, value]) => (
+                                      <div key={label}>
+                                        <p className="text-lg font-semibold tabular-nums text-ink">{value}</p>
+                                        <p className="text-xs text-muted">{label}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+                              <div className="ml-auto">
+                                <p className="mb-1.5 text-xs text-muted">Last 13 weeks</p>
+                                <HistoryHeatmap habit={habit} logs={habitLogs} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            )}
-
-            {/* Responsibility */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] text-muted">Label (optional)</label>
-              <select
-                value={editing.responsibilityId}
-                onChange={(e) => setEditing((s) => s && { ...s, responsibilityId: e.target.value })}
-                className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue"
-              >
-                <option value="">— none —</option>
-                {responsibilities.filter((resp) => !resp.archivedAt).map((r) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-              </select>
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={saveEdit}
-                disabled={!editing.title.trim()}
-                className="flex-1 rounded-lg bg-blue py-2 text-xs font-medium text-white disabled:opacity-40"
-              >
-                {editing.id === "new" ? "Create habit" : "Save changes"}
-              </button>
-              <button
-                onClick={cancelEdit}
-                className="rounded-lg border border-line bg-paper px-3 py-2 text-xs text-muted hover:text-ink"
-              >
-                Cancel
-              </button>
-              {editing.id !== "new" && (
-                <button
-                  onClick={() => handleDelete(editing.id as string)}
-                  className={cn(
-                    "rounded-lg border px-3 py-2 text-xs transition",
-                    deleteConfirm === editing.id
-                      ? "border-red-500/40 bg-red-500/10 text-red-400"
-                      : "border-line bg-paper text-muted hover:border-red-500/40 hover:text-red-400"
-                  )}
-                >
-                  {deleteConfirm === editing.id ? "Confirm delete" : <Trash2 className="size-3.5" />}
-                </button>
-              )}
-            </div>
-          </div>
-        </section>
+          </Card>
+        </>
       )}
-
-      {/* Habit grid */}
-      {habits.length === 0 && !editing ? (
-        <div className="rounded-xl border border-line bg-panel p-8 text-center shadow-glow">
-          <p className="text-sm text-muted">No habits added yet.</p>
-          <button onClick={startNew} className="mt-3 text-sm text-blue hover:underline">Create first habit</button>
-        </div>
-      ) : habits.length > 0 && (
-        <section className="overflow-hidden rounded-xl border border-line bg-panel shadow-glow">
-          {/* Week navigation */}
-          <div className="flex items-center justify-between border-b border-line bg-line/30 px-4 py-3">
-            <p className="text-sm font-medium text-ink">{weekLabel}</p>
-            <div className="flex items-center gap-1">
-              {weekOffset !== 0 && (
-                <button
-                  onClick={() => setWeekOffset(0)}
-                  className="rounded-md border border-line bg-paper px-2.5 py-1 text-xs text-ink transition hover:bg-line"
-                >
-                  This week
-                </button>
-              )}
-              <button
-                onClick={() => setWeekOffset((w) => w - 1)}
-                className="grid size-7 place-items-center rounded-md text-muted transition hover:bg-line hover:text-ink"
-                aria-label="Previous week"
-              >
-                <ChevronLeft className="size-4" />
-              </button>
-              <button
-                onClick={() => setWeekOffset((w) => w + 1)}
-                disabled={weekOffset >= 0}
-                className="grid size-7 place-items-center rounded-md text-muted transition hover:bg-line hover:text-ink disabled:opacity-30"
-                aria-label="Next week"
-              >
-                <ChevronRight className="size-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Grid scrolls horizontally on narrow screens so columns stay tappable */}
-          <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="min-w-[544px]">
-          {/* Day header */}
-          <div className="grid gap-2 border-b border-line bg-paper px-4 py-2.5" style={{ gridTemplateColumns: "minmax(220px,1fr) repeat(7, 44px) 78px" }}>
-            <div />
-            {weekDates.map((date, i) => {
-              const [y, m, d] = date.split("-").map(Number);
-              const isT = date === today;
-              return (
-                <div key={date} className={cn("flex flex-col items-center gap-0.5 text-center", isT ? "text-blue" : "text-muted")}>
-                  <span className="text-[10px] font-medium">{DAY_LABELS[i]}</span>
-                  <span className={cn("flex size-5 items-center justify-center rounded-full text-[10px]", isT && "bg-blue text-white font-semibold")}>
-                    {new Date(y, m - 1, d).getDate()}
-                  </span>
-                </div>
-              );
-            })}
-            <div />
-          </div>
-
-          {/* Rows */}
-          <div className="divide-y divide-line">
-            {habits.map((habit) => {
-              const tone = habit.responsibilityId
-                ? getTone(responsibilities.find((r) => r.id === habit.responsibilityId)?.color ?? "graphite")
-                : getTone("graphite");
-              const streak = getStreak(habit, habitLogs);
-              const total = habit.type === "weekly" ? weeklyTotal(habit) : null;
-              const todayValue = logValue(habitLogs, habit.id, today);
-              const expanded = expandedId === habit.id;
-
-              return (
-                <div key={habit.id}>
-                  <div
-                    className="group grid items-center gap-2 px-4 py-3.5 transition hover:bg-line/20"
-                    style={{ gridTemplateColumns: "minmax(220px,1fr) repeat(7, 44px) 78px" }}
-                  >
-                    {/* Name column */}
-                    <div className="flex min-w-0 items-center gap-2 pr-2">
-                      <button
-                        onClick={() => startEdit(habit)}
-                        className="shrink-0 rounded p-1 text-muted opacity-100 lg:opacity-0 transition lg:group-hover:opacity-100 hover:bg-line hover:text-ink"
-                      >
-                        <Pencil className="size-3" />
-                      </button>
-                      <button onClick={() => setExpandedId(expanded ? null : habit.id)} className="min-w-0 text-left">
-                        <p className="flex items-center gap-1 truncate text-sm font-medium text-ink">
-                          {habit.title}
-                          <ChevronDown className={cn("size-3 shrink-0 text-muted transition-transform", expanded && "rotate-180")} />
-                        </p>
-                        <div className="mt-1 flex items-center gap-1.5">
-                          <span
-                            className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
-                            style={{ backgroundColor: `${tone.hex}20`, color: tone.hex }}
-                          >
-                            {habit.type === "avoid" ? "avoid" : habit.type === "limit" ? `≤${habit.target}/day` : habit.type === "weekly" ? `${habit.target}×/wk` : habit.target === 1 ? "daily" : `${habit.target}×/day`}
-                            {habit.unit ? ` · ${habit.unit}` : ""}
-                          </span>
-                          {habit.responsibilityId && (
-                            <span className="truncate text-[10px] text-muted">
-                              {responsibilities.find((r) => r.id === habit.responsibilityId)?.name}
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    </div>
-
-                    {/* Day cells */}
-                    {weekDates.map((date) => {
-                      const value = logValue(habitLogs, habit.id, date);
-                      const isFuture = date > today;
-                      const isT = date === today;
-                      const countable = habit.type === "daily" || habit.type === "limit";
-                      const isNumericTarget = numericEntry?.habitId === habit.id && numericEntry?.date === date;
-                      return (
-                        <div
-                          key={date}
-                          className="flex justify-center"
-                          onContextMenu={(e) => {
-                            if (!countable || isFuture) return;
-                            e.preventDefault();
-                            setNumericValue(String(value));
-                            setNumericEntry({ habitId: habit.id, date });
-                          }}
-                        >
-                          {isNumericTarget ? (
-                            <input
-                              autoFocus
-                              type="number"
-                              min={0}
-                              max={999}
-                              value={numericValue}
-                              onChange={(e) => setNumericValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") commitNumericEntry(habit, date);
-                                if (e.key === "Escape") setNumericEntry(null);
-                              }}
-                              onBlur={() => commitNumericEntry(habit, date)}
-                              className="h-8 w-12 rounded-md border border-blue bg-paper text-center text-xs text-ink outline-none"
-                            />
-                          ) : (
-                            <HabitCell
-                              habit={habit}
-                              value={value}
-                              isFuture={isFuture}
-                              isToday={isT}
-                              onClick={() => handleCellClick(habit, date)}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    {/* Streak / total column */}
-                    <div className="flex flex-col items-center justify-center gap-0.5 rounded-lg bg-paper/70 px-2 py-1 text-center">
-                      {habit.type === "weekly" ? (
-                        <>
-                          <span className={cn("text-sm font-semibold", total! >= habit.target ? "text-mint" : "text-ink")}>
-                            {total}/{habit.target}
-                          </span>
-                          <span className="text-[9px] text-muted">this week</span>
-                        </>
-                      ) : habit.type === "limit" ? (
-                        <>
-                          <span className={cn("text-sm font-semibold", todayValue > habit.target ? "text-red-400" : "text-ink")}>
-                            {todayValue}/{habit.target}
-                          </span>
-                          <span className="text-[9px] text-muted">today</span>
-                        </>
-                      ) : (
-                        <>
-                          {streak > 0 && <Flame className="size-3 text-orange-400" />}
-                          <span className="text-sm font-semibold text-ink">{streak}</span>
-                          <span className="text-[9px] text-muted">streak</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Expanded stats + history */}
-                  {expanded && (
-                    <div className="border-t border-line/60 bg-paper/50 px-4 py-4">
-                      <div className="flex flex-wrap items-start gap-x-8 gap-y-4">
-                        {(() => {
-                          const stats = getStats(habit, habitLogs);
-                          const statItems: Array<[string, string]> =
-                            habit.type === "weekly"
-                              ? [
-                                  ["This week", `${total}/${habit.target}`],
-                                  ["Total logged", `${stats.totalDone}${habit.unit ? ` ${habit.unit}` : ""}`],
-                                ]
-                              : [
-                                  ["Current streak", `${streak}d`],
-                                  ["Best streak", `${stats.best}d`],
-                                  ["Last 30 days", `${stats.rate30}%`],
-                                  habit.type === "avoid"
-                                    ? ["Clean days", `${stats.successDays}`]
-                                    : ["Total logged", `${stats.totalDone}${habit.unit ? ` ${habit.unit}` : ""}`],
-                                ];
-                          return (
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
-                              {statItems.map(([label, value]) => (
-                                <div key={label}>
-                                  <p className="text-lg font-semibold text-ink">{value}</p>
-                                  <p className="text-[10px] uppercase tracking-wide text-muted">{label}</p>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })()}
-                        <div className="ml-auto">
-                          <p className="mb-1.5 text-[10px] uppercase tracking-wide text-muted">Last 13 weeks</p>
-                          <HistoryHeatmap habit={habit} logs={habitLogs} />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          </div>
-          </div>
-        </section>
-      )}
-    </div>
+    </Page>
   );
 }

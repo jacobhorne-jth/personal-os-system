@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown } from "lucide-react";
+
 import { colorHex } from "@/lib/theme";
 import type { ResponsibilityColor } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
@@ -91,20 +91,21 @@ export function ResponsibilityColorPicker({
           event.stopPropagation();
           toggle();
         }}
+        title="Change color"
         className={cn(
-          "flex h-9 items-center gap-2 rounded-full border border-line bg-paper px-3 text-sm text-ink transition hover:bg-panel",
-          compact && "h-8 px-2.5 text-xs"
+          "grid shrink-0 place-items-center rounded-md transition-colors hover:bg-hover",
+          compact ? "size-6" : "size-7",
+          open && "bg-hover"
         )}
       >
-        <span className="size-4 shrink-0 rounded-full" style={{ backgroundColor: hex }} />
-        <ChevronDown className={cn("size-4 shrink-0 text-muted transition", open && "rotate-180")} />
+        <span className={cn("rounded-full ring-1 ring-inset ring-black/10", compact ? "size-3" : "size-3.5")} style={{ backgroundColor: hex }} />
       </button>
 
       {open &&
         createPortal(
           <div
             ref={popoverRef}
-            className="fixed z-[200] w-[280px] rounded-xl border border-line bg-panel p-3 shadow-lift"
+            className="fixed z-[200] w-[280px] rounded-xl border border-line bg-panel p-3 shadow-pop animate-pop-in"
             style={{ top: pos.top, left: pos.left }}
             onClick={(event) => {
               event.preventDefault();
@@ -121,8 +122,8 @@ export function ResponsibilityColorPicker({
                     aria-label={`Set color to ${n}`}
                     onClick={() => onChange(n)}
                     className={cn(
-                      "size-7 rounded-full border border-black/40 transition hover:scale-110",
-                      n === hex && "ring-2 ring-blue/70 ring-offset-2 ring-offset-panel"
+                      "size-7 rounded-full ring-1 ring-inset ring-black/15 transition hover:scale-110",
+                      n === hex && "ring-2 ring-ink/40 ring-offset-2 ring-offset-panel"
                     )}
                     style={{ backgroundColor: n }}
                   />

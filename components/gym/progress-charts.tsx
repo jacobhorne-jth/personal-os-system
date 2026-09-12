@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { TrendingUp } from "lucide-react";
+import { useId, useMemo, useState } from "react";
+import { Card, CardHeader, Segmented, Stat } from "@/components/ui/primitives";
 import { useAppStore } from "@/lib/stores/app-store";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ function toDisplay(lbs: number, unit: "lbs" | "kg") {
 type Point = { date: string; top: number; volume: number };
 
 export function GymProgressCharts() {
+  const gradientId = useId();
   const gymExercises = useAppStore((s) => s.gymExercises);
   const gymSessions = useAppStore((s) => s.gymSessions);
   const gymWeightUnit = useAppStore((s) => s.gymWeightUnit);
@@ -87,60 +88,42 @@ export function GymProgressCharts() {
   }
 
   return (
-    <div className="rounded-xl border border-line bg-panel overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-line bg-line/40 px-5 py-3">
-        <TrendingUp className="size-4 text-muted" />
-        <p className="text-sm font-medium text-ink">Progress</p>
-      </div>
+    <Card className="overflow-hidden">
+      <CardHeader title="Progress" meta={selected?.name} />
       <div className="p-4">
-        {/* Exercise selector chips */}
-        <div className="mb-4 flex flex-wrap gap-1.5">
-          {chartable.map((ex) => (
-            <button
-              key={ex.id}
-              onClick={() => setSelectedId(ex.id)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs transition",
-                selected?.id === ex.id
-                  ? "bg-blue/20 text-blue"
-                  : "border border-line text-muted hover:text-ink"
-              )}
-            >
-              {ex.name}
-            </button>
-          ))}
+        <Segmented
+          size="sm"
+          label="Exercise"
+          value={selected?.id ?? ""}
+          onChange={setSelectedId}
+          className="mb-4"
+          options={chartable.map((ex) => ({ value: ex.id, label: ex.name }))}
+        />
+
+        <div className="mb-4 grid grid-cols-3 gap-2">
+          <Stat label="Latest top set" value={`${toDisplay(last?.top ?? 0, gymWeightUnit)} ${gymWeightUnit}`} />
+          <Stat label="All-time best" value={`${toDisplay(best, gymWeightUnit)} ${gymWeightUnit}`} />
+          <Stat
+            label="Since first"
+            value={
+              <span className={cn(delta > 0 ? "text-success" : delta < 0 ? "text-danger" : "text-ink")}>
+                {delta > 0 ? "+" : ""}{toDisplay(delta, gymWeightUnit)} {gymWeightUnit}
+              </span>
+            }
+          />
         </div>
 
-        {/* Stats row */}
-        <div className="mb-3 grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-lg border border-line bg-paper p-2">
-            <p className="text-lg font-semibold text-ink">{toDisplay(last?.top ?? 0, gymWeightUnit)} {gymWeightUnit}</p>
-            <p className="text-[11px] text-muted">latest top set</p>
-          </div>
-          <div className="rounded-lg border border-line bg-paper p-2">
-            <p className="text-lg font-semibold text-ink">{toDisplay(best, gymWeightUnit)} {gymWeightUnit}</p>
-            <p className="text-[11px] text-muted">all-time best</p>
-          </div>
-          <div className="rounded-lg border border-line bg-paper p-2">
-            <p className={cn("text-lg font-semibold", delta > 0 ? "text-mint" : delta < 0 ? "text-red-400" : "text-ink")}>
-              {delta > 0 ? "+" : ""}{toDisplay(delta, gymWeightUnit)} {gymWeightUnit}
-            </p>
-            <p className="text-[11px] text-muted">since first session</p>
-          </div>
-        </div>
-
-        {/* Chart */}
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
           <defs>
-            <linearGradient id="prog-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" style={{ stopColor: "rgb(var(--color-accent))", stopOpacity: 0.18 }} />
+              <stop offset="100%" style={{ stopColor: "rgb(var(--color-accent))", stopOpacity: 0 }} />
             </linearGradient>
           </defs>
           {gridValues.map((v) => (
             <g key={v}>
-              <line x1={PAD_L} x2={W - PAD_R} y1={toY(v)} y2={toY(v)} stroke="#3c4043" strokeWidth="1" strokeDasharray="3 5" />
-              <text x={PAD_L - 6} y={toY(v) + 3} fontSize="10" fill="#9aa0a6" textAnchor="end">
+              <line x1={PAD_L} x2={W - PAD_R} y1={toY(v)} y2={toY(v)} className="stroke-line" strokeWidth="1" strokeDasharray="3 5" />
+              <text x={PAD_L - 8} y={toY(v) + 3} fontSize="10" className="fill-subtle" textAnchor="end">
                 {toDisplay(Math.round(v), gymWeightUnit)}
               </text>
             </g>
@@ -148,23 +131,23 @@ export function GymProgressCharts() {
           {points.length > 1 && (
             <path
               d={`${pathD} L ${toX(points.length - 1).toFixed(1)} ${H - PAD_B} L ${PAD_L} ${H - PAD_B} Z`}
-              fill="url(#prog-grad)"
+              fill={`url(#${gradientId})`}
             />
           )}
-          <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={pathD} fill="none" className="stroke-accent" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           {points.map((p, i) => (
             <g key={p.date + i}>
-              <circle cx={toX(i)} cy={toY(p.top)} r="4" fill="#1f1f1f" stroke="#3b82f6" strokeWidth="2.5" />
+              <circle cx={toX(i)} cy={toY(p.top)} r="3.5" className="fill-panel stroke-accent" strokeWidth="2" />
               <title>{`${fmtDate(p.date)} — top set ${toDisplay(p.top, gymWeightUnit)} ${gymWeightUnit}, volume ${toDisplay(p.volume, gymWeightUnit)}`}</title>
             </g>
           ))}
           {labelIdxs.map((i) => (
-            <text key={i} x={toX(i)} y={H - 8} fontSize="10" fill="#9aa0a6" textAnchor={i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"}>
+            <text key={i} x={toX(i)} y={H - 8} fontSize="10" className="fill-subtle" textAnchor={i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"}>
               {fmtDate(points[i].date)}
             </text>
           ))}
         </svg>
       </div>
-    </div>
+    </Card>
   );
 }

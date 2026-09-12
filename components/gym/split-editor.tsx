@@ -63,8 +63,8 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
     <div className="flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-ink">Edit split</h2>
-        <button onClick={onClose} className="rounded p-1 text-muted hover:bg-line hover:text-ink">
+        <h2 className="text-sm font-semibold text-ink">Edit split</h2>
+        <button onClick={onClose} className="grid size-7 place-items-center rounded-md text-muted transition-colors hover:bg-hover hover:text-ink">
           <X className="size-4" />
         </button>
       </div>
@@ -78,8 +78,8 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
             className={cn(
               "flex shrink-0 flex-col items-center rounded-lg border px-3 py-2 text-xs transition",
               selectedDay === d.dayIndex
-                ? "border-blue bg-blue/10 text-blue"
-                : "border-line bg-paper text-muted hover:text-ink"
+                ? "border-ink bg-ink text-paper"
+                : "border-line bg-panel text-muted hover:text-ink"
             )}
           >
             <span className="font-medium">{DAY_NAMES[d.dayIndex]}</span>
@@ -96,7 +96,7 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
             <select
               value={day.label}
               onChange={(e) => setDayLabel(day.dayIndex, e.target.value)}
-              className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue"
+              className="h-8 rounded-lg border border-line bg-panel px-2.5 text-sm text-ink outline-none focus:border-ink/25"
             >
               {LABEL_OPTIONS.map((l) => <option key={l} value={l}>{l}</option>)}
               <option value={day.label}>{day.label}</option>
@@ -133,7 +133,7 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
                     </div>
                     <button
                       onClick={() => removeExercise(ex.id)}
-                      className="rounded p-1 text-muted hover:bg-line hover:text-red-400"
+                      className="rounded p-1 text-muted hover:bg-hover hover:text-danger"
                     >
                       <Trash2 className="size-3.5" />
                     </button>
@@ -152,15 +152,15 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setAddQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Escape") { setShowAddBox(false); setAddQuery(""); } }}
                 placeholder="Search or name a new exercise…"
-                className="w-full rounded-lg border border-blue bg-paper px-3 py-2 text-sm text-ink outline-none placeholder:text-muted"
+                className="h-9 w-full rounded-lg border border-line bg-panel px-3 text-sm text-ink outline-none placeholder:text-subtle focus:border-ink/25"
               />
               {addQuery.trim() && (
-                <div className="rounded-lg border border-line bg-paper overflow-hidden">
+                <div className="overflow-hidden rounded-lg border border-line bg-panel">
                   {catalogMatches.slice(0, 6).map((ex) => (
                     <button
                       key={ex.id}
                       onMouseDown={() => addExerciseById(ex.id)}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-line"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-hover"
                     >
                       <span>{ex.name}</span>
                       <span className="ml-auto text-[11px] text-muted">{ex.muscleGroup}</span>
@@ -168,7 +168,7 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
                   ))}
                   <button
                     onMouseDown={createAndAdd}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-blue hover:bg-line border-t border-line"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm border-t border-line text-accent hover:bg-hover"
                   >
                     <Plus className="size-3.5" />
                     Create &quot;{addQuery.trim()}&quot;
@@ -179,7 +179,7 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
           ) : (
             <button
               onClick={() => setShowAddBox(true)}
-              className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-2.5 text-sm text-muted hover:border-blue/50 hover:text-blue transition"
+              className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-2.5 text-sm text-muted transition-colors hover:border-subtle hover:text-ink"
             >
               <Plus className="size-4" />
               Add exercise

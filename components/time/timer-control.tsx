@@ -116,7 +116,7 @@ export function TimerControl({ plain = false, compact = false, minimal = false }
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm text-muted">
             <span
-              className={cn("size-2 rounded-full", !timer.running && "bg-white/20")}
+              className={cn("size-2 rounded-full", !timer.running && "bg-subtle/50")}
               style={timer.running ? { backgroundColor: tone.hex } : undefined}
             />
             Timer

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Utensils } from "lucide-react";
+import { Button, Card, CardHeader, EmptyState, Field, Page, PageHeader, ProgressBar, iconButtonClass, inputClass } from "@/components/ui/primitives";
 import { useAppStore } from "@/lib/stores/app-store";
 import { cn } from "@/lib/utils";
 import { localDateKey } from "@/lib/dates";
@@ -26,47 +27,32 @@ function formatDate(dateStr: string) {
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-function MacroRing({
+function MacroSummary({
+  label,
   value,
   target,
-  color,
-  label,
   unit,
+  color,
 }: {
+  label: string;
   value: number;
   target: number;
-  color: string;
-  label: string;
   unit: string;
+  color: string;
 }) {
-  const pct = target > 0 ? Math.min(1, value / target) : 0;
-  const r = 34;
-  const circ = 2 * Math.PI * r;
-  const dash = pct * circ;
-
+  const pct = target > 0 ? (value / target) * 100 : 0;
+  const remaining = Math.max(0, target - value);
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative size-20">
-        <svg className="size-20 -rotate-90" viewBox="0 0 80 80">
-          <circle cx="40" cy="40" r={r} fill="none" stroke="#2d2f31" strokeWidth="7" />
-          <circle
-            cx="40"
-            cy="40"
-            r={r}
-            fill="none"
-            stroke={color}
-            strokeWidth="7"
-            strokeLinecap="round"
-            strokeDasharray={`${dash} ${circ}`}
-            style={{ transition: "stroke-dasharray 0.4s ease" }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-base font-semibold leading-none text-ink">{value}</span>
-          <span className="text-[10px] text-muted">{unit}</span>
-        </div>
+    <div className="px-5 py-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-[13px] text-muted">{label}</p>
+        <p className="text-xs tabular-nums text-subtle">{remaining > 0 ? `${remaining.toLocaleString()}${unit} left` : "Target hit"}</p>
       </div>
-      <p className="text-xs text-muted">{label}</p>
+      <p className="mt-1 text-[26px] font-semibold tabular-nums tracking-[-0.01em] text-ink">
+        {value.toLocaleString()}
+        <span className="text-sm font-normal text-muted"> / {target.toLocaleString()}{unit}</span>
+      </p>
+      <ProgressBar value={pct} color={color} className="mt-3" />
     </div>
   );
 }
@@ -106,9 +92,6 @@ export function FoodWorkspace() {
 
   const totalCalories = dayEntries.reduce((s, e) => s + e.calories, 0);
   const totalProtein = dayEntries.reduce((s, e) => s + e.protein, 0);
-  const proteinWidth = foodTargets.protein > 0 ? Math.min(100, (totalProtein / foodTargets.protein) * 100) : 0;
-  const remainingProtein = Math.max(0, foodTargets.protein - totalProtein);
-  const remainingCalories = Math.max(0, foodTargets.calories - totalCalories);
 
   function openAdd() {
     setForm({ name: "", calories: "", protein: "" });
@@ -151,239 +134,186 @@ export function FoodWorkspace() {
   }
 
   return (
-    <div className="space-y-4">
-      <header className="rounded-xl border border-line bg-panel p-5 shadow-glow">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm text-muted">Food</p>
-            <h1 className="mt-1 text-3xl font-semibold text-ink">Nutrition log</h1>
-          </div>
+    <Page>
+      <PageHeader
+        title="Food"
+        description={formatDate(viewDate) === "Today" ? "What you've eaten today" : formatDate(viewDate)}
+        actions={
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => setDateOffset((o) => o - 1)}
-              className="grid size-8 place-items-center rounded-lg border border-line text-muted hover:bg-line hover:text-ink"
-            >
+            <button onClick={() => setDateOffset((o) => o - 1)} className={iconButtonClass()} aria-label="Previous day">
               <ChevronLeft className="size-4" />
             </button>
-            <span className="min-w-[80px] text-center text-sm font-medium text-ink">{formatDate(viewDate)}</span>
-            <button
-              onClick={() => setDateOffset((o) => o + 1)}
-              disabled={viewDate >= today}
-              className="grid size-8 place-items-center rounded-lg border border-line text-muted hover:bg-line hover:text-ink disabled:opacity-30"
-            >
+            <span className="min-w-[88px] text-center text-[13px] font-medium text-ink">{formatDate(viewDate)}</span>
+            <button onClick={() => setDateOffset((o) => o + 1)} disabled={viewDate >= today} className={iconButtonClass()} aria-label="Next day">
               <ChevronRight className="size-4" />
             </button>
           </div>
-        </div>
+        }
+      />
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_260px] lg:items-center">
-          <div className="flex items-center justify-around">
-            <MacroRing
-              value={totalProtein}
-              target={foodTargets.protein}
-              color="#34d399"
-              label={`/ ${foodTargets.protein}g protein`}
-              unit="g"
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="space-y-5">
+          <Card className="grid divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+            <MacroSummary label="Protein" value={totalProtein} target={foodTargets.protein} unit="g" color="rgb(var(--color-success))" />
+            <MacroSummary label="Calories" value={totalCalories} target={foodTargets.calories} unit="" color="rgb(var(--color-accent))" />
+          </Card>
+
+          <Card className="overflow-hidden">
+            <CardHeader
+              title="Meals"
+              meta={dayEntries.length ? `${dayEntries.length} logged` : undefined}
+              actions={
+                !adding && (
+                  <Button size="sm" variant="ghost" onClick={openAdd}>
+                    <Plus className="size-3.5" />
+                    Add meal
+                  </Button>
+                )
+              }
             />
-            <MacroRing
-              value={totalCalories}
-              target={foodTargets.calories}
-              color="#60a5fa"
-              label={`/ ${foodTargets.calories} calories`}
-              unit="cal"
-            />
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex size-20 flex-col items-center justify-center rounded-full border-4 border-line">
-                <span className="text-base font-semibold text-ink">{dayEntries.length}</span>
-                <span className="text-[10px] text-muted">meals</span>
-              </div>
-              <p className="text-xs text-muted">logged today</p>
-            </div>
-          </div>
 
-          <div className="rounded-xl border border-line bg-paper p-3">
-            <p className="mb-3 text-sm font-medium text-ink">Daily goals</p>
-            <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-lg bg-panel px-2.5 py-2">
-                <p className="text-muted">Protein left</p>
-                <p className="mt-0.5 font-semibold text-ink">{remainingProtein}g</p>
-              </div>
-              <div className="rounded-lg bg-panel px-2.5 py-2">
-                <p className="text-muted">Calories left</p>
-                <p className="mt-0.5 font-semibold text-ink">{remainingCalories}</p>
-              </div>
-            </div>
-            <label className="mb-2 flex items-center justify-between gap-3 text-sm">
-              <span className="text-muted">Protein</span>
-              <span className="flex items-center gap-1.5">
-                <input
-                  type="number"
-                  min={50}
-                  max={400}
-                  value={foodTargets.protein}
-                  onChange={(e) => setFoodTargets({ protein: Math.max(50, parseInt(e.target.value) || 160) })}
-                  className="w-20 rounded-lg border border-line bg-panel px-2.5 py-1.5 text-right text-sm text-ink outline-none focus:border-blue"
-                />
-                <span className="text-xs text-muted">g</span>
-              </span>
-            </label>
-            <label className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-muted">Calories</span>
-              <span className="flex items-center gap-1.5">
-                <input
-                  type="number"
-                  min={1000}
-                  max={6000}
-                  step={50}
-                  value={foodTargets.calories}
-                  onChange={(e) => setFoodTargets({ calories: Math.max(1000, parseInt(e.target.value) || 2500) })}
-                  className="w-24 rounded-lg border border-line bg-panel px-2.5 py-1.5 text-right text-sm text-ink outline-none focus:border-blue"
-                />
-                <span className="text-xs text-muted">cal</span>
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <div className="mb-1.5 flex justify-between text-xs text-muted">
-            <span>Protein</span>
-            <span className={cn(totalProtein >= foodTargets.protein ? "text-mint" : "")}>{totalProtein}g / {foodTargets.protein}g</span>
-          </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-line">
-            <div
-              className="h-full rounded-full bg-mint transition-all duration-500"
-              style={{ width: `${proteinWidth}%` }}
-            />
-          </div>
-        </div>
-      </header>
-
-      <section className="overflow-hidden rounded-xl border border-line bg-panel">
-        <div className="flex items-center justify-between border-b border-line bg-line/40 px-4 py-2.5">
-          <div className="flex items-center gap-3">
-            <p className="text-sm font-medium text-ink">Meals</p>
             {dayEntries.length > 0 && (
-              <span className="text-xs text-muted">{totalCalories} cal / {totalProtein}g protein</span>
-            )}
-          </div>
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted transition hover:bg-line hover:text-ink"
-          >
-            <Plus className="size-3.5" />
-            Add meal
-          </button>
-        </div>
-
-        {dayEntries.length > 0 && (
-          <div className="divide-y divide-line">
-            {dayEntries.map((entry) => (
-              <div key={entry.id} className="group flex items-center gap-3 px-4 py-2.5">
-                <p className="min-w-0 flex-1 truncate text-sm text-ink">{entry.name}</p>
-                <span className="shrink-0 text-xs text-muted">{entry.calories} cal</span>
-                <span className="min-w-[52px] shrink-0 text-right text-xs font-medium text-mint">{entry.protein}g</span>
-                <button
-                  onClick={() => deleteFoodEntry(entry.id)}
-                  title={`Delete ${entry.name}`}
-                  aria-label={`Delete ${entry.name}`}
-                  className="grid size-6 shrink-0 place-items-center rounded text-muted opacity-100 transition hover:text-red-400 lg:opacity-0 lg:group-hover:opacity-100"
-                >
-                  <Trash2 className="size-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {adding && (
-          <div className="border-t border-blue/30 bg-blue/5 p-3">
-            {libraryMatches.length > 0 && (
-              <div className="mb-2 overflow-hidden rounded-lg border border-line bg-paper">
-                {libraryMatches.map((food) => (
-                  <div key={food.id} className="group/lib flex items-center">
+              <div className="divide-y divide-line">
+                {dayEntries.map((entry) => (
+                  <div key={entry.id} className="group flex items-center gap-4 px-4 py-2.5">
+                    <p className="min-w-0 flex-1 truncate text-sm text-ink">{entry.name}</p>
+                    <span className="shrink-0 text-xs tabular-nums text-muted">{entry.calories} cal</span>
+                    <span className="w-12 shrink-0 text-right text-xs font-medium tabular-nums text-success">{entry.protein}g</span>
                     <button
-                      type="button"
-                      onClick={() => logSavedFood(food.id)}
-                      title={`Log ${food.name}`}
-                      aria-label={`Log ${food.name}`}
-                      className="flex min-w-0 flex-1 items-baseline justify-between gap-3 px-3 py-2 text-left transition hover:bg-line"
+                      onClick={() => deleteFoodEntry(entry.id)}
+                      title={`Delete ${entry.name}`}
+                      aria-label={`Delete ${entry.name}`}
+                      className={iconButtonClass("size-7 hover:text-danger lg:opacity-0 lg:group-hover:opacity-100")}
                     >
-                      <span className="truncate text-sm text-ink">{food.name}</span>
-                      <span className="shrink-0 text-xs text-muted">{food.calories} cal / {food.protein}g protein</span>
-                    </button>
-                    <button
-                      onClick={() => deleteSavedFood(food.id)}
-                      title={`Remove ${food.name} from library`}
-                      aria-label={`Remove ${food.name} from library`}
-                      className="grid size-7 shrink-0 place-items-center text-muted opacity-100 transition hover:text-red-400 lg:opacity-0 lg:group-hover/lib:opacity-100"
-                    >
-                      <Trash2 className="size-3" />
+                      <Trash2 className="size-3.5" />
                     </button>
                   </div>
                 ))}
               </div>
             )}
-            <div className="grid gap-2 sm:grid-cols-[1fr_90px_90px]">
-              <input
-                autoFocus
-                value={form.name}
-                onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-                onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(false); }}
-                placeholder="Search library or type a meal"
-                className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
-              />
-              <input
-                type="number"
-                min={0}
-                value={form.calories}
-                onChange={(e) => setForm((s) => ({ ...s, calories: e.target.value }))}
-                onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(false); }}
-                placeholder="cal"
-                className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
-              />
-              <input
-                type="number"
-                min={0}
-                step={0.5}
-                value={form.protein}
-                onChange={(e) => setForm((s) => ({ ...s, protein: e.target.value }))}
-                onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(false); }}
-                placeholder="g protein"
-                className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
-              />
-            </div>
-            <div className="mt-2 flex items-center gap-3">
-              <button
-                onClick={submitEntry}
-                disabled={!form.name.trim()}
-                className="rounded-lg bg-blue px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
-              >
-                Add meal
-              </button>
-              <button
-                onClick={() => setAdding(false)}
-                className="text-xs text-muted hover:text-ink"
-              >
-                Cancel
-              </button>
-              <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-xs text-muted hover:text-ink">
-                <input
-                  type="checkbox"
-                  checked={saveToLibrary}
-                  onChange={(e) => setSaveToLibrary(e.target.checked)}
-                  className="size-3.5 accent-blue"
-                />
-                Save to library
-              </label>
-            </div>
-          </div>
-        )}
 
-        {dayEntries.length === 0 && !adding && (
-          <p className="px-4 py-5 text-sm text-muted">No meals logged yet.</p>
-        )}
-      </section>
-    </div>
+            {adding && (
+              <div className="border-t border-line bg-paper/60 p-4">
+                {libraryMatches.length > 0 && (
+                  <div className="mb-3">
+                    <p className="mb-1.5 text-xs font-medium text-muted">From your library</p>
+                    <div className="overflow-hidden rounded-lg border border-line bg-panel">
+                      {libraryMatches.map((food) => (
+                        <div key={food.id} className="group/lib flex items-center border-b border-line last:border-b-0">
+                          <button
+                            type="button"
+                            onClick={() => logSavedFood(food.id)}
+                            title={`Log ${food.name}`}
+                            aria-label={`Log ${food.name}`}
+                            className="flex min-w-0 flex-1 items-baseline justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-hover/60"
+                          >
+                            <span className="truncate text-sm text-ink">{food.name}</span>
+                            <span className="shrink-0 text-xs tabular-nums text-muted">{food.calories} cal · {food.protein}g</span>
+                          </button>
+                          <button
+                            onClick={() => deleteSavedFood(food.id)}
+                            title={`Remove ${food.name} from library`}
+                            aria-label={`Remove ${food.name} from library`}
+                            className={iconButtonClass("mr-1 size-7 hover:text-danger lg:opacity-0 lg:group-hover/lib:opacity-100")}
+                          >
+                            <Trash2 className="size-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="grid gap-2 sm:grid-cols-[1fr_96px_96px]">
+                  <input
+                    autoFocus
+                    value={form.name}
+                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(false); }}
+                    placeholder="Search library or type a meal"
+                    aria-label="Meal name"
+                    className={inputClass}
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.calories}
+                    onChange={(e) => setForm((s) => ({ ...s, calories: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(false); }}
+                    placeholder="Calories"
+                    aria-label="Calories"
+                    className={inputClass}
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={form.protein}
+                    onChange={(e) => setForm((s) => ({ ...s, protein: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === "Enter") submitEntry(); if (e.key === "Escape") setAdding(false); }}
+                    placeholder="Protein g"
+                    aria-label="Protein grams"
+                    className={inputClass}
+                  />
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <label className="flex cursor-pointer items-center gap-2 text-xs text-muted hover:text-ink">
+                    <input
+                      type="checkbox"
+                      checked={saveToLibrary}
+                      onChange={(e) => setSaveToLibrary(e.target.checked)}
+                      className="size-3.5 accent-[rgb(var(--color-ink))]"
+                    />
+                    Save to library
+                  </label>
+                  <div className="ml-auto flex gap-2">
+                    <Button size="sm" onClick={() => setAdding(false)}>Cancel</Button>
+                    <Button size="sm" variant="primary" onClick={submitEntry} disabled={!form.name.trim()}>Add meal</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {dayEntries.length === 0 && !adding && (
+              <EmptyState
+                icon={Utensils}
+                title="No meals logged"
+                description={formatDate(viewDate) === "Today" ? "Log what you eat to track protein and calories." : "Nothing was logged this day."}
+                action={<Button size="sm" variant="primary" onClick={openAdd}><Plus className="size-3.5" />Add meal</Button>}
+              />
+            )}
+          </Card>
+        </div>
+
+        <Card className="p-4">
+          <p className="text-[13px] font-semibold text-ink">Daily targets</p>
+          <div className="mt-3 grid gap-3">
+            <Field label="Protein (g)">
+              <input
+                type="number"
+                min={50}
+                max={400}
+                value={foodTargets.protein}
+                onChange={(e) => setFoodTargets({ protein: Math.max(50, parseInt(e.target.value) || 160) })}
+                className={cn(inputClass, "tabular-nums")}
+              />
+            </Field>
+            <Field label="Calories">
+              <input
+                type="number"
+                min={1000}
+                max={6000}
+                step={50}
+                value={foodTargets.calories}
+                onChange={(e) => setFoodTargets({ calories: Math.max(1000, parseInt(e.target.value) || 2500) })}
+                className={cn(inputClass, "tabular-nums")}
+              />
+            </Field>
+          </div>
+          {savedFoods.length > 0 && (
+            <p className="mt-4 border-t border-line pt-3 text-xs text-muted">{savedFoods.length} {savedFoods.length === 1 ? "food" : "foods"} in your library</p>
+          )}
+        </Card>
+      </div>
+    </Page>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, Trash2 } from "lucide-react";
+import { ButtonLink, EmptyState, Page, iconButtonClass } from "@/components/ui/primitives";
 import { noteLabels } from "@/lib/note-labels";
 import { useAppStore } from "@/lib/stores/app-store";
 
@@ -113,9 +114,9 @@ export function NoteEditor({ noteId }: { noteId: string }) {
 
   if (!note) {
     return (
-      <div className="mx-auto max-w-3xl rounded-lg border border-line bg-panel p-6 text-sm text-muted">
-        Note not found.
-      </div>
+      <Page width="narrow">
+        <EmptyState icon={FileText} title="Note not found" description="It may have been deleted." action={<ButtonLink href="/notes" size="sm">Back to notes</ButtonLink>} />
+      </Page>
     );
   }
 
@@ -176,43 +177,23 @@ export function NoteEditor({ noteId }: { noteId: string }) {
     router.push("/notes");
   }
 
+  const edited = note.updatedAt ?? note.createdAt;
+  const metaSelect =
+    "h-7 cursor-pointer rounded-md bg-transparent px-1.5 text-xs text-muted outline-none transition-colors hover:bg-hover hover:text-ink focus:bg-hover";
+
   return (
-    <div className="min-h-[calc(100dvh-96px)] rounded-xl border border-line bg-panel px-6 py-5 shadow-glow sm:px-10 lg:px-14">
-      <div className="mb-6 flex items-center justify-between gap-3">
+    <Page width="narrow" className="lg:pt-6">
+      <div className="mb-10 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => router.push("/notes")}
-          className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-muted transition hover:bg-paper hover:text-ink"
+          className="-ml-2 inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] text-muted transition-colors hover:bg-hover hover:text-ink"
         >
           <ArrowLeft className="size-4" />
           Notes
         </button>
-        <button
-          type="button"
-          onClick={removeNote}
-          className="grid size-10 place-items-center rounded-lg text-muted transition hover:bg-paper hover:text-coral"
-          aria-label={`Delete ${title.trim() || "untitled note"}`}
-        >
-          <Trash2 className="size-4" />
-        </button>
-      </div>
-
-      <article className="mx-auto max-w-5xl">
-        <input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="New page"
-          autoFocus
-          className="mb-5 w-full bg-transparent font-sans text-5xl font-semibold leading-tight text-ink outline-none placeholder:text-muted/35"
-        />
-        <div className="mb-7 flex flex-wrap items-center gap-3">
-          <span className="text-sm text-muted">Folder</span>
-          <select
-            value={folderId}
-            onChange={(event) => setFolderId(event.target.value)}
-            className="h-10 rounded-lg border border-line bg-paper px-3 text-sm text-ink outline-none transition focus:border-blue"
-            aria-label="Note folder"
-          >
+        <div className="flex items-center gap-1">
+          <select value={folderId} onChange={(event) => setFolderId(event.target.value)} className={metaSelect} aria-label="Note folder">
             <option value="none">Unfiled</option>
             {noteFolders.map((folder) => (
               <option key={folder.id} value={folder.id}>
@@ -220,13 +201,7 @@ export function NoteEditor({ noteId }: { noteId: string }) {
               </option>
             ))}
           </select>
-          <span className="ml-0 text-sm text-muted sm:ml-3">Label</span>
-          <select
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-            className="h-9 rounded-md border border-line bg-paper px-3 text-sm text-ink outline-none transition focus:border-blue"
-            aria-label="Note label"
-          >
+          <select value={label} onChange={(event) => setLabel(event.target.value)} className={metaSelect} aria-label="Note label">
             <option value="none">No label</option>
             {noteLabels.map((item) => (
               <option key={item} value={item}>
@@ -234,17 +209,41 @@ export function NoteEditor({ noteId }: { noteId: string }) {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={removeNote}
+            className={iconButtonClass("hover:text-danger")}
+            aria-label={`Delete ${title.trim() || "untitled note"}`}
+            title="Delete note"
+          >
+            <Trash2 className="size-4" />
+          </button>
         </div>
+      </div>
+
+      <article>
+        <input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="Untitled"
+          autoFocus
+          aria-label="Note title"
+          className="w-full bg-transparent text-[32px] font-semibold leading-tight tracking-[-0.02em] text-ink outline-none placeholder:text-subtle/60"
+        />
+        <p className="mt-2 text-xs text-subtle">
+          Edited {new Date(edited).toLocaleDateString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+        </p>
         <textarea
           ref={textareaRef}
           value={body}
           onChange={(event) => setBody(event.target.value)}
           onKeyDown={handleBodyKeyDown}
-          placeholder="Start writing notes..."
-          className="min-h-[68vh] w-full resize-none bg-transparent font-sans text-[16px] leading-7 text-ink outline-none placeholder:text-muted/55"
+          placeholder="Start writing…"
+          aria-label="Note body"
+          className="mt-6 min-h-[65vh] w-full resize-none bg-transparent text-[15px] leading-7 text-ink outline-none placeholder:text-subtle"
           spellCheck
         />
       </article>
-    </div>
+    </Page>
   );
 }

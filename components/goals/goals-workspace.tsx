@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Flag, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Flag, Minus, Pause, Pencil, Play, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { Button, Card, EmptyState, Field, Page, PageHeader, ProgressBar, Segmented, iconButtonClass, inputClass } from "@/components/ui/primitives";
 import { useAppStore } from "@/lib/stores/app-store";
 import { getTone } from "@/lib/theme";
 import type { Goal } from "@/lib/types/domain";
@@ -36,7 +37,7 @@ function deadlineLabel(deadline?: string): { label: string; urgent: boolean } | 
   if (diff === 0) return { label: "Due today", urgent: true };
   if (diff <= 7) return { label: `${diff}d left`, urgent: true };
   const month = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return { label: month, urgent: false };
+  return { label: `By ${month}`, urgent: false };
 }
 
 export function GoalsWorkspace() {
@@ -46,7 +47,7 @@ export function GoalsWorkspace() {
   const updateGoal = useAppStore((s) => s.updateGoal);
   const deleteGoal = useAppStore((s) => s.deleteGoal);
 
-  const [tab, setTab] = useState<"active" | "paused" | "done">("active");
+  const [tab, setTab] = useState<GoalStatusTab>("active");
   const [editing, setEditing] = useState<EditState | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
@@ -108,279 +109,174 @@ export function GoalsWorkspace() {
   );
 
   return (
-    <div className="space-y-4">
-      <header className="flex items-start justify-between rounded-xl border border-line bg-panel p-5 shadow-glow">
-        <div>
-          <p className="text-sm text-muted">Goals</p>
-          <h1 className="mt-1 text-3xl font-semibold text-ink">Active outcomes</h1>
-          <p className="mt-2 text-sm text-muted">Track what you're working toward and watch progress move.</p>
-        </div>
-        <button
-          onClick={startNew}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink transition hover:bg-panel"
-        >
-          <Plus className="size-4" />
-          Add goal
-        </button>
-      </header>
+    <Page>
+      <PageHeader
+        title="Goals"
+        description="What you're working toward, and how far along you are."
+        actions={
+          <Button variant="primary" onClick={startNew}>
+            <Plus className="size-4" />
+            New goal
+          </Button>
+        }
+      />
 
-      {/* Add / edit form */}
       {editing && (
-        <div className="rounded-xl border border-blue/40 bg-panel p-4 shadow-glow">
-          <p className="mb-3 text-xs font-medium text-blue">{editing.id === "new" ? "New goal" : "Edit goal"}</p>
+        <Card className="mb-6 p-4">
+          <p className="mb-3 text-sm font-semibold text-ink">{editing.id === "new" ? "New goal" : "Edit goal"}</p>
           <div className="space-y-3">
             <input
               autoFocus
               value={editing.title}
               onChange={(e) => setEditing((s) => s && { ...s, title: e.target.value })}
               onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
-              placeholder="Goal title (e.g. Hit 160g protein daily)"
-              className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
+              placeholder="Goal (e.g. Hit 160g protein daily)"
+              aria-label="Goal title"
+              className={inputClass}
             />
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] text-muted">Current</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={editing.current}
-                  onChange={(e) => setEditing((s) => s && { ...s, current: e.target.value })}
-                  className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] text-muted">Target</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={editing.target}
-                  onChange={(e) => setEditing((s) => s && { ...s, target: e.target.value })}
-                  placeholder="100"
-                  className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] text-muted">Unit</label>
-                <input
-                  value={editing.unit}
-                  onChange={(e) => setEditing((s) => s && { ...s, unit: e.target.value })}
-                  placeholder="problems, %, g, offers…"
-                  className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
-                />
-              </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="Current">
+                <input type="number" min={0} value={editing.current} onChange={(e) => setEditing((s) => s && { ...s, current: e.target.value })} className={inputClass} />
+              </Field>
+              <Field label="Target">
+                <input type="number" min={1} value={editing.target} onChange={(e) => setEditing((s) => s && { ...s, target: e.target.value })} placeholder="100" className={inputClass} />
+              </Field>
+              <Field label="Unit">
+                <input value={editing.unit} onChange={(e) => setEditing((s) => s && { ...s, unit: e.target.value })} placeholder="problems, lbs…" className={inputClass} />
+              </Field>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] text-muted">Label</label>
-                <select
-                  value={editing.responsibilityId}
-                  onChange={(e) => setEditing((s) => s && { ...s, responsibilityId: e.target.value })}
-                  className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue"
-                >
-                  <option value="">— none —</option>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Label">
+                <select value={editing.responsibilityId} onChange={(e) => setEditing((s) => s && { ...s, responsibilityId: e.target.value })} className={inputClass}>
+                  <option value="">None</option>
                   {responsibilities.filter((resp) => !resp.archivedAt).map((r) => (
                     <option key={r.id} value={r.id}>{r.name}</option>
                   ))}
                 </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] text-muted">Deadline (optional)</label>
-                <input
-                  type="date"
-                  value={editing.deadline}
-                  onChange={(e) => setEditing((s) => s && { ...s, deadline: e.target.value })}
-                  className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-blue"
-                />
-              </div>
+              </Field>
+              <Field label="Deadline (optional)">
+                <input type="date" value={editing.deadline} onChange={(e) => setEditing((s) => s && { ...s, deadline: e.target.value })} className={inputClass} />
+              </Field>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={saveEdit}
-                disabled={!editing.title.trim() || !editing.target}
-                className="flex-1 rounded-lg bg-blue py-2 text-xs font-medium text-white disabled:opacity-40"
-              >
-                {editing.id === "new" ? "Create goal" : "Save changes"}
-              </button>
-              <button
-                onClick={cancelEdit}
-                className="rounded-lg border border-line bg-paper px-3 py-2 text-xs text-muted hover:text-ink"
-              >
-                Cancel
-              </button>
+            <div className="flex items-center gap-2 border-t border-line pt-4">
               {editing.id !== "new" && (
-                <button
-                  onClick={() => handleDelete(editing.id as string)}
-                  className={cn(
-                    "rounded-lg border px-3 py-2 text-xs transition",
-                    deleteConfirm === editing.id
-                      ? "border-red-500/40 bg-red-500/10 text-red-400"
-                      : "border-line bg-paper text-muted hover:border-red-500/40 hover:text-red-400"
-                  )}
-                >
-                  {deleteConfirm === editing.id ? "Confirm" : <Trash2 className="size-3.5" />}
-                </button>
+                <Button variant="danger" size="sm" onClick={() => handleDelete(editing.id as string)}>
+                  {deleteConfirm === editing.id ? "Confirm delete" : <><Trash2 className="size-3.5" />Delete</>}
+                </Button>
               )}
+              <div className="ml-auto flex gap-2">
+                <Button size="sm" onClick={cancelEdit}>Cancel</Button>
+                <Button size="sm" variant="primary" onClick={saveEdit} disabled={!editing.title.trim() || !editing.target}>
+                  {editing.id === "new" ? "Create goal" : "Save"}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Status tabs */}
-      <div className="flex gap-1">
-        {STATUS_TABS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setTab(s)}
-            className={cn(
-              "rounded-lg border px-3 py-1.5 text-xs font-medium capitalize transition",
-              tab === s ? "border-blue bg-blue/10 text-blue" : "border-line bg-paper text-muted hover:text-ink"
-            )}
-          >
-            {s} {counts[s] > 0 && <span className="ml-1 tabular-nums opacity-70">{counts[s]}</span>}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        label="Goal status"
+        value={tab}
+        onChange={setTab}
+        className="mb-5"
+        options={STATUS_TABS.map((s) => ({ value: s, label: s === "done" ? "Completed" : s[0].toUpperCase() + s.slice(1), count: counts[s] }))}
+      />
 
-      {/* Goal cards */}
       {visibleGoals.length === 0 ? (
-        <div className="rounded-xl border border-line bg-panel p-10 text-center">
-          <Flag className="mx-auto mb-3 size-8 text-muted opacity-40" />
-          <p className="text-sm text-muted">{emptyGoalMessage(tab)}</p>
-          {tab === "active" && (
-            <button onClick={startNew} className="mt-3 text-sm text-blue hover:underline">
-              Add your first goal →
-            </button>
-          )}
-        </div>
+        <Card>
+          <EmptyState
+            icon={Flag}
+            title={emptyGoalMessage(tab)}
+            description={tab === "active" ? "Set a measurable target and nudge it forward as you go." : undefined}
+            action={tab === "active" ? <Button variant="primary" size="sm" onClick={startNew}><Plus className="size-3.5" />Add a goal</Button> : undefined}
+          />
+        </Card>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {visibleGoals.map((goal) => {
             const responsibility = responsibilities.find((r) => r.id === goal.responsibilityId);
-            const tone = responsibility ? getTone(responsibility.color) : getTone("graphite");
+            const tone = responsibility ? getTone(responsibility.color) : null;
             const percent = goal.target > 0 ? Math.min(100, Math.round((goal.current / goal.target) * 100)) : 0;
             const done = goal.status === "done" || percent >= 100;
             const dl = deadlineLabel(goal.deadline);
 
             return (
-              <div
-                key={goal.id}
-                className={cn(
-                  "group relative rounded-xl border bg-panel p-4 transition",
-                  done ? "border-mint/30 bg-mint/5" : "border-line hover:border-line/80"
-                )}
-              >
-                {/* Top row */}
-                <div className="mb-3 flex items-start justify-between gap-2">
+              <Card key={goal.id} className="group flex flex-col p-4">
+                <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink leading-snug">{goal.title}</p>
-                    {responsibility && (
-                      <p className="mt-0.5 text-[11px]" style={{ color: tone.hex }}>{responsibility.name}</p>
-                    )}
+                    <p className="text-sm font-medium leading-snug text-ink">{goal.title}</p>
+                    <p className="mt-1 flex items-center gap-2 text-xs text-muted">
+                      {responsibility && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="size-1.5 rounded-full" style={{ backgroundColor: tone!.hex }} />
+                          {responsibility.name}
+                        </span>
+                      )}
+                      {dl && <span className={cn(dl.urgent && "text-warning")}>{dl.label}</span>}
+                    </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1 opacity-100 lg:opacity-0 transition lg:group-hover:opacity-100">
-                    <button
-                      onClick={() => startEdit(goal)}
-                      className="grid size-7 place-items-center rounded-md text-muted hover:bg-line hover:text-ink"
-                    >
-                      <Pencil className="size-3" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => startEdit(goal)}
+                    aria-label={`Edit ${goal.title}`}
+                    className={iconButtonClass("-mr-1 -mt-1 size-7 lg:opacity-0 lg:group-hover:opacity-100")}
+                  >
+                    <Pencil className="size-3.5" />
+                  </button>
                 </div>
 
-                {/* Progress */}
-                <div className="mb-2 h-2 overflow-hidden rounded-full bg-line">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${percent}%`, backgroundColor: done ? "#34d399" : tone.hex }}
-                  />
+                <div className="mt-5 flex items-baseline justify-between gap-2">
+                  <p className={cn("text-2xl font-semibold tabular-nums tracking-[-0.01em]", done ? "text-success" : "text-ink")}>{percent}%</p>
+                  <p className="text-xs tabular-nums text-muted">
+                    {goal.current.toLocaleString()} / {goal.target.toLocaleString()} {goal.unit}
+                  </p>
                 </div>
+                <ProgressBar value={percent} color={done ? "rgb(var(--color-success))" : tone?.hex} className="mt-2" />
 
-                {/* Stats row */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    {/* Quick adjust buttons */}
-                    {goal.status === "active" && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => nudgeProgress(goal, -1)}
-                          className="grid size-6 place-items-center rounded border border-line text-[10px] text-muted hover:bg-line disabled:opacity-30"
-                          disabled={goal.current <= 0}
-                        >
-                          <X className="size-3" />
-                        </button>
-                        <button
-                          onClick={() => nudgeProgress(goal, 1)}
-                          className="grid size-6 place-items-center rounded border border-line text-[10px] text-muted hover:bg-line disabled:opacity-30"
-                          disabled={goal.current >= goal.target}
-                        >
-                          <Plus className="size-3" />
-                        </button>
-                      </div>
-                    )}
-                    <span className="text-xs text-muted">
-                      {goal.current} / {goal.target} {goal.unit}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {dl && (
-                      <span className={cn("text-xs", dl.urgent ? "text-amber-400" : "text-muted")}>{dl.label}</span>
-                    )}
-                    <span className={cn("text-sm font-semibold", done ? "text-mint" : "text-ink")}>{percent}%</span>
-                    {goal.status === "active" && percent >= 100 && (
-                      <button
-                        onClick={() => updateGoal(goal.id, { status: "done" })}
-                        aria-label={`Mark ${goal.title} done`}
-                        className="grid size-6 place-items-center rounded-full bg-mint text-white transition hover:bg-mint/80"
-                        title={`Mark ${goal.title} done`}
-                      >
-                        <Check className="size-3.5" />
+                <div className="mt-4 flex items-center gap-1 border-t border-line pt-3">
+                  {goal.status === "active" && (
+                    <>
+                      <button onClick={() => nudgeProgress(goal, -1)} disabled={goal.current <= 0} className={iconButtonClass("size-7 border border-line")} aria-label={`Decrease ${goal.title}`}>
+                        <Minus className="size-3.5" />
                       </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Status controls */}
-                {goal.status === "active" && (
-                  <div className="mt-3 flex gap-1.5 border-t border-line pt-3">
-                    <button
-                      onClick={() => updateGoal(goal.id, { status: "done" })}
-                      className="flex-1 rounded-md border border-mint/30 bg-mint/10 py-1 text-[11px] font-medium text-mint transition hover:bg-mint/20"
-                    >
-                      Mark done
-                    </button>
-                    <button
-                      onClick={() => updateGoal(goal.id, { status: "paused" })}
-                      className="flex-1 rounded-md border border-line bg-paper py-1 text-[11px] text-muted transition hover:text-ink"
-                    >
-                      Pause
-                    </button>
-                  </div>
-                )}
-                {goal.status === "paused" && (
-                  <div className="mt-3 border-t border-line pt-3">
-                    <button
-                      onClick={() => updateGoal(goal.id, { status: "active" })}
-                      className="w-full rounded-md border border-line bg-paper py-1 text-[11px] text-muted transition hover:text-ink"
-                    >
+                      <button onClick={() => nudgeProgress(goal, 1)} disabled={goal.current >= goal.target} className={iconButtonClass("size-7 border border-line")} aria-label={`Increase ${goal.title}`}>
+                        <Plus className="size-3.5" />
+                      </button>
+                      <div className="ml-auto flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => updateGoal(goal.id, { status: "paused" })}>
+                          <Pause className="size-3.5" />
+                          Pause
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={percent >= 100 ? "primary" : "ghost"}
+                          onClick={() => updateGoal(goal.id, { status: "done" })}
+                          aria-label={`Mark ${goal.title} done`}
+                        >
+                          <Check className="size-3.5" />
+                          Done
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                  {goal.status === "paused" && (
+                    <Button size="sm" variant="ghost" className="ml-auto" onClick={() => updateGoal(goal.id, { status: "active" })}>
+                      <Play className="size-3.5" />
                       Resume
-                    </button>
-                  </div>
-                )}
-                {goal.status === "done" && (
-                  <div className="mt-3 border-t border-line pt-3">
-                    <button
-                      onClick={() => updateGoal(goal.id, { status: "active" })}
-                      className="w-full rounded-md border border-line bg-paper py-1 text-[11px] text-muted transition hover:text-ink"
-                    >
+                    </Button>
+                  )}
+                  {goal.status === "done" && (
+                    <Button size="sm" variant="ghost" className="ml-auto" onClick={() => updateGoal(goal.id, { status: "active" })}>
+                      <RotateCcw className="size-3.5" />
                       Reopen
-                    </button>
-                  </div>
-                )}
-              </div>
+                    </Button>
+                  )}
+                </div>
+              </Card>
             );
           })}
         </div>
       )}
-    </div>
+    </Page>
   );
 }

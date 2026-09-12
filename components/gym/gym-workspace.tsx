@@ -1,24 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, ChevronRight, Dumbbell, History, Pencil, Plus, Settings, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Dumbbell, History, Plus, Settings2, X } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
 import { ExerciseHistory } from "@/components/gym/exercise-history";
 import { GymProgressCharts } from "@/components/gym/progress-charts";
 import { SplitEditor } from "@/components/gym/split-editor";
+import { Button, Card, CardHeader, EmptyState, Page, PageHeader, Segmented, iconButtonClass, inputClass } from "@/components/ui/primitives";
 import type { GymExercise } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
-import { localDateKey } from "@/lib/dates";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function todayDayIndex(): number {
   const d = new Date().getDay(); // 0=Sun
   return d === 0 ? 6 : d - 1;   // convert to 0=Mon
-}
-
-function todayStr() {
-  return localDateKey();
 }
 
 // ─── Weight unit helpers ──────────────────────────────────────────────────────
@@ -31,6 +27,9 @@ function displayWeight(lbs: number, unit: "lbs" | "kg") {
 function parseToLbs(value: number, unit: "lbs" | "kg") {
   return unit === "kg" ? kgToLbs(value) : value;
 }
+
+const numberInput =
+  "h-8 w-full rounded-md border border-line bg-panel px-1.5 text-center text-sm tabular-nums text-ink outline-none transition focus:border-ink/25";
 
 // ─── Weight input ─────────────────────────────────────────────────────────────
 
@@ -56,7 +55,7 @@ function WeightInput({
   }, [unit, lbs]);
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div className={cn("flex items-center gap-1.5", className)}>
       <input
         type="number"
         min={0}
@@ -68,7 +67,8 @@ function WeightInput({
           if (!isNaN(n) && n >= 0) onChange(parseToLbs(n, unit));
         }}
         onBlur={() => setRaw(String(displayWeight(lbs, unit)))}
-        className="w-16 rounded border border-line bg-paper px-1.5 py-1 text-center text-sm text-ink outline-none focus:border-blue"
+        aria-label="Weight"
+        className={cn(numberInput, "w-16")}
       />
       <span className="text-xs text-muted">{unit}</span>
     </div>
@@ -109,8 +109,7 @@ function ActiveExerciseRow({
   }
 
   return (
-    <div className={cn("rounded-lg border transition", allDone ? "border-mint/40 bg-mint/5" : "border-line bg-paper")}>
-      {/* Exercise header */}
+    <Card className={cn("overflow-hidden transition-colors", allDone && "border-success/30")}>
       <div
         role="button"
         tabIndex={0}
@@ -118,28 +117,28 @@ function ActiveExerciseRow({
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setCollapsed((c) => !c); }}
         className="flex w-full cursor-pointer items-center gap-3 px-4 py-3"
       >
-        <span className={cn("flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
-          allDone ? "bg-mint text-white" : "border border-line text-muted")}>
-          {allDone ? <Check className="size-3" /> : doneCount}
+        <span className={cn(
+          "grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-semibold tabular-nums",
+          allDone ? "bg-success text-white" : "bg-hover text-muted"
+        )}>
+          {allDone ? <Check className="size-3.5" strokeWidth={3} /> : doneCount}
         </span>
         <span className="flex-1 text-left text-sm font-medium text-ink">{exercise.name}</span>
-        <span className="text-xs text-muted">{doneCount}/{sets.length} sets</span>
+        <span className="text-xs tabular-nums text-muted">{doneCount}/{sets.length} sets</span>
         <button
           onClick={(e) => { e.stopPropagation(); onOpenHistory(); }}
           title={`Open ${exercise.name} history`}
           aria-label={`Open ${exercise.name} history`}
-          className="rounded p-1 text-muted hover:bg-line hover:text-ink"
+          className={iconButtonClass("size-7")}
         >
           <History className="size-3.5" />
         </button>
-        {collapsed ? <ChevronRight className="size-4 text-muted" /> : <ChevronDown className="size-4 text-muted" />}
+        <ChevronDown className={cn("size-4 text-subtle transition-transform", collapsed && "-rotate-90")} />
       </div>
 
-      {/* Set rows */}
       {!collapsed && (
-        <div className="border-t border-line px-4 pb-3 pt-2 space-y-2">
-          {/* Column headers */}
-          <div className="grid grid-cols-[32px_1fr_80px_48px_32px] items-center gap-2 px-0.5 text-[10px] uppercase tracking-wide text-muted">
+        <div className="border-t border-line px-4 pb-3 pt-2">
+          <div className="grid grid-cols-[28px_1fr_72px_40px_28px] items-center gap-2 pb-1 text-[11px] font-medium text-subtle">
             <span>Set</span>
             <span>Weight</span>
             <span className="text-center">Reps</span>
@@ -147,50 +146,49 @@ function ActiveExerciseRow({
             <span />
           </div>
 
-          {sets.map((s, si) => (
-            <div key={si} className={cn("grid grid-cols-[32px_1fr_80px_48px_32px] items-center gap-2 rounded-lg px-0.5 py-0.5 transition", s.done && "opacity-60")}>
-              <span className="text-xs font-medium text-muted">{si + 1}</span>
-              <WeightInput
-                lbs={s.weight}
-                unit={unit}
-                onChange={(newLbs) => handleWeightChange(si, newLbs)}
-              />
-              <input
-                type="number"
-                min={1}
-                value={s.reps}
-                onChange={(e) => updateActiveSet(exerciseIdx, si, { reps: Math.max(1, parseInt(e.target.value) || 1) })}
-                className="w-full rounded border border-line bg-paper px-1.5 py-1 text-center text-sm text-ink outline-none focus:border-blue"
-              />
-              <button
-                onClick={() => updateActiveSet(exerciseIdx, si, { done: !s.done })}
-                className={cn(
-                  "mx-auto flex size-7 items-center justify-center rounded-full border-2 transition",
-                  s.done
-                    ? "border-mint bg-mint text-white"
-                    : "border-line text-transparent hover:border-mint/50"
-                )}
-              >
-                <Check className="size-3.5" />
-              </button>
-              <button
-                onClick={() => removeSetFromActive(exerciseIdx, si)}
-                className="rounded p-1 text-muted hover:text-red-400 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition"
-              >
-                <X className="size-3" />
-              </button>
-            </div>
-          ))}
+          <div className="space-y-1.5">
+            {sets.map((s, si) => (
+              <div key={si} className={cn("group grid grid-cols-[28px_1fr_72px_40px_28px] items-center gap-2 transition-opacity", s.done && "opacity-55")}>
+                <span className="text-xs font-medium tabular-nums text-muted">{si + 1}</span>
+                <WeightInput lbs={s.weight} unit={unit} onChange={(newLbs) => handleWeightChange(si, newLbs)} />
+                <input
+                  type="number"
+                  min={1}
+                  value={s.reps}
+                  onChange={(e) => updateActiveSet(exerciseIdx, si, { reps: Math.max(1, parseInt(e.target.value) || 1) })}
+                  aria-label="Reps"
+                  className={numberInput}
+                />
+                <button
+                  onClick={() => updateActiveSet(exerciseIdx, si, { done: !s.done })}
+                  aria-label={s.done ? `Undo set ${si + 1}` : `Complete set ${si + 1}`}
+                  className={cn(
+                    "mx-auto grid size-7 place-items-center rounded-full border-[1.5px] transition-colors",
+                    s.done ? "border-success bg-success text-white" : "border-line text-transparent hover:border-success/60 hover:text-success/60"
+                  )}
+                >
+                  <Check className="size-3.5" strokeWidth={3} />
+                </button>
+                <button
+                  onClick={() => removeSetFromActive(exerciseIdx, si)}
+                  aria-label={`Remove set ${si + 1}`}
+                  className={iconButtonClass("size-6 hover:text-danger lg:opacity-0 lg:group-hover:opacity-100")}
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ))}
+          </div>
 
           <button
             onClick={() => addSetToActive(exerciseIdx)}
-            className="mt-1 flex items-center gap-1.5 text-xs text-muted hover:text-blue transition"
+            className="mt-2 flex h-7 items-center gap-1.5 rounded-md px-1 text-xs font-medium text-muted transition-colors hover:text-ink"
           >
             <Plus className="size-3.5" /> Add set
           </button>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -221,46 +219,46 @@ function DayPreview({
     : null;
 
   return (
-    <div className="space-y-3">
-      {lastSessionDate && (
-        <p className="text-xs text-muted">Last {day?.label} session: {lastSessionDate}</p>
+    <Card className="overflow-hidden">
+      <CardHeader
+        title={day?.label ? `${day.label} day` : "Rest day"}
+        meta={[`${exercises.length} exercises`, lastSessionDate && `last done ${lastSessionDate}`].filter(Boolean).join(" · ")}
+      />
+      {exercises.length > 0 ? (
+        <>
+          <div className="grid grid-cols-[1fr_80px_80px] border-b border-line px-4 py-2 text-[11px] font-medium text-subtle">
+            <span>Exercise</span>
+            <span className="text-center">Sets × reps</span>
+            <span className="text-right">Last weight</span>
+          </div>
+          <div className="divide-y divide-line">
+            {exercises.map((ex) => (
+              <div key={ex.id} className="grid grid-cols-[1fr_80px_80px] items-center px-4 py-2.5">
+                <button
+                  onClick={() => onOpenHistory(ex)}
+                  title={`Open ${ex.name} history`}
+                  aria-label={`Open ${ex.name} history`}
+                  className="truncate text-left text-sm text-ink transition-colors hover:text-accent"
+                >
+                  {ex.name}
+                </button>
+                <span className="text-center text-xs tabular-nums text-muted">{ex.defaultSets} × {ex.defaultReps}</span>
+                <span className="text-right text-xs tabular-nums text-ink">
+                  {ex.lastWeight === 0 ? <span className="text-subtle">—</span> : `${displayWeight(ex.lastWeight, gymWeightUnit)} ${gymWeightUnit}`}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-line p-3">
+            <Button variant="primary" className="w-full" onClick={onStart}>
+              Start workout
+            </Button>
+          </div>
+        </>
+      ) : (
+        <EmptyState icon={Dumbbell} title="Nothing planned" description="Add exercises to this day from Edit split." />
       )}
-
-      <div className="rounded-lg border border-line overflow-hidden">
-        <div className="grid grid-cols-[1fr_80px_80px] bg-line px-4 py-2 text-[10px] font-medium uppercase tracking-wide text-muted">
-          <span>Exercise</span>
-          <span className="text-center">Sets×Reps</span>
-          <span className="text-right">Last wt</span>
-        </div>
-        <div className="divide-y divide-line">
-          {exercises.map((ex) => (
-            <div key={ex.id} className="grid grid-cols-[1fr_80px_80px] items-center px-4 py-2.5">
-              <button
-                onClick={() => onOpenHistory(ex)}
-                title={`Open ${ex.name} history`}
-                aria-label={`Open ${ex.name} history`}
-                className="text-left text-sm text-ink hover:text-blue transition"
-              >
-                {ex.name}
-              </button>
-              <span className="text-center text-xs text-muted">{ex.defaultSets}×{ex.defaultReps}</span>
-              <span className="text-right text-xs text-ink">
-                {ex.lastWeight === 0
-                  ? "—"
-                  : `${displayWeight(ex.lastWeight, gymWeightUnit)} ${gymWeightUnit}`}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <button
-        onClick={onStart}
-        className="w-full rounded-lg bg-blue py-3 text-sm font-medium text-white hover:bg-blue/90 transition"
-      >
-        Start workout
-      </button>
-    </div>
+    </Card>
   );
 }
 
@@ -297,7 +295,7 @@ export function GymWorkspace() {
   }, [activeGymSession, gymDays]);
 
   const today = todayDayIndex();
-  const currentDay = gymDays.find((d) => d.dayIndex === selectedDay);
+  const todayPlan = gymDays.find((d) => d.dayIndex === today);
   const sessionExercises = useMemo(() =>
     activeGymSession?.exercises.map((se, idx) => ({
       idx,
@@ -332,71 +330,57 @@ export function GymWorkspace() {
   }, [activeGymSession]);
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <header className="flex items-start justify-between rounded-xl border border-line bg-panel p-5 shadow-glow">
-        <div>
-          <p className="text-sm text-muted">Gym</p>
-          <h1 className="mt-1 text-3xl font-semibold text-ink">
-            {isActive ? `${activeGymSession.dayLabel} · In progress` : currentDay?.label ? `${currentDay.label} Day` : "Workout"}
-          </h1>
-          {isActive && (
-            <p className="mt-1 text-xs text-muted">{totalDone}/{totalSets} sets done · {elapsed}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-line overflow-hidden text-xs font-medium">
-            {(["lbs", "kg"] as const).map((u) => (
-              <button
-                key={u}
-                onClick={() => setGymWeightUnit(u)}
-                className={cn("px-3 py-1.5 transition", gymWeightUnit === u ? "bg-blue text-white" : "bg-paper text-muted hover:text-ink")}
-              >
-                {u}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={() => setPanel((p) => p === "split" ? "none" : "split")}
-            className="flex items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink hover:bg-panel transition"
-          >
-            <Settings className="size-4" />
-            Edit split
-          </button>
-        </div>
-      </header>
+    <Page width="wide">
+      <PageHeader
+        title="Gym"
+        description={
+          isActive
+            ? `${activeGymSession.dayLabel} in progress · ${totalDone}/${totalSets} sets · ${elapsed}`
+            : todayPlan?.label ? `Today is ${todayPlan.label.toLowerCase()} day` : "Rest day"
+        }
+        actions={
+          <>
+            <Segmented
+              size="sm"
+              label="Weight unit"
+              value={gymWeightUnit}
+              onChange={setGymWeightUnit}
+              options={[{ value: "lbs", label: "lbs" }, { value: "kg", label: "kg" }]}
+            />
+            <Button size="sm" onClick={() => setPanel((p) => p === "split" ? "none" : "split")}>
+              <Settings2 className="size-3.5" />
+              Edit split
+            </Button>
+          </>
+        }
+      />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0 space-y-4">
-          {/* Day tabs */}
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {gymDays.map((d) => {
-              const isToday = d.dayIndex === today;
-              const isSelected = d.dayIndex === selectedDay;
-              const hasActive = isActive && gymDays.find((day) => day.label === activeGymSession?.dayLabel)?.dayIndex === d.dayIndex;
-              return (
-                <button
-                  key={d.dayIndex}
-                  onClick={() => setSelectedDay(d.dayIndex)}
-                  className={cn(
-                    "flex shrink-0 flex-col items-center gap-0.5 rounded-lg border px-3 py-2 text-xs transition",
-                    isSelected
-                      ? "border-blue bg-blue/10 text-blue"
-                      : "border-line bg-paper text-muted hover:text-ink"
-                  )}
-                >
-                  <span className={cn("font-medium", isToday && !isSelected && "text-blue")}>{DAY_LABELS[d.dayIndex]}</span>
-                  <span className="text-[10px] opacity-80">{d.label}</span>
-                  {hasActive && <span className="size-1.5 rounded-full bg-mint" />}
-                </button>
-              );
-            })}
-          </div>
+      <div className="-mx-4 mb-5 flex gap-1.5 overflow-x-auto px-4 no-scrollbar sm:mx-0 sm:px-0">
+        {gymDays.map((d) => {
+          const isToday = d.dayIndex === today;
+          const isSelected = d.dayIndex === selectedDay;
+          const hasActive = isActive && gymDays.find((day) => day.label === activeGymSession?.dayLabel)?.dayIndex === d.dayIndex;
+          return (
+            <button
+              key={d.dayIndex}
+              onClick={() => setSelectedDay(d.dayIndex)}
+              className={cn(
+                "relative flex h-12 min-w-[64px] shrink-0 flex-col items-center justify-center rounded-xl px-3 transition-colors",
+                isSelected ? "bg-ink text-paper" : "bg-panel text-ink ring-1 ring-inset ring-line hover:bg-hover"
+              )}
+            >
+              <span className={cn("text-[11px] font-medium", isSelected ? "text-paper/70" : isToday ? "text-now" : "text-subtle")}>{DAY_LABELS[d.dayIndex]}</span>
+              <span className="text-[13px] font-medium">{d.label}</span>
+              {hasActive && <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-success" />}
+            </button>
+          );
+        })}
+      </div>
 
-          {/* Main content */}
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-3">
           {isActive && activeOnSelectedDay ? (
-            <div className="space-y-3">
-              {/* Active session exercises */}
+            <>
               {sessionExercises.map(({ idx, exercise, sets }) => exercise && (
                 <ActiveExerciseRow
                   key={exercise.id}
@@ -408,87 +392,77 @@ export function GymWorkspace() {
                 />
               ))}
 
-              {/* Add exercise to session */}
               {showAddExercise ? (
-                <div className="rounded-lg border border-blue/40 bg-panel p-3 space-y-2">
+                <Card className="p-3">
                   <input
                     autoFocus
                     value={addQuery}
                     onChange={(e) => setAddQuery(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Escape") { setShowAddExercise(false); setAddQuery(""); } }}
                     placeholder="Search exercises…"
-                    className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-blue placeholder:text-muted"
+                    aria-label="Search exercises"
+                    className={inputClass}
                   />
                   {addQuery.trim() && (
-                    <div className="rounded-lg border border-line bg-paper overflow-hidden">
+                    <div className="mt-2 overflow-hidden rounded-lg border border-line">
                       {catalogSearchResults.map((ex) => (
                         <button
                           key={ex.id}
                           onMouseDown={() => { addExerciseToActive(ex.id); setAddQuery(""); setShowAddExercise(false); }}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-line"
+                          className="flex w-full items-center gap-2 border-b border-line px-3 py-2 text-left text-sm text-ink last:border-b-0 hover:bg-hover/60"
                         >
                           <span>{ex.name}</span>
-                          <span className="ml-auto text-[11px] text-muted">{displayWeight(ex.lastWeight, gymWeightUnit)} {gymWeightUnit}</span>
+                          <span className="ml-auto text-xs tabular-nums text-muted">{displayWeight(ex.lastWeight, gymWeightUnit)} {gymWeightUnit}</span>
                         </button>
                       ))}
                     </div>
                   )}
-                  <button onClick={() => { setShowAddExercise(false); setAddQuery(""); }} className="text-xs text-muted hover:text-ink">
+                  <Button size="sm" variant="ghost" className="mt-2" onClick={() => { setShowAddExercise(false); setAddQuery(""); }}>
                     Cancel
-                  </button>
-                </div>
+                  </Button>
+                </Card>
               ) : (
                 <button
                   onClick={() => setShowAddExercise(true)}
-                  className="flex w-full items-center gap-2 rounded-lg border border-dashed border-line px-4 py-3 text-sm text-muted hover:border-blue/50 hover:text-blue transition"
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-line text-sm text-muted transition-colors hover:border-subtle hover:text-ink"
                 >
                   <Plus className="size-4" /> Add exercise
                 </button>
               )}
 
-              {/* Finish / cancel */}
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={() => setFinishConfirm(true)}
-                  className="flex-1 rounded-lg bg-mint py-3 text-sm font-medium text-white hover:bg-mint/90 transition"
-                >
-                  Finish workout
-                </button>
-                <button
-                  onClick={cancelGymSession}
-                  className="rounded-lg border border-line bg-paper px-4 py-3 text-sm text-muted hover:text-ink transition"
-                >
-                  Cancel
-                </button>
-              </div>
-
-              {finishConfirm && (
-                <div className="rounded-lg border border-mint/40 bg-mint/10 p-4 text-center space-y-3">
+              {finishConfirm ? (
+                <Card className="p-4 text-center">
                   <p className="text-sm text-ink">{totalDone} of {totalSets} sets completed. Save this session?</p>
-                  <div className="flex gap-2 justify-center">
-                    <button onClick={() => { finishGymSession(); setFinishConfirm(false); }} className="rounded-lg bg-mint px-4 py-2 text-xs font-medium text-white">
-                      Save workout
-                    </button>
-                    <button onClick={() => setFinishConfirm(false)} className="rounded-lg border border-line bg-paper px-4 py-2 text-xs text-muted">
-                      Keep going
-                    </button>
+                  <div className="mt-3 flex justify-center gap-2">
+                    <Button size="sm" onClick={() => setFinishConfirm(false)}>Keep going</Button>
+                    <Button size="sm" variant="primary" onClick={() => { finishGymSession(); setFinishConfirm(false); }}>Save workout</Button>
                   </div>
+                </Card>
+              ) : (
+                <div className="flex gap-2 pt-1">
+                  <Button variant="primary" className="h-10 flex-1" onClick={() => setFinishConfirm(true)}>
+                    Finish workout
+                  </Button>
+                  <Button className="h-10" onClick={cancelGymSession}>
+                    Discard
+                  </Button>
                 </div>
               )}
-            </div>
+            </>
           ) : isActive && !activeOnSelectedDay ? (
-            <div className="rounded-lg border border-amber/40 bg-amber/10 p-4 text-center">
-              <p className="text-sm text-ink">You have an active <strong>{activeGymSession?.dayLabel}</strong> session in progress.</p>
-              <button
+            <Card className="p-5 text-center">
+              <p className="text-sm text-ink">Your <strong>{activeGymSession?.dayLabel}</strong> workout is still in progress.</p>
+              <Button
+                size="sm"
+                className="mt-3"
                 onClick={() => {
                   const d = gymDays.find((day) => day.label === activeGymSession?.dayLabel);
                   if (d) setSelectedDay(d.dayIndex);
                 }}
-                className="mt-2 text-sm text-blue hover:underline"
               >
-                Go to active session →
-              </button>
-            </div>
+                Back to workout
+              </Button>
+            </Card>
           ) : (
             <DayPreview
               dayIndex={selectedDay}
@@ -498,56 +472,52 @@ export function GymWorkspace() {
           )}
         </div>
 
-        {/* Right panel — split editor or history */}
-        {panel !== "none" && (
-          <aside className="rounded-xl border border-line bg-panel p-4">
-            {panel === "split" && (
-              <SplitEditor onClose={() => setPanel("none")} />
+        <div className="space-y-5">
+          {panel !== "none" && (
+            <Card className="p-4">
+              {panel === "split" && <SplitEditor onClose={() => setPanel("none")} />}
+              {panel === "history" && historyExercise && (
+                <ExerciseHistory
+                  exercise={historyExercise}
+                  sessions={gymSessions}
+                  unit={gymWeightUnit}
+                  onClose={() => { setPanel("none"); setHistoryExercise(null); }}
+                />
+              )}
+            </Card>
+          )}
+
+          <Card className="overflow-hidden">
+            <CardHeader title="Recent sessions" meta={gymSessions.length ? `${gymSessions.length} total` : undefined} />
+            {gymSessions.length > 0 ? (
+              <div className="divide-y divide-line">
+                {gymSessions.slice(0, 5).map((session) => {
+                  const totalSetsLog = session.exercises.reduce((s, e) => s + e.sets.filter((set) => set.done).length, 0);
+                  const dur = Math.round((new Date(session.completedAt).getTime() - new Date(session.startedAt).getTime()) / 60000);
+                  return (
+                    <div key={session.id} className="flex items-center gap-3 px-4 py-2.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-ink">{session.dayLabel}</p>
+                        <p className="text-xs text-muted">
+                          {new Date(session.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                          {" · "}{session.exercises.length} exercises · {totalSetsLog} sets
+                        </p>
+                      </div>
+                      <span className="text-xs tabular-nums text-muted">{dur}m</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="px-4 py-6 text-center text-[13px] text-muted">Finished workouts show up here.</p>
             )}
-            {panel === "history" && historyExercise && (
-              <ExerciseHistory
-                exercise={historyExercise}
-                sessions={gymSessions}
-                unit={gymWeightUnit}
-                onClose={() => { setPanel("none"); setHistoryExercise(null); }}
-              />
-            )}
-          </aside>
-        )}
+          </Card>
+        </div>
       </div>
 
-      {/* Recent sessions */}
-      {gymSessions.length > 0 && (
-        <div className="rounded-xl border border-line bg-panel overflow-hidden">
-          <div className="border-b border-line bg-line px-4 py-3 flex items-center gap-2">
-            <History className="size-4 text-muted" />
-            <p className="text-sm font-medium text-ink">Recent sessions</p>
-          </div>
-          <div className="divide-y divide-line">
-            {gymSessions.slice(0, 5).map((session) => {
-              const totalSetsLog = session.exercises.reduce((s, e) => s + e.sets.filter((set) => set.done).length, 0);
-              const dur = Math.round((new Date(session.completedAt).getTime() - new Date(session.startedAt).getTime()) / 60000);
-              return (
-                <div key={session.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-line text-xs font-semibold text-blue">
-                    {session.dayLabel.slice(0, 2).toUpperCase()}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-ink">{session.dayLabel} Day</p>
-                    <p className="text-xs text-muted">
-                      {new Date(session.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-                      {" · "}{session.exercises.length} exercises · {totalSetsLog} sets
-                    </p>
-                  </div>
-                  <span className="text-xs text-muted">{dur}m</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <GymProgressCharts />
-    </div>
+      <div className="mt-8">
+        <GymProgressCharts />
+      </div>
+    </Page>
   );
 }
