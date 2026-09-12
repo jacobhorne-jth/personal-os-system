@@ -13,28 +13,33 @@ function applyTheme(theme: Theme) {
   document.documentElement.style.colorScheme = theme;
 }
 
-function initialTheme(): Theme {
-  if (typeof window === "undefined") return "light";
-  return window.localStorage.getItem(storageKey) === "dark" ? "dark" : "light";
+// The inline script in app/layout.tsx already resolved stored-or-system theme
+function currentTheme(): Theme {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
 
-export function ThemeToggle({ className }: { className?: string }) {
+export function useTheme() {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    const stored = initialTheme();
-    setTheme(stored);
-    applyTheme(stored);
+    setTheme(currentTheme());
   }, []);
 
   function toggleTheme() {
-    const next = theme === "light" ? "dark" : "light";
+    const next = currentTheme() === "light" ? "dark" : "light";
     setTheme(next);
     window.localStorage.setItem(storageKey, next);
     applyTheme(next);
   }
 
+  return { theme, toggleTheme };
+}
+
+export function ThemeToggle({ className, withLabel = false }: { className?: string; withLabel?: boolean }) {
+  const { theme, toggleTheme } = useTheme();
   const Icon = theme === "light" ? Moon : Sun;
+  const label = theme === "light" ? "Dark mode" : "Light mode";
 
   return (
     <button
@@ -43,11 +48,13 @@ export function ThemeToggle({ className }: { className?: string }) {
       title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
       aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
       className={cn(
-        "grid size-10 place-items-center rounded-full border border-line bg-panel text-muted shadow-glow transition hover:bg-paper hover:text-ink",
+        "flex items-center gap-2.5 rounded-lg text-muted transition-colors hover:bg-hover hover:text-ink",
+        withLabel ? "h-8 px-2.5 text-[13px]" : "size-8 justify-center",
         className
       )}
     >
-      <Icon className="size-4" />
+      <Icon className="size-4 shrink-0" />
+      {withLabel && <span className="truncate">{label}</span>}
     </button>
   );
 }

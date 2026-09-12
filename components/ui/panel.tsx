@@ -14,12 +14,12 @@ export function Panel({
   eyebrow?: string;
 }) {
   return (
-    <section className={cn("overflow-hidden rounded-xl border border-line bg-panel shadow-glow", className)}>
+    <section className={cn("overflow-hidden rounded-xl border border-line bg-panel", className)}>
       {(title || action) && (
-        <header className="flex min-h-14 items-center justify-between gap-3 border-b border-line px-5 py-4">
-          <div>
-            {eyebrow && <p className="mb-0.5 text-xs text-muted">{eyebrow}</p>}
-            {title && <h2 className="text-[15px] font-semibold text-ink">{title}</h2>}
+        <header className="flex min-h-12 items-center justify-between gap-3 border-b border-line px-4 py-2">
+          <div className="flex min-w-0 items-baseline gap-2">
+            {title && <h2 className="truncate text-sm font-semibold text-ink">{title}</h2>}
+            {eyebrow && <p className="shrink-0 text-xs text-muted">{eyebrow}</p>}
           </div>
           {action}
         </header>

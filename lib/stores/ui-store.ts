@@ -10,11 +10,15 @@ type UiState = {
   selectedDate: string;
   visibleOverlays: CalendarItemType[];
   hiddenResponsibilities: string[];
+  paletteOpen: boolean;
+  captureOpen: boolean;
   setCalendarView: (view: CalendarView) => void;
   setCalendarGotoDate: (date: string | null) => void;
   setSelectedDate: (date: string) => void;
   toggleOverlay: (overlay: CalendarItemType) => void;
   toggleResponsibility: (id: string) => void;
+  setPaletteOpen: (open: boolean) => void;
+  setCaptureOpen: (open: boolean) => void;
 };
 
 const defaultOverlays: CalendarItemType[] = [
@@ -33,6 +37,8 @@ export const useUiStore = create<UiState>((set) => ({
   selectedDate: localDateKey(),
   visibleOverlays: defaultOverlays,
   hiddenResponsibilities: [],
+  paletteOpen: false,
+  captureOpen: false,
   setCalendarView: (calendarView) => set({ calendarView }),
   setCalendarGotoDate: (calendarGotoDate) => set({ calendarGotoDate }),
   setSelectedDate: (selectedDate) => set({ selectedDate }),
@@ -47,5 +53,7 @@ export const useUiStore = create<UiState>((set) => ({
       hiddenResponsibilities: state.hiddenResponsibilities.includes(id)
         ? state.hiddenResponsibilities.filter((r) => r !== id)
         : [...state.hiddenResponsibilities, id]
-    }))
+    })),
+  setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+  setCaptureOpen: (captureOpen) => set({ captureOpen })
 }));

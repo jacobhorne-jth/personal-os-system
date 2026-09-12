@@ -49,10 +49,10 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <label className="block text-sm text-muted" htmlFor="email">
+      <label className="block text-xs font-medium text-muted" htmlFor="email">
         Email
       </label>
-      <div className="flex min-w-0 items-center gap-2 rounded-lg border border-line bg-paper px-3">
+      <div className="flex min-w-0 items-center gap-2 rounded-lg border border-line bg-panel px-3 transition focus-within:border-ink/25 focus-within:ring-2 focus-within:ring-ink/[0.06]">
         <Mail className="size-4 text-muted" />
         <input
           id="email"
@@ -60,14 +60,14 @@ export function LoginForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="jacob@example.com"
-          className="h-11 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+          className="h-11 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-subtle"
         />
       </div>
-      <label className="block text-sm text-muted" htmlFor="password">
+      <label className="block pt-1 text-xs font-medium text-muted" htmlFor="password">
         Password
       </label>
       <div className="flex gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-line bg-paper px-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-line bg-panel px-3 transition focus-within:border-ink/25 focus-within:ring-2 focus-within:ring-ink/[0.06]">
           <KeyRound className="size-4 text-muted" />
           <input
             id="password"
@@ -75,10 +75,10 @@ export function LoginForm() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Leave empty for magic link"
-            className="h-11 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+            className="h-11 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-subtle"
           />
         </div>
-        <button className="grid size-11 shrink-0 place-items-center rounded-lg bg-ink text-paper disabled:opacity-60" disabled={loading}>
+        <button aria-label="Sign in" className="grid size-11 shrink-0 place-items-center rounded-lg bg-ink text-paper transition-opacity hover:opacity-85 disabled:opacity-60" disabled={loading}>
           <ArrowRight className="size-4" />
         </button>
       </div>

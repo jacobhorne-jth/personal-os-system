@@ -1,7 +1,11 @@
 import type { Config } from "tailwindcss";
 
+const token = (name: string) => `rgb(var(--color-${name}) / <alpha-value>)`;
+
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
+  // Theme is chosen in-app (stored or system), stamped as data-theme on <html>
+  darkMode: ["selector", '[data-theme="dark"]'],
   safelist: [
     {
       pattern:
@@ -11,16 +15,29 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "rgb(var(--color-ink) / <alpha-value>)",
-        paper: "rgb(var(--color-paper) / <alpha-value>)",
-        panel: "rgb(var(--color-panel) / <alpha-value>)",
-        line: "rgb(var(--color-line) / <alpha-value>)",
-        muted: "rgb(var(--color-muted) / <alpha-value>)",
-        blue: "#4285f4",
-        mint: "#34a853",
-        coral: "#ea4335",
-        amber: "#fbbc04",
-        violet: "#a142f4",
+        // Surfaces and text
+        ink: token("ink"),
+        paper: token("paper"),
+        panel: token("panel"),
+        line: token("line"),
+        muted: token("muted"),
+        subtle: token("subtle"),
+        hover: token("hover"),
+        calendar: token("calendar"),
+        // Semantic
+        accent: token("accent"),
+        success: token("success"),
+        danger: token("danger"),
+        warning: token("warning"),
+        now: token("now"),
+        // Legacy names used across the app resolve to the semantic tokens so
+        // every surface follows the theme
+        blue: token("accent"),
+        mint: token("success"),
+        coral: token("danger"),
+        amber: token("warning"),
+        violet: "#8b5cf6",
+        // Label palette (user data — fixed hex values)
         tomato: "#d93025",
         tangerine: "#f4511e",
         banana: "#f6bf26",
@@ -53,11 +70,21 @@ const config: Config = {
         stone: "#9e9e9e"
       },
       boxShadow: {
-        glow: "var(--shadow-glow)",
-        lift: "var(--shadow-lift)"
+        glow: "var(--shadow-card)",
+        lift: "var(--shadow-pop)",
+        pop: "var(--shadow-pop)"
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"]
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "\"SF Pro Text\"",
+          "\"Segoe UI\"",
+          "system-ui",
+          "Roboto",
+          "\"Helvetica Neue\"",
+          "sans-serif"
+        ]
       }
     }
   },

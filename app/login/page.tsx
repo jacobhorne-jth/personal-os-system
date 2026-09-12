@@ -1,18 +1,13 @@
-import { Layers3 } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
 
 export default function LoginPage() {
   return (
-    <div className="grid min-h-dvh place-items-center px-4 py-10">
-      <div className="w-full max-w-md rounded-lg border border-line bg-panel p-5 shadow-glow">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="grid size-11 place-items-center rounded-lg bg-ink text-paper">
-            <Layers3 className="size-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold text-ink">Jacob OS</h1>
-            <p className="text-sm text-muted">Calendar-first personal command center</p>
-          </div>
+    <div className="grid min-h-dvh place-items-center bg-paper px-4 py-10">
+      <div className="w-full max-w-sm">
+        <div className="mb-8">
+          <span className="grid size-9 place-items-center rounded-lg bg-ink text-sm font-bold text-paper">J</span>
+          <h1 className="mt-5 text-[22px] font-semibold tracking-[-0.02em] text-ink">Sign in to Jacob OS</h1>
+          <p className="mt-1 text-sm text-muted">Your calendar, tasks, and everything else.</p>
         </div>
         <LoginForm />
       </div>
