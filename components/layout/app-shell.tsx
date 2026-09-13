@@ -345,6 +345,8 @@ function MobileNav() {
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
+            title="Open more menu"
+            aria-label="Open more menu"
             className={cn("relative flex h-full flex-col items-center justify-center gap-0.5 text-[10px] font-medium", moreActive ? "text-ink" : "text-subtle")}
           >
             <LayoutGrid className="size-[22px]" strokeWidth={moreActive ? 2.2 : 1.8} />
