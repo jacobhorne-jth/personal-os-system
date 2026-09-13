@@ -74,7 +74,7 @@ export function LoginForm() {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="Leave empty for magic link"
+            placeholder="Optional for magic link"
             className="h-11 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-subtle"
           />
         </div>
