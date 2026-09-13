@@ -284,7 +284,13 @@ function MobileTimerPill({ onOpen }: { onOpen: () => void }) {
   return (
     <div className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-30 flex justify-center px-4 lg:hidden">
       <div className="flex h-10 items-center gap-1 rounded-full border border-line bg-panel pl-3 pr-1 shadow-pop">
-        <button type="button" onClick={onOpen} className="flex items-center gap-2 pr-1 text-[13px]">
+        <button
+          type="button"
+          onClick={onOpen}
+          title="Open timer controls"
+          aria-label="Open timer controls"
+          className="flex items-center gap-2 pr-1 text-[13px]"
+        >
           <span className={cn("size-2 rounded-full", timer.running ? "bg-accent" : "bg-subtle")} />
           <span className="max-w-32 truncate text-muted">{timer.title || "Focus session"}</span>
           <span className="font-medium tabular-nums text-ink">{compactElapsed(timer.startedAt)}</span>
