@@ -211,6 +211,7 @@ export function FoodWorkspace() {
                             <span className="shrink-0 text-xs tabular-nums text-muted">{food.calories} cal · {food.protein}g</span>
                           </button>
                           <button
+                            type="button"
                             onClick={() => deleteSavedFood(food.id)}
                             title={`Remove ${food.name} from library`}
                             aria-label={`Remove ${food.name} from library`}
