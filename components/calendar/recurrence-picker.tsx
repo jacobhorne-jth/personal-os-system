@@ -270,13 +270,15 @@ function CustomRecurrenceDialog({
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-2">
-          <button type="button" onClick={onCancel} className="rounded-full px-5 py-2 text-sm text-blue transition hover:bg-paper">
+          <button type="button" onClick={onCancel} title="Cancel recurrence changes" aria-label="Cancel recurrence changes" className="rounded-full px-5 py-2 text-sm text-blue transition hover:bg-paper">
             Cancel
           </button>
           <button
             type="button"
             onClick={done}
             disabled={endsMode === "on" && !untilDate}
+            title="Apply recurrence changes"
+            aria-label="Apply recurrence changes"
             className="rounded-full bg-blue px-6 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-40"
           >
             Done
