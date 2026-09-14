@@ -147,6 +147,9 @@ export function ReviewWorkspace({ selectedId, onQueueChange }: ReviewWorkspacePr
             <button
               type="button"
               onClick={() => setSourceOpen((open) => !open)}
+              title={sourceOpen ? "Hide capture source" : "Show capture source"}
+              aria-label={sourceOpen ? "Hide capture source" : "Show capture source"}
+              aria-expanded={sourceOpen}
               className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-hover/50"
             >
               <Mail className="size-4 shrink-0 text-muted" />
