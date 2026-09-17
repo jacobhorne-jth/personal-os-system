@@ -121,10 +121,10 @@ export function DateTimeRow({
               {monthCursor.toLocaleDateString([], { month: "long", year: "numeric" })}
             </p>
             <div className="flex gap-1">
-              <button type="button" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))} className="grid size-7 place-items-center rounded-full text-muted transition hover:bg-paper">
+              <button type="button" aria-label="Previous month" title="Previous month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))} className="grid size-7 place-items-center rounded-full text-muted transition hover:bg-paper">
                 <ChevronLeft className="size-4" />
               </button>
-              <button type="button" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))} className="grid size-7 place-items-center rounded-full text-muted transition hover:bg-paper">
+              <button type="button" aria-label="Next month" title="Next month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))} className="grid size-7 place-items-center rounded-full text-muted transition hover:bg-paper">
                 <ChevronRight className="size-4" />
               </button>
             </div>
