@@ -31,7 +31,17 @@ export function LabelSelect({
       setMenuPos(null);
     }
     document.addEventListener("pointerdown", onDoc);
-    return () => document.removeEventListener("pointerdown", onDoc);
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMenuPos(null);
+        triggerRef.current?.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [menuPos]);
 
   function toggle() {
@@ -52,6 +62,8 @@ export function LabelSelect({
       <button
         ref={triggerRef}
         type="button"
+        aria-expanded={Boolean(menuPos)}
+        aria-haspopup="true"
         onClick={toggle}
         className={cn(
           "flex h-9 items-center gap-2.5 rounded-md px-2 text-sm text-ink transition hover:bg-paper",
