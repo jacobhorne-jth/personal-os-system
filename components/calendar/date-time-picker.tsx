@@ -160,7 +160,7 @@ export function DateTimeRow({
           ref={listRef}
           className={cn(
             "absolute top-full z-40 mt-1 max-h-56 w-40 overflow-y-auto rounded-xl border border-line bg-panel py-1 shadow-glow",
-            open === "start" ? "left-[150px]" : "left-[220px]"
+            open === "start" ? "left-0 sm:left-[150px]" : "left-0 sm:left-[220px]"
           )}
         >
           {(open === "start"
