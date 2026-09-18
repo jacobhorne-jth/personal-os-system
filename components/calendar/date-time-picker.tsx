@@ -51,8 +51,19 @@ export function DateTimeRow({
       if (!rowRef.current?.contains(e.target as Node)) setOpen(null);
     }
     document.addEventListener("pointerdown", onDoc);
-    return () => document.removeEventListener("pointerdown", onDoc);
-  }, []);
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && open) {
+        setOpen(null);
+        const label = open === "date" ? "Change event date" : open === "start" ? "Change start time" : "Change end time";
+        rowRef.current?.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)?.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   // Scroll the selected time into view when a time list opens
   useEffect(() => {
