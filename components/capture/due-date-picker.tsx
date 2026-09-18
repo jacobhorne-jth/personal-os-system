@@ -66,7 +66,17 @@ export function DueDatePicker({
       setPos(null);
     }
     document.addEventListener("pointerdown", onDoc);
-    return () => document.removeEventListener("pointerdown", onDoc);
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setPos(null);
+        triggerRef.current?.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   function toggle() {
