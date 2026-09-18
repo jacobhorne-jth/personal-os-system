@@ -182,10 +182,10 @@ export function DueDatePicker({
                   {MONTHS[month.getMonth()]} {month.getFullYear()}
                 </span>
                 <div className="flex gap-1">
-                  <button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="grid size-6 place-items-center rounded text-muted transition-colors hover:bg-hover hover:text-ink">
+                  <button type="button" aria-label="Previous month" title="Previous month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="grid size-6 place-items-center rounded text-muted transition-colors hover:bg-hover hover:text-ink">
                     <ChevronLeft className="size-4" />
                   </button>
-                  <button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="grid size-6 place-items-center rounded text-muted transition-colors hover:bg-hover hover:text-ink">
+                  <button type="button" aria-label="Next month" title="Next month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="grid size-6 place-items-center rounded text-muted transition-colors hover:bg-hover hover:text-ink">
                     <ChevronRight className="size-4" />
                   </button>
                 </div>
