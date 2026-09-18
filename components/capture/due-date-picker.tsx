@@ -201,6 +201,7 @@ export function DueDatePicker({
                     <button
                       key={i}
                       type="button"
+                      aria-label={keyToDate(key).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                       onClick={() => pick(key)}
                       className={cn(
                         "grid size-8 place-items-center rounded-full text-xs tabular-nums transition-colors",
