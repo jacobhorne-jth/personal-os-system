@@ -141,6 +141,7 @@ export function DateTimeRow({
                 <button
                   type="button"
                   key={d.toISOString()}
+                  aria-label={d.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                   onClick={() => pickDate(d)}
                   className={cn(
                     "mx-auto grid size-8 place-items-center rounded-full text-xs transition",
