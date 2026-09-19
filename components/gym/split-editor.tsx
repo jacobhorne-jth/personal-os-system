@@ -74,6 +74,9 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
         {gymDays.map((d) => (
           <button
             key={d.dayIndex}
+            type="button"
+            aria-pressed={selectedDay === d.dayIndex}
+            aria-label={`${DAY_NAMES[d.dayIndex]}: ${d.label}`}
             onClick={() => { setSelectedDay(d.dayIndex); setShowAddBox(false); setAddQuery(""); }}
             className={cn(
               "flex shrink-0 flex-col items-center rounded-lg border px-3 py-2 text-xs transition",
