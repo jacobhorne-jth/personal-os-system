@@ -141,7 +141,10 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
                       <p className="text-[11px] text-muted">{ex.defaultSets}×{ex.defaultReps}{ex.muscleGroup ? ` · ${ex.muscleGroup}` : ""}</p>
                     </div>
                     <button
+                      type="button"
                       onClick={() => removeExercise(ex.id)}
+                      aria-label={`Remove ${ex.name}`}
+                      title={`Remove ${ex.name}`}
                       className="rounded p-1 text-muted hover:bg-hover hover:text-danger"
                     >
                       <Trash2 className="size-3.5" />
@@ -157,6 +160,7 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
             <div className="space-y-2">
               <input
                 autoFocus
+                aria-label="Search or create exercise"
                 value={addQuery}
                 onChange={(e) => setAddQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Escape") { setShowAddBox(false); setAddQuery(""); } }}
@@ -168,6 +172,7 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
                   {catalogMatches.slice(0, 6).map((ex) => (
                     <button
                       key={ex.id}
+                      type="button"
                       onMouseDown={() => addExerciseById(ex.id)}
                       className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-hover"
                     >
@@ -176,6 +181,7 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
                     </button>
                   ))}
                   <button
+                    type="button"
                     onMouseDown={createAndAdd}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm border-t border-line text-accent hover:bg-hover"
                   >
@@ -187,6 +193,7 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
             </div>
           ) : (
             <button
+              type="button"
               onClick={() => setShowAddBox(true)}
               className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-2.5 text-sm text-muted transition-colors hover:border-subtle hover:text-ink"
             >
