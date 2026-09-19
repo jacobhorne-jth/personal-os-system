@@ -116,15 +116,21 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
                   <div key={ex.id} className="flex items-center gap-2 px-3 py-2.5">
                     <div className="flex flex-col gap-0.5">
                       <button
+                        type="button"
                         onClick={() => moveExercise(ex.id, -1)}
                         disabled={i === 0}
+                        aria-label={`Move ${ex.name} up`}
+                        title={`Move ${ex.name} up`}
                         className="rounded p-0.5 text-muted hover:text-ink disabled:opacity-20"
                       >
                         <ArrowUp className="size-3" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => moveExercise(ex.id, 1)}
                         disabled={i === dayExercises.length - 1}
+                        aria-label={`Move ${ex.name} down`}
+                        title={`Move ${ex.name} down`}
                         className="rounded p-0.5 text-muted hover:text-ink disabled:opacity-20"
                       >
                         <ArrowDown className="size-3" />
