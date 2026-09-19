@@ -64,7 +64,7 @@ export function SplitEditor({ onClose }: { onClose: () => void }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-ink">Edit split</h2>
-        <button onClick={onClose} className="grid size-7 place-items-center rounded-md text-muted transition-colors hover:bg-hover hover:text-ink">
+        <button type="button" onClick={onClose} aria-label="Close split editor" title="Close split editor" className="grid size-7 place-items-center rounded-md text-muted transition-colors hover:bg-hover hover:text-ink">
           <X className="size-4" />
         </button>
       </div>
